@@ -1,4 +1,4 @@
-package com.imnotndesh.truehub.ui.services.apps
+package com.imnotndesh.truehub.ui.services.apps.details
 
 import com.imnotndesh.truehub.data.models.Apps
 

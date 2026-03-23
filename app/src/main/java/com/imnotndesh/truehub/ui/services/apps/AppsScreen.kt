@@ -615,7 +615,7 @@ private fun ServiceCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)), // Expressive: Rounder caps
+                                .clip(RoundedCornerShape(3.dp)),
                             color = MaterialTheme.colorScheme.primary,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
                             strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,

@@ -59,12 +59,16 @@ import com.imnotndesh.truehub.ui.homepage.HomeScreen
 import com.imnotndesh.truehub.ui.homepage.dataset.DatasetExplorerScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
-import com.imnotndesh.truehub.ui.services.apps.AppDataHolder
+import com.imnotndesh.truehub.ui.services.apps.details.AppDataHolder
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
 import com.imnotndesh.truehub.ui.services.apps.details.AppInfoScreen
 import com.imnotndesh.truehub.ui.services.apps.details.UpgradeSummaryScreen
 import com.imnotndesh.truehub.ui.services.containers.ContainersScreen
+import com.imnotndesh.truehub.ui.services.containers.details.ContainerDataHolder
+import com.imnotndesh.truehub.ui.services.containers.details.ContainerInfoScreen
 import com.imnotndesh.truehub.ui.services.vm.VmsScreen
+import com.imnotndesh.truehub.ui.services.vm.details.VmDataHolder
+import com.imnotndesh.truehub.ui.services.vm.details.VmInfoScreen
 
 private data class NavItem(
     val screen: Screen,
@@ -295,7 +299,6 @@ private fun TrueHubNavGraph(
                 )
             } else if (uiState.error != null) {
                 androidx.compose.runtime.LaunchedEffect(Unit) {
-                    // ToastManager.showError(uiState.error)
                     navController.popBackStack()
                 }
             }
@@ -332,20 +335,54 @@ private fun TrueHubNavGraph(
                     onNavigateBack = { navController.popBackStack() }
                 )
             } else if (uiState.error != null) {
-                // Show error state or pop back
                 LaunchedEffect(Unit) {
-                    // ToastManager.showError(uiState.error) // If you have a toast manager
                     navController.popBackStack()
                 }
             }
         }
 
         composable(Screen.Containers.route) {
-            ContainersScreen(manager)
+            ContainersScreen(
+                manager= manager,
+                onNavigateToContainerInfo = { container ->
+                    ContainerDataHolder.selectedContainer = container
+                    navController.navigate("container_info")
+                }
+            )
+        }
+
+        composable("container_info"){
+            val container = ContainerDataHolder.selectedContainer
+            ContainerInfoScreen(
+                manager= manager,
+                container = container!!,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+
         }
 
         composable(Screen.Vms.route) {
-            VmsScreen(manager)
+            VmsScreen(
+                manager = manager,
+                onNavigateToVmInfo = { vmInfo ->
+                    VmDataHolder.selectedVm = vmInfo
+                    navController.navigate("vm_details")
+                }
+
+            )
+        }
+
+        composable("vm_details") {
+            val vm = VmDataHolder.selectedVm
+            VmInfoScreen(
+                vm = vm!!,
+                manager = manager,
+                onNavigateBack ={
+                     navController.popBackStack()
+                }
+            )
         }
 
         composable(

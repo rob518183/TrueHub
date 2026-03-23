@@ -309,7 +309,7 @@ class VmsScreenViewModel(
     private fun trackContainerOperation(vmID: Int, jobId: Int, operation: String) {
         viewModelScope.launch {
             var pollAttempts = 0
-            val maxPollAttempts = 150 // 5 minutes max
+            val maxPollAttempts = 150
 
             while (pollAttempts < maxPollAttempts) {
                 try {
