@@ -33,6 +33,7 @@ import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -53,17 +54,21 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.System
+import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.homepage.HomeScreen
 import com.imnotndesh.truehub.ui.homepage.dataset.DatasetExplorerScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
-import com.imnotndesh.truehub.ui.services.apps.AppDataHolder
+import com.imnotndesh.truehub.ui.services.apps.details.AppDataHolder
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
 import com.imnotndesh.truehub.ui.services.apps.details.AppInfoScreen
-import com.imnotndesh.truehub.ui.services.apps.details.RollbackVersionScreen
 import com.imnotndesh.truehub.ui.services.apps.details.UpgradeSummaryScreen
 import com.imnotndesh.truehub.ui.services.containers.ContainersScreen
+import com.imnotndesh.truehub.ui.services.containers.details.ContainerDataHolder
+import com.imnotndesh.truehub.ui.services.containers.details.ContainerInfoScreen
 import com.imnotndesh.truehub.ui.services.vm.VmsScreen
+import com.imnotndesh.truehub.ui.services.vm.details.VmDataHolder
+import com.imnotndesh.truehub.ui.services.vm.details.VmInfoScreen
 
 private data class NavItem(
     val screen: Screen,
@@ -156,7 +161,7 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
                             },
                             icon = {
                                 Crossfade(targetState = selected, label = "iconFade") { isSelected ->
-                                    Icon(
+                                  Icon(
                                         imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
                                         contentDescription = item.title
                                     )
@@ -270,6 +275,7 @@ private fun TrueHubNavGraph(
             arguments = listOf(navArgument("appName") { type = NavType.StringType })
         ) { backStackEntry ->
             val appName = backStackEntry.arguments?.getString("appName") ?: ""
+
             val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val uiState by viewModel.uiState.collectAsState()
             androidx.compose.runtime.LaunchedEffect(appName) {
@@ -278,7 +284,7 @@ private fun TrueHubNavGraph(
             }
 
             val summary = uiState.upgradeSummaryResult
-            val isLoading = uiState.isLoadingUpgradeSummaryForApp == appName
+            val isLoading = (uiState.isLoadingUpgradeSummaryForApp == appName) && (summary == null)
 
             if (isLoading) {
                 com.imnotndesh.truehub.ui.components.LoadingScreen("Checking upgrades...")
@@ -287,12 +293,11 @@ private fun TrueHubNavGraph(
                     appName = appName,
                     summary = summary,
                     manager = manager,
-                    isUpgrading = uiState.upgradeJobs[appName]?.state == "UPGRADING", // Matches ViewModel "UPGRADING" state
+                    upgradeJobState = uiState.upgradeJobs[appName],
                     onConfirmUpgrade = { viewModel.upgradeApp(appName) },
                     onNavigateBack = { navController.popBackStack() }
                 )
             } else if (uiState.error != null) {
-
                 androidx.compose.runtime.LaunchedEffect(Unit) {
                     navController.popBackStack()
                 }
@@ -301,33 +306,83 @@ private fun TrueHubNavGraph(
 
         // App Rollback
         composable(
-            route = "app_rollback/{appName}",
+            route = "app_upgrade/{appName}",
             arguments = listOf(navArgument("appName") { type = NavType.StringType })
         ) { backStackEntry ->
             val appName = backStackEntry.arguments?.getString("appName") ?: ""
+
             val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val uiState by viewModel.uiState.collectAsState()
 
-            RollbackVersionScreen(
-                appName = appName,
-                versions = uiState.rollbackVersions,
-                isLoadingVersions = uiState.isLoadingRollbackVersions,
-                rollbackJobState = uiState.rollbackJobs[appName],
-                manager = manager,
-                onLoadVersions = { viewModel.loadRollbackVersions(appName) },
-                onConfirmRollback = { version, snapshot ->
-                    viewModel.rollbackApp(appName, version, snapshot)
-                },
-                onNavigateBack = { navController.popBackStack() }
-            )
+            // Trigger load once
+            LaunchedEffect(appName) {
+                viewModel.clearUpgradeSummary()
+                viewModel.loadUpgradeSummary(appName)
+            }
+
+            val summary = uiState.upgradeSummaryResult
+            val isLoading = (uiState.isLoadingUpgradeSummaryForApp == appName) && (summary == null)
+
+            if (isLoading) {
+                LoadingScreen("Checking upgrades...")
+            } else if (summary != null) {
+                UpgradeSummaryScreen(
+                    appName = appName,
+                    summary = summary,
+                    manager = manager,
+                    upgradeJobState = uiState.upgradeJobs[appName], // Pass the full state object
+                    onConfirmUpgrade = { viewModel.upgradeApp(appName) },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            } else if (uiState.error != null) {
+                LaunchedEffect(Unit) {
+                    navController.popBackStack()
+                }
+            }
         }
 
         composable(Screen.Containers.route) {
-            ContainersScreen(manager)
+            ContainersScreen(
+                manager= manager,
+                onNavigateToContainerInfo = { container ->
+                    ContainerDataHolder.selectedContainer = container
+                    navController.navigate("container_info")
+                }
+            )
+        }
+
+        composable("container_info"){
+            val container = ContainerDataHolder.selectedContainer
+            ContainerInfoScreen(
+                manager= manager,
+                container = container!!,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+
         }
 
         composable(Screen.Vms.route) {
-            VmsScreen(manager)
+            VmsScreen(
+                manager = manager,
+                onNavigateToVmInfo = { vmInfo ->
+                    VmDataHolder.selectedVm = vmInfo
+                    navController.navigate("vm_details")
+                }
+
+            )
+        }
+
+        composable("vm_details") {
+            val vm = VmDataHolder.selectedVm
+            VmInfoScreen(
+                vm = vm!!,
+                manager = manager,
+                onNavigateBack ={
+                     navController.popBackStack()
+                }
+            )
         }
 
         composable(

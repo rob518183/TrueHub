@@ -1,5 +1,15 @@
 package com.imnotndesh.truehub.ui.services.vm
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,12 +25,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -34,7 +51,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -44,9 +64,12 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,7 +77,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,12 +90,21 @@ import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.data.models.Vm
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
-import com.imnotndesh.truehub.ui.services.vm.details.VmInfoBottomSheet
+import com.imnotndesh.truehub.ui.services.vm.details.VmInfoPane
+import com.imnotndesh.truehub.ui.utils.AdaptiveLayoutHelper
+
+enum class VmFilterCategory(val label: String) {
+    ALL("All"),
+    RUNNING("Running"),
+    STOPPED("Stopped"),
+    SUSPENDED("Suspended")
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VmsScreen(
     manager: TrueNASApiManager,
+    onNavigateToVmInfo: (Vm.VmQueryResponse) -> Unit = {},
     viewModel: VmsScreenViewModel = viewModel(
         factory = VmsScreenViewModel.VmViewModelFactory(manager)
     )
@@ -79,10 +113,27 @@ fun VmsScreen(
         viewModel.loadVms()
     }
     val uiState by viewModel.uiState.collectAsState()
-    Column {
+    val isCompact = AdaptiveLayoutHelper.isCompact()
+    val refreshState = rememberPullToRefreshState()
+
+    var selectedCategory by remember { mutableStateOf(VmFilterCategory.ALL) }
+    var selectedVmForPane by remember { mutableStateOf<Vm.VmQueryResponse?>(null) }
+
+    val filteredVms by remember(uiState.vms, selectedCategory) {
+        derivedStateOf {
+            when (selectedCategory) {
+                VmFilterCategory.ALL -> uiState.vms
+                VmFilterCategory.RUNNING -> uiState.vms.filter { it.status.state.equals("running", ignoreCase = true) }
+                VmFilterCategory.STOPPED -> uiState.vms.filter { it.status.state.equals("stopped", ignoreCase = true) }
+                VmFilterCategory.SUSPENDED -> uiState.vms.filter { it.status.state.equals("suspended", ignoreCase = true) }
+            }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
         UnifiedScreenHeader(
             title = "Virtual Machines",
-            subtitle = "${uiState.vms.size} VMs",
+            subtitle = "${filteredVms.size} VMs",
             isLoading = uiState.isLoading,
             isRefreshing = uiState.isRefreshing,
             error = uiState.error,
@@ -90,35 +141,209 @@ fun VmsScreen(
             onDismissError = { viewModel.clearError() },
             manager = manager
         )
+
+        VmFilterBar(
+            currentCategory = selectedCategory,
+            onCategorySelected = { selectedCategory = it },
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
         PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
-            onRefresh = {viewModel.refresh()}
+            onRefresh = { viewModel.refresh() },
+            state = refreshState,
+            indicator = {
+                Box(
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    contentAlignment = Alignment.Center
+                ) {
+                    MorphingRefreshIndicator(
+                        state = refreshState,
+                        isRefreshing = uiState.isRefreshing
+                    )
+                }
+            },
+            modifier = Modifier.weight(1f)
         ) {
             when {
-                uiState.isLoading -> {
+                uiState.vms.isEmpty() && uiState.isLoading -> {
                     LoadingScreen("Loading Virtual Machines")
                 }
                 uiState.vms.isEmpty() && !uiState.isLoading -> {
                     EmptyVmContent()
                 }
+                filteredVms.isEmpty() && !uiState.isLoading && uiState.vms.isNotEmpty() -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "No VMs in this category",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 else -> {
-                    VmsContent(
-                        vms = uiState.vms,
-                        isRefreshing = uiState.isRefreshing,
-                        onStartVm = { id,overcommit -> viewModel.startVm(id,overcommit) },
-                        onStopVm = { id,force,timeout -> viewModel.stopVm(id, force,timeout) },
-                        onRestartVm = { id -> viewModel.restartVm(id) },
-                        onSuspendVm = { id -> viewModel.suspendVm(id) },
-                        onResumeVm = { id -> viewModel.resumeVm(id) },
-                        onPowerOffVm = { id -> viewModel.powerOffVm(id) },
-                        onDeleteVm = { id,deleteZvols,forceDelete -> viewModel.deleteVm(id,deleteZvols,forceDelete) },
-                        operationJob = uiState.operationJobs
+                    if (isCompact) {
+                        VmsContent(
+                            vms = filteredVms,
+                            isRefreshing = uiState.isRefreshing,
+                            onStartVm = { id, overcommit -> viewModel.startVm(id, overcommit) },
+                            onStopVm = { id, force, timeout -> viewModel.stopVm(id, force, timeout) },
+                            onRestartVm = { id -> viewModel.restartVm(id) },
+                            onSuspendVm = { id -> viewModel.suspendVm(id) },
+                            onResumeVm = { id -> viewModel.resumeVm(id) },
+                            onPowerOffVm = { id -> viewModel.powerOffVm(id) },
+                            onDeleteVm = { id, deleteZvols, forceDelete -> viewModel.deleteVm(id, deleteZvols, forceDelete) },
+                            operationJob = uiState.operationJobs,
+                            onVmInfoClicked = { vm -> onNavigateToVmInfo(vm) },
+                            selectedVm = null
+                        )
+                    } else {
+                        VmsSplitPaneContent(
+                            vms = filteredVms,
+                            selectedVm = selectedVmForPane,
+                            isRefreshing = uiState.isRefreshing,
+                            onStartVm = { id, overcommit -> viewModel.startVm(id, overcommit) },
+                            onStopVm = { id, force, timeout -> viewModel.stopVm(id, force, timeout) },
+                            onRestartVm = { id -> viewModel.restartVm(id) },
+                            onSuspendVm = { id -> viewModel.suspendVm(id) },
+                            onResumeVm = { id -> viewModel.resumeVm(id) },
+                            onPowerOffVm = { id -> viewModel.powerOffVm(id) },
+                            onDeleteVm = { id, deleteZvols, forceDelete -> viewModel.deleteVm(id, deleteZvols, forceDelete) },
+                            operationJob = uiState.operationJobs,
+                            onVmInfoClicked = { vm -> onNavigateToVmInfo(vm) },
+                            onVmPaneSelected = { vm -> selectedVmForPane = vm },
+                            onClosePane = { selectedVmForPane = null }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun VmFilterBar(
+    currentCategory: VmFilterCategory,
+    onCategorySelected: (VmFilterCategory) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(VmFilterCategory.entries.toTypedArray()) { category ->
+            val isSelected = currentCategory == category
+            val animColor by animateColorAsState(
+                targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                label = "color"
+            )
+            FilterChip(
+                selected = isSelected,
+                onClick = { onCategorySelected(category) },
+                label = { Text(category.label) },
+                leadingIcon = if (isSelected) {
+                    {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(FilterChipDefaults.IconSize)
+                        )
+                    }
+                } else null,
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = animColor,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = isSelected,
+                    borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outline
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun VmsSplitPaneContent(
+    vms: List<Vm.VmQueryResponse>,
+    selectedVm: Vm.VmQueryResponse?,
+    isRefreshing: Boolean,
+    onStartVm: (Int, Boolean) -> Unit,
+    onStopVm: (Int, Boolean, Boolean) -> Unit,
+    onRestartVm: (Int) -> Unit,
+    onSuspendVm: (Int) -> Unit,
+    onResumeVm: (Int) -> Unit,
+    onPowerOffVm: (Int) -> Unit,
+    onDeleteVm: (Int, Boolean, Boolean) -> Unit,
+    operationJob: Map<Int, System.Job>,
+    onVmInfoClicked: (Vm.VmQueryResponse) -> Unit,
+    onVmPaneSelected: (Vm.VmQueryResponse) -> Unit,
+    onClosePane: () -> Unit
+) {
+    Row(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .weight(if (selectedVm != null) 0.55f else 1f)
+                .fillMaxSize()
+        ) {
+            VmsContent(
+                vms = vms,
+                isRefreshing = isRefreshing,
+                onStartVm = onStartVm,
+                onStopVm = onStopVm,
+                onRestartVm = onRestartVm,
+                onSuspendVm = onSuspendVm,
+                onResumeVm = onResumeVm,
+                onPowerOffVm = onPowerOffVm,
+                onDeleteVm = onDeleteVm,
+                operationJob = operationJob,
+                onVmInfoClicked = onVmInfoClicked,
+                selectedVm = selectedVm,
+                onVmPaneSelected = onVmPaneSelected
+            )
+        }
+        AnimatedVisibility(
+            visible = selectedVm != null,
+            enter = slideInHorizontally(
+                initialOffsetX = { it },
+                animationSpec = spring(stiffness = Spring.StiffnessLow)
+            ) + fadeIn(),
+            exit = slideOutHorizontally(
+                targetOffsetX = { it },
+                animationSpec = spring(stiffness = Spring.StiffnessLow)
+            ) + fadeOut()
+        ) {
+            selectedVm?.let { vm ->
+                Box(
+                    modifier = Modifier
+                        .weight(0.45f)
+                        .fillMaxHeight()
+                ) {
+                    VmInfoPane(
+                        vm = vm,
+                        onClose = onClosePane
                     )
                 }
             }
         }
     }
 }
+
 @Composable
 private fun EmptyVmContent() {
     Column(
@@ -150,48 +375,80 @@ private fun EmptyVmContent() {
 private fun VmsContent(
     vms: List<Vm.VmQueryResponse>,
     isRefreshing: Boolean,
-    onStartVm: (Int,Boolean) -> Unit,
+    onStartVm: (Int, Boolean) -> Unit,
     onStopVm: (Int, Boolean, Boolean) -> Unit,
     onRestartVm: (Int) -> Unit,
     onSuspendVm: (Int) -> Unit,
     onResumeVm: (Int) -> Unit,
     onPowerOffVm: (Int) -> Unit,
-    onDeleteVm: (Int,Boolean,Boolean) -> Unit,
-    operationJob: Map<Int, System.Job>
+    onDeleteVm: (Int, Boolean, Boolean) -> Unit,
+    onVmInfoClicked: (Vm.VmQueryResponse) -> Unit,
+    operationJob: Map<Int, System.Job>,
+    selectedVm: Vm.VmQueryResponse? = null,
+    onVmPaneSelected: ((Vm.VmQueryResponse) -> Unit)? = null
 ) {
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier
-            .fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)    ) {
-        if (isRefreshing) {
-            item {
-                LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+    val isCompact = AdaptiveLayoutHelper.isCompact()
+    val columnCount = AdaptiveLayoutHelper.getColumnCount(compact = 1, medium = 2, expanded = 3)
+    val contentPadding = AdaptiveLayoutHelper.getContentPadding()
+    val horizontalSpacing = AdaptiveLayoutHelper.getHorizontalSpacing()
+
+    if (isCompact) {
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = contentPadding.dp, vertical = 8.dp)
+        ) {
+            items(items = vms, key = { it.id }) { vm ->
+                Box(modifier = Modifier.animateItem(
+                    fadeInSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    placementSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy)
+                )) {
+                    VmCard(
+                        vm = vm,
+                        onStartVm = { overcommit -> onStartVm(vm.id, overcommit) },
+                        onStopVm = { force, timeout -> onStopVm(vm.id, force, timeout) },
+                        onRestartVm = { onRestartVm(vm.id) },
+                        onSuspendVm = { onSuspendVm(vm.id) },
+                        onResumeVm = { onResumeVm(vm.id) },
+                        onPowerOffVm = { onPowerOffVm(vm.id) },
+                        onDeleteVm = { deleteZvols, forceDelete -> onDeleteVm(vm.id, deleteZvols, forceDelete) },
+                        operationJob = operationJob[vm.id],
+                        onVmInfoClick = { onVmInfoClicked(vm) },
+                        isSelected = selectedVm?.id == vm.id
+                    )
+                }
             }
+            item { Spacer(modifier = Modifier.height(24.dp)) }
         }
-
-        items(vms) { vm ->
-            VmCard(
-                vm = vm,
-                onStartVm = {overcommit -> onStartVm(vm.id,overcommit) },
-                onStopVm = {force, timeout -> onStopVm(vm.id,force,timeout) },
-                onRestartVm = { onRestartVm(vm.id) },
-                onSuspendVm = { onSuspendVm(vm.id) },
-                onResumeVm = { onResumeVm(vm.id) },
-                onPowerOffVm = { onPowerOffVm(vm.id) },
-                onDeleteVm = { deleteZvols,forceDelete -> onDeleteVm(vm.id,deleteZvols,forceDelete) },
-                operationJob = operationJob[vm.id]
-            )
-        }
-
-        item {
-            Spacer(modifier = Modifier.height(24.dp))
+    } else {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columnCount),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(horizontalSpacing.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = contentPadding.dp, vertical = 8.dp)
+        ) {
+            items(items = vms, key = { it.id }) { vm ->
+                Box(modifier = Modifier.animateItem(
+                    fadeInSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    placementSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy)
+                )) {
+                    VmCard(
+                        vm = vm,
+                        onStartVm = { overcommit -> onStartVm(vm.id, overcommit) },
+                        onStopVm = { force, timeout -> onStopVm(vm.id, force, timeout) },
+                        onRestartVm = { onRestartVm(vm.id) },
+                        onSuspendVm = { onSuspendVm(vm.id) },
+                        onResumeVm = { onResumeVm(vm.id) },
+                        onPowerOffVm = { onPowerOffVm(vm.id) },
+                        onDeleteVm = { deleteZvols, forceDelete -> onDeleteVm(vm.id, deleteZvols, forceDelete) },
+                        operationJob = operationJob[vm.id],
+                        onVmInfoClick = { onVmPaneSelected?.invoke(vm) ?: onVmInfoClicked(vm) },
+                        isSelected = selectedVm?.id == vm.id
+                    )
+                }
+            }
+            item { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
 }
@@ -201,142 +458,147 @@ private fun VmsContent(
 private fun VmCard(
     vm: Vm.VmQueryResponse,
     onStartVm: (Boolean) -> Unit,
-    onStopVm: (Boolean,Boolean) -> Unit,
+    onStopVm: (Boolean, Boolean) -> Unit,
     onRestartVm: () -> Unit,
     onSuspendVm: () -> Unit,
     onResumeVm: () -> Unit,
     onPowerOffVm: () -> Unit,
-    onDeleteVm: (Boolean,Boolean) -> Unit,
-    operationJob: System.Job? = null
+    onDeleteVm: (Boolean, Boolean) -> Unit,
+    onVmInfoClick: (Vm.VmQueryResponse) -> Unit,
+    operationJob: System.Job? = null,
+    isSelected: Boolean = false
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var showInfoDialog by remember { mutableStateOf(false) }
     var showStopDialog by remember { mutableStateOf(false) }
     var showStartDialog by remember { mutableStateOf(false) }
     var showMoreOptions by remember { mutableStateOf(false) }
+    val isCompact = AdaptiveLayoutHelper.isCompact()
+    val cardPadding = if (isCompact) 20.dp else 16.dp
+    val cardHorizontalPadding = if (isCompact) 4.dp else 0.dp
+
+    val borderColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        label = "border"
+    )
 
     Card(
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = if (isSelected)
+                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+            else
+                MaterialTheme.colorScheme.surface
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp)
+            .padding(horizontal = cardHorizontalPadding)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(cardPadding)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // VM Icon
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.tertiaryContainer),
-                    contentAlignment = Alignment.Center
+            if (isCompact) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Computer,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = vm.name,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    if (vm.description.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.tertiaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Computer,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = vm.description,
+                            text = vm.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (vm.description.isNotEmpty()) vm.description else "ID: ${vm.id}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                    } else {
-                        Text(
-                            text = "ID: ${vm.id}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                    }
+                    StatusChip(status = vm.status, icon = getStatusIcon(vm.status))
+                }
+            } else {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(MaterialTheme.colorScheme.tertiaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Computer,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(getStatusColor(vm.status))
                         )
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = vm.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (vm.description.isNotEmpty()) vm.description else "ID: ${vm.id}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-
-                StatusChip(
-                    status = vm.status,
-                    icon = getStatusIcon(vm.status)
-                )
             }
 
-            // VM Details
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                DetailItem(
-                    label = "vCPUs",
-                    value = "${vm.vcpus}"
-                )
-                DetailItem(
-                    label = "Cores",
-                    value = "${vm.cores}"
-                )
-                DetailItem(
-                    label = "Memory",
-                    value = "${vm.memory} MB"
-                )
+                DetailItem(label = "vCPUs", value = "${vm.vcpus}")
+                DetailItem(label = "Cores", value = "${vm.cores}")
+                DetailItem(label = "Memory", value = "${vm.memory} MB")
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                DetailItem(
-                    label = "Bootloader",
-                    value = vm.bootloader
-                )
-                DetailItem(
-                    label = "Autostart",
-                    value = if (vm.autostart) "Yes" else "No"
-                )
-                if (vm.enable_secure_boot) {
-                    DetailItem(
-                        label = "Secure Boot",
-                        value = "Enabled"
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Loading bar
             operationJob?.let { job ->
-                Spacer(modifier = Modifier.height(12.dp))
-
+                Spacer(modifier = Modifier.height(16.dp))
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -351,7 +613,6 @@ private fun VmCard(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-
                         Text(
                             text = "${job.progress?.percent ?: 0}%",
                             style = MaterialTheme.typography.bodySmall,
@@ -359,31 +620,29 @@ private fun VmCard(
                             fontWeight = FontWeight.Medium
                         )
                     }
-
                     Spacer(modifier = Modifier.height(8.dp))
-
                     LinearProgressIndicator(
                         progress = { (job.progress?.percent?.coerceIn(0, 100)?.toFloat() ?: 0f) / 100f },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(6.dp),
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
+                        strokeCap = ProgressIndicatorDefaults.LinearStrokeCap
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Primary action row - Start/Stop/Resume and View Info only
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                when (vm.status.state.lowercase()) {
-                    "stopped" -> {
-                        ActionButton(
+            if (isCompact) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    when (vm.status.state.lowercase()) {
+                        "stopped" -> ActionButton(
                             text = "Start",
                             icon = Icons.Default.PlayArrow,
                             enabled = true,
@@ -391,9 +650,7 @@ private fun VmCard(
                             onClick = { showStartDialog = true },
                             modifier = Modifier.weight(1f)
                         )
-                    }
-                    "running" -> {
-                        ActionButton(
+                        "running" -> ActionButton(
                             text = "Stop",
                             icon = Icons.Default.Stop,
                             enabled = true,
@@ -401,9 +658,7 @@ private fun VmCard(
                             onClick = { showStopDialog = true },
                             modifier = Modifier.weight(1f)
                         )
-                    }
-                    "suspended" -> {
-                        ActionButton(
+                        "suspended" -> ActionButton(
                             text = "Resume",
                             icon = Icons.Default.PlayArrow,
                             enabled = true,
@@ -411,9 +666,7 @@ private fun VmCard(
                             onClick = onResumeVm,
                             modifier = Modifier.weight(1f)
                         )
-                    }
-                    else -> {
-                        ActionButton(
+                        else -> ActionButton(
                             text = vm.status.state,
                             icon = Icons.Default.Error,
                             enabled = false,
@@ -422,70 +675,116 @@ private fun VmCard(
                             modifier = Modifier.weight(1f)
                         )
                     }
+                    ActionButton(
+                        text = "View Info",
+                        icon = Icons.Default.Info,
+                        enabled = true,
+                        isPrimary = false,
+                        onClick = { onVmInfoClick(vm) },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-
-                ActionButton(
-                    text = "View Info",
-                    icon = Icons.Default.Info,
-                    enabled = true,
-                    isPrimary = false,
-                    onClick = { showInfoDialog = true },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // More Options expandable section
-            Surface(
-                onClick = { showMoreOptions = !showMoreOptions },
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            } else {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    when (vm.status.state.lowercase()) {
+                        "stopped" -> CompactActionButton(
+                            icon = Icons.Default.PlayArrow,
+                            contentDescription = "Start",
+                            isPrimary = true,
+                            onClick = { showStartDialog = true },
+                            modifier = Modifier.weight(1f)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "More Options",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        "running" -> CompactActionButton(
+                            icon = Icons.Default.Stop,
+                            contentDescription = "Stop",
+                            isPrimary = true,
+                            onClick = { showStopDialog = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                        "suspended" -> CompactActionButton(
+                            icon = Icons.Default.PlayArrow,
+                            contentDescription = "Resume",
+                            isPrimary = true,
+                            onClick = onResumeVm,
+                            modifier = Modifier.weight(1f)
+                        )
+                        else -> CompactActionButton(
+                            icon = Icons.Default.Error,
+                            contentDescription = vm.status.state,
+                            isPrimary = false,
+                            enabled = false,
+                            onClick = {},
+                            modifier = Modifier.weight(1f)
                         )
                     }
-
-                    Icon(
-                        imageVector = if (showMoreOptions) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = if (showMoreOptions) "Collapse" else "Expand",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    CompactActionButton(
+                        icon = Icons.Default.Info,
+                        contentDescription = "View Info",
+                        isPrimary = false,
+                        onClick = { onVmInfoClick(vm) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    CompactActionButton(
+                        icon = Icons.Default.Settings,
+                        contentDescription = "More Options",
+                        isPrimary = false,
+                        onClick = { showMoreOptions = !showMoreOptions },
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
 
-            androidx.compose.animation.AnimatedVisibility(
+            if (isCompact) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    onClick = { showMoreOptions = !showMoreOptions },
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "More Options",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = if (showMoreOptions) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (showMoreOptions) "Collapse" else "Expand",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(
                 visible = showMoreOptions,
-                enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
-                exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+                enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
+                exit = shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeOut()
             ) {
                 Column(
                     modifier = Modifier.padding(top = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Restart button (only show when running)
                     if (vm.status.state.lowercase() == "running") {
                         ActionButton(
                             text = "Restart",
@@ -495,10 +794,6 @@ private fun VmCard(
                             onClick = onRestartVm,
                             modifier = Modifier.fillMaxWidth()
                         )
-                    }
-
-                    // Suspend button (only show when running)
-                    if (vm.status.state.lowercase() == "running") {
                         ActionButton(
                             text = "Suspend",
                             icon = Icons.Default.Pause,
@@ -507,10 +802,6 @@ private fun VmCard(
                             onClick = onSuspendVm,
                             modifier = Modifier.fillMaxWidth()
                         )
-                    }
-
-                    // Power Off button (only show when running)
-                    if (vm.status.state.lowercase() == "running") {
                         ActionButton(
                             text = "Power Off",
                             icon = Icons.Default.PowerOff,
@@ -520,8 +811,6 @@ private fun VmCard(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-
-                    // Delete button (only enabled when stopped)
                     ActionButton(
                         text = "Delete",
                         icon = Icons.Default.Delete,
@@ -546,7 +835,6 @@ private fun VmCard(
             onDismiss = { showStartDialog = false }
         )
     }
-
     if (showDeleteDialog) {
         DeleteConfirmationDialog(
             vmName = vm.name,
@@ -557,14 +845,6 @@ private fun VmCard(
             onDismiss = { showDeleteDialog = false }
         )
     }
-
-    if (showInfoDialog) {
-        VmInfoBottomSheet(
-            vm = vm,
-            onDismiss = { showInfoDialog = false }
-        )
-    }
-
     if (showStopDialog) {
         StopConfirmationDialog(
             vmName = vm.name,
@@ -578,10 +858,55 @@ private fun VmCard(
 }
 
 @Composable
-private fun DetailItem(
-    label: String,
-    value: String
+private fun CompactActionButton(
+    icon: ImageVector,
+    contentDescription: String,
+    isPrimary: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
+    val containerColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> MaterialTheme.colorScheme.surfaceContainerHigh
+            isPrimary -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        label = "container"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+            isPrimary -> MaterialTheme.colorScheme.onPrimary
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        label = "content"
+    )
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(16.dp),
+        color = containerColor,
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 14.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(24.dp),
+                tint = contentColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailItem(label: String, value: String) {
     Column {
         Text(
             text = label,
@@ -598,14 +923,10 @@ private fun DetailItem(
 }
 
 @Composable
-private fun StatusChip(
-    status: Vm.VmStatus,
-    icon: ImageVector
-) {
+private fun StatusChip(status: Vm.VmStatus, icon: ImageVector) {
     Surface(
         color = getStatusColor(status).copy(alpha = 0.12f),
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.padding(0.dp)
+        shape = RoundedCornerShape(100.dp)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -638,16 +959,29 @@ private fun ActionButton(
     modifier: Modifier = Modifier,
     isDanger: Boolean = false
 ) {
+    val containerColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> MaterialTheme.colorScheme.surfaceContainerHigh
+            isDanger -> MaterialTheme.colorScheme.errorContainer
+            isPrimary -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.surfaceContainer
+        },
+        label = "btnColor"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+            isDanger -> MaterialTheme.colorScheme.onErrorContainer
+            isPrimary -> MaterialTheme.colorScheme.onPrimary
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        label = "contentColor"
+    )
     Surface(
         onClick = onClick,
         enabled = enabled,
-        shape = RoundedCornerShape(12.dp),
-        color = when {
-            !enabled -> MaterialTheme.colorScheme.surfaceVariant
-            isDanger -> MaterialTheme.colorScheme.errorContainer
-            isPrimary -> MaterialTheme.colorScheme.primary
-            else -> MaterialTheme.colorScheme.surfaceVariant
-        },
+        shape = RoundedCornerShape(16.dp),
+        color = containerColor,
         modifier = modifier
     ) {
         Row(
@@ -659,24 +993,14 @@ private fun ActionButton(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(18.dp),
-                tint = when {
-                    !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    isDanger -> MaterialTheme.colorScheme.onErrorContainer
-                    isPrimary -> MaterialTheme.colorScheme.onPrimary
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
+                tint = contentColor
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
-                color = when {
-                    !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    isDanger -> MaterialTheme.colorScheme.onErrorContainer
-                    isPrimary -> MaterialTheme.colorScheme.onPrimary
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
+                fontWeight = FontWeight.SemiBold,
+                color = contentColor
             )
         }
     }
@@ -713,53 +1037,35 @@ private fun DeleteConfirmationDialog(
     var forceDelete by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(text = "Delete Virtual Machine")
-        },
+        title = { Text(text = "Delete Virtual Machine") },
         text = {
             Column {
-
                 Text(text = "Are you sure you want to delete '$vmName'? This action cannot be undone.")
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "Delete Zvols")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
-                        checked = deleteZvol,
-                        onCheckedChange = { deleteZvol = it }
-                    )
+                    Switch(checked = deleteZvol, onCheckedChange = { deleteZvol = it })
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Force Delete"
-                    )
+                    Text(text = "Force Delete")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
-                        checked = forceDelete,
-                        onCheckedChange = { forceDelete = it }
-                    )
+                    Switch(checked = forceDelete, onCheckedChange = { forceDelete = it })
                 }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = {
-                    onConfirm(deleteZvol,forceDelete)
-                },
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("Delete")
-            }
+                onClick = { onConfirm(deleteZvol, forceDelete) },
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) { Text("Delete") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }
+
 @Composable
 private fun StopConfirmationDialog(
     vmName: String,
@@ -768,63 +1074,38 @@ private fun StopConfirmationDialog(
 ) {
     var forceShutoffChecked by remember { mutableStateOf(false) }
     var forceShutoffAfterTimeoutChecked by remember { mutableStateOf(false) }
-
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(text = "Stop Virtual Machine") // Title changed for consistency
-        },
+        title = { Text(text = "Stop Virtual Machine") },
         text = {
-            // Use a Column to stack the switches and the main text
             Column {
-                Text(text = "Are you sure you want to stop '$vmName'? This action can be complex.")
-
+                Text(text = "Are you sure you want to stop '$vmName'?")
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Switch 1: Force Shutoff
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "Force shutoff")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
-                        checked = forceShutoffChecked,
-                        onCheckedChange = { forceShutoffChecked = it }
-                    )
+                    Switch(checked = forceShutoffChecked, onCheckedChange = { forceShutoffChecked = it })
                 }
-
                 Spacer(modifier = Modifier.height(8.dp))
-
-                // Switch 2: Force Shutoff After Timeout
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "Force shutoff after timeout")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
-                        checked = forceShutoffAfterTimeoutChecked,
-                        onCheckedChange = { forceShutoffAfterTimeoutChecked = it }
-                    )
+                    Switch(checked = forceShutoffAfterTimeoutChecked, onCheckedChange = { forceShutoffAfterTimeoutChecked = it })
                 }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = {
-                    onConfirm(forceShutoffChecked, forceShutoffAfterTimeoutChecked)
-                },
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("Stop")
-            }
+                onClick = { onConfirm(forceShutoffChecked, forceShutoffAfterTimeoutChecked) },
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) { Text("Stop") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }
 
-// Start Dialog
 @Composable
 private fun StartConfirmationDialog(
     vmName: String,
@@ -832,48 +1113,76 @@ private fun StartConfirmationDialog(
     onDismiss: () -> Unit
 ) {
     var overcommit by remember { mutableStateOf(false) }
-
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(text = "Start Virtual Machine")
-        },
+        title = { Text(text = "Start Virtual Machine") },
         text = {
             Column {
                 Text(text = "Are you sure you want to start '$vmName'?")
-
                 Spacer(modifier = Modifier.height(16.dp))
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "Overcommit")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Switch(
-                        checked = overcommit,
-                        onCheckedChange = { overcommit = it }
-                    )
+                    Switch(checked = overcommit, onCheckedChange = { overcommit = it })
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
         },
         confirmButton = {
             TextButton(
-                onClick = {
-                    onConfirm(overcommit)
-                },
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("Stop")
-            }
+                onClick = { onConfirm(overcommit) },
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+            ) { Text("Start") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MorphingRefreshIndicator(
+    state: PullToRefreshState,
+    isRefreshing: Boolean
+) {
+    val scale = if (isRefreshing) 1f else state.distanceFraction.coerceIn(0f, 1f)
+    val cornerSize = (16 + (34 * scale)).dp
+    val rotation = state.distanceFraction * 180f
+
+    if (state.distanceFraction > 0.1f || isRefreshing) {
+        Surface(
+            modifier = Modifier
+                .padding(top = 16.dp)
+                .size(48.dp)
+                .scale(scale)
+                .graphicsLayer {
+                    rotationZ = if (isRefreshing) 0f else rotation
+                },
+            color = MaterialTheme.colorScheme.primaryContainer,
+            shape = RoundedCornerShape(cornerSize),
+            shadowElevation = 4.dp
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                if (isRefreshing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        strokeWidth = 3.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Refresh",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
 private fun getOperationText(state: String): String {
     return when (state) {
         "RUNNING" -> "Processing..."

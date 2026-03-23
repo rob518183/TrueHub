@@ -88,7 +88,29 @@ class SystemService(val manager: TrueNASApiManager){
             }
         }
     }
+    suspend fun getActiveJobsWithResult(state: String = "RUNNING"): ApiResult<List<System.Job>> {
+        val filters = listOf(listOf("state", "=", state))
 
+        val arrayResult = manager.callWithResult<Array<System.Job>>(
+            method = ApiMethods.System.GET_JOB_STATUS,
+            params = listOf(filters),
+            resultType = Array<System.Job>::class.java
+        )
+
+        return when (arrayResult) {
+            is ApiResult.Success -> {
+                ApiResult.Success(arrayResult.data.toList())
+            }
+
+            is ApiResult.Error -> {
+                ApiResult.Error(arrayResult.message)
+            }
+
+            is ApiResult.Loading -> {
+                ApiResult.Loading
+            }
+        }
+    }
 
 
     // Alerts Info

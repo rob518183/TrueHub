@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     id("org.ajoberstar.grgit") version "5.3.3"
 }
@@ -56,9 +55,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
 }
 
 dependencies {
@@ -75,6 +71,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.jeziellago.compose.markdown)
     implementation(libs.androidx.compose.ui.text)
+    implementation(libs.androidx.compose.ui.unit)
     testImplementation(libs.junit)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)

@@ -5,9 +5,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,12 +26,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -51,7 +52,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.System
-import com.imnotndesh.truehub.ui.components.BouncyActionButton // Import shared button
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 
 @Composable
@@ -68,15 +68,24 @@ fun RollbackVersionScreen(
     var selectedVersion by remember { mutableStateOf<String?>(null) }
     var rollbackSnapshot by remember { mutableStateOf(true) }
 
+    val isRollingBack = rollbackJobState?.state == "RUNNING" || rollbackJobState?.state == "ROLLING_BACK"
+
     LaunchedEffect(Unit) {
         onLoadVersions()
+    }
+
+    // Auto-close on success
+    LaunchedEffect(rollbackJobState?.state) {
+        if (rollbackJobState?.state == "SUCCESS") {
+            onNavigateBack()
+        }
     }
 
     Scaffold(
         topBar = {
             UnifiedScreenHeader(
                 title = "Rollback $appName",
-                subtitle = "Select version",
+                subtitle = "Select Version",
                 isLoading = isLoadingVersions,
                 isRefreshing = false,
                 error = null,
@@ -91,125 +100,139 @@ fun RollbackVersionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .padding(16.dp)
         ) {
-            // Main Content Area
-            Box(modifier = Modifier.weight(1f)) {
-                if (isLoadingVersions) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 3.dp
-                        )
-                    }
-                } else if (versions.isEmpty()) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
+            // Progress Section
+            if (isRollingBack) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "No previous versions found",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "Rolling back...",
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(bottom = 8.dp)
                         )
-                    }
-                } else {
-                    LazyColumn(
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(versions) { version ->
-                            VersionItem(
-                                version = version,
-                                isSelected = selectedVersion == version,
-                                onClick = { selectedVersion = version }
-                            )
-                        }
+                        LinearProgressIndicator(
+                            progress = { (rollbackJobState?.progress ?: 0).toFloat() / 100f },
+                            modifier = Modifier.fillMaxWidth().height(8.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        )
+                        Text(
+                            text = "${rollbackJobState?.progress ?: 0}% - ${rollbackJobState?.description ?: ""}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                     }
                 }
             }
 
-            // Bottom Actions Area
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                tonalElevation = 4.dp
+            // Version List
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(modifier = Modifier.padding(24.dp)) {
-                    // Snapshot Checkbox
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp)
-                    ) {
-                        Checkbox(
-                            checked = rollbackSnapshot,
-                            onCheckedChange = { rollbackSnapshot = it },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = MaterialTheme.colorScheme.primary,
-                                uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
+                if (versions.isEmpty() && !isLoadingVersions) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(
-                                text = "Take Snapshot",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Backup current state before rolling back",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = "No rollback versions available",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
+                }
 
-                    // Rollback Button
-                    val isRollingBack = rollbackJobState?.state == "RUNNING" || rollbackJobState?.state == "PENDING"
+                items(versions) { version ->
+                    VersionSelectionCard(
+                        version = version,
+                        isSelected = selectedVersion == version,
+                        onClick = { if (!isRollingBack) selectedVersion = version }
+                    )
+                }
+            }
 
-                    BouncyActionButton(
-                        text = if (isRollingBack) "Rolling Back..." else "Rollback",
-                        icon = Icons.Default.Restore,
-                        enabled = selectedVersion != null && !isRollingBack,
-                        isPrimary = true,
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Options & Actions
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Snapshot Checkbox
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = !isRollingBack) { rollbackSnapshot = !rollbackSnapshot }
+                        .padding(horizontal = 4.dp)
+                ) {
+                    Checkbox(
+                        checked = rollbackSnapshot,
+                        onCheckedChange = { rollbackSnapshot = it },
+                        enabled = !isRollingBack
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "Rollback Snapshots",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Revert PVCs to state at version creation",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Action Buttons
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = onNavigateBack,
+                        enabled = !isRollingBack,
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Text("Cancel")
+                    }
+
+                    Button(
                         onClick = {
-                            selectedVersion?.let {
-                                onConfirmRollback(it, rollbackSnapshot)
+                            selectedVersion?.let { version ->
+                                onConfirmRollback(version, rollbackSnapshot)
                             }
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                    )
-
-                    // Status Text
-                    AnimatedVisibility(
-                        visible = rollbackJobState != null,
-                        enter = fadeIn(),
-                        exit = fadeOut()
+                        enabled = selectedVersion != null && !isRollingBack,
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     ) {
-                        if (rollbackJobState != null) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = "Status: ${rollbackJobState.description ?: rollbackJobState.state}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
+                        if (isRollingBack) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Restore, null, modifier = Modifier.size(18.dp))
                         }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (isRollingBack) "Rolling Back..." else "Rollback")
                     }
                 }
             }
@@ -218,19 +241,21 @@ fun RollbackVersionScreen(
 }
 
 @Composable
-private fun VersionItem(
+fun VersionSelectionCard(
     version: String,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val containerColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+        label = "color"
+    )
+
     val borderColor by animateColorAsState(
         targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
         label = "border"
     )
-    val containerColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-        label = "container"
-    )
+
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1.02f else 1f,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
@@ -251,15 +276,24 @@ private fun VersionItem(
             Surface(
                 shape = CircleShape,
                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(32.dp)
             ) {
-                if (isSelected) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.padding(4.dp)
-                    )
+                Box(contentAlignment = Alignment.Center) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.width(16.dp))
