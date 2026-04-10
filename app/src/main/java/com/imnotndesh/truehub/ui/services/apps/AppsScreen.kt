@@ -1,7 +1,5 @@
 package com.imnotndesh.truehub.ui.services.apps
 
-import AppCategory
-import AppsScreenViewModel
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -56,12 +54,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -82,7 +77,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -109,11 +103,8 @@ fun AppsScreen(
     val isCompact = AdaptiveLayoutHelper.isCompact()
     val refreshState = rememberPullToRefreshState()
 
-    // Split pane state
     val selectedAppForInfo by remember { mutableStateOf<Apps.AppQueryResponse?>(null) }
 
-
-    // Filter Logic
     val filteredApps by remember(uiState.apps, uiState.selectedCategory) {
         derivedStateOf {
             when (uiState.selectedCategory) {

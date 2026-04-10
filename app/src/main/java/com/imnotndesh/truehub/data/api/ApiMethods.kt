@@ -71,6 +71,9 @@ object ApiMethods {
         const val ROLLBACK_APP = "app.rollback"
         const val APP_ROLLBACK_VERSIONS ="app.rollback_versions"
         const val DELETE_APP = "app.delete"
+        const val SIMILAR_APPS = "app.similar"
+        const val LATEST_APPS_TRAIN = "latest"
+        const val STABLE_APPS_TRAIN = "stable"
     }
     object Virt{
         const val GET_ALL_INSTANCES = "virt.instance.query"

@@ -1,3 +1,5 @@
+package com.imnotndesh.truehub.ui.services.apps
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -28,12 +30,11 @@ data class AppsScreenUiState(
     val error: String? = null,
     val upgradeSummaryResult: Apps.AppUpgradeSummaryResult? = null,
     val isRefreshing: Boolean = false,
-    val upgradeJobs: Map<String, com.imnotndesh.truehub.data.models.System.UpgradeJobState> = emptyMap(),
+    val upgradeJobs: Map<String, System.UpgradeJobState> = emptyMap(),
     val isLoadingUpgradeSummaryForApp: String? = null,
     val rollbackVersions: List<String> = emptyList(),
     val isLoadingRollbackVersions: Boolean = false,
-    val rollbackJobs: Map<String, com.imnotndesh.truehub.data.models.System.UpgradeJobState> = emptyMap(),
-    // New State for Category
+    val rollbackJobs: Map<String, System.UpgradeJobState> = emptyMap(),
     val selectedCategory: AppCategory = AppCategory.ALL
 )
 
@@ -162,7 +163,7 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
                     val jobId = result.data
                     _uiState.value = _uiState.value.copy(
                         upgradeJobs = _uiState.value.upgradeJobs + (
-                                appName to com.imnotndesh.truehub.data.models.System.UpgradeJobState(state = "UPGRADING", progress = 0)
+                                appName to System.UpgradeJobState(state = "UPGRADING", progress = 0)
                                 )
                     )
                     var pollAttempts = 0
@@ -179,7 +180,7 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
 
                                     _uiState.value = _uiState.value.copy(
                                         upgradeJobs = _uiState.value.upgradeJobs + (
-                                                appName to com.imnotndesh.truehub.data.models.System.UpgradeJobState(
+                                                appName to System.UpgradeJobState(
                                                     state = state,
                                                     progress = percent,
                                                     description = description

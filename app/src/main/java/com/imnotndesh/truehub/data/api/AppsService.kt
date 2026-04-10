@@ -107,4 +107,52 @@ class AppsService(val manager: TrueNASApiManager) {
         )
     }
 
+    /**
+     * Query apps with optional filters and options.
+     * @param filters List of filter objects (see API docs). Default empty.
+     * @param options Query options (pagination, extra flags, etc.)
+     * @return List of apps matching the query.
+     */
+    suspend fun queryApps(
+        filters: List<Any> = emptyList(),
+        options: Apps.AppQueryOptions = Apps.AppQueryOptions()
+    ): ApiResult<List<Apps.AppQueryResponse>> {
+        val type = Types.newParameterizedType(List::class.java, Apps.AppQueryResponse::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.Apps.QUERY_APPS,
+            params = listOf(filters, options),
+            resultType = type
+        )
+    }
+
+    suspend fun getAppByName(name: String): ApiResult<Apps.AppQueryResponse?> {
+        val filters = listOf(listOf("name", "=", name))
+        val options = Apps.AppQueryOptions(get = true)
+        return queryApps(filters, options).let { result ->
+            when (result) {
+                is ApiResult.Success -> ApiResult.Success(result.data.firstOrNull())
+                is ApiResult.Error -> ApiResult.Error(result.message, result.throwable)
+                is ApiResult.Loading -> ApiResult.Loading
+            }
+        }
+    }
+
+    /**
+     * Retrieve applications similar to the given app name.
+     * @param appName Name of the application to find similar apps for.
+     * @param train The catalog train to search within (default "latest").
+     * @return List of similar applications.
+     */
+    suspend fun getSimilarApps(
+        appName: String,
+        train: String = "latest"
+    ): ApiResult<List<Apps.AppSimilarResponse>> {
+        val type = Types.newParameterizedType(List::class.java, Apps.AppSimilarResponse::class.java)
+        return manager.callWithResult(
+            method = "app.similar",
+            params = listOf(appName, train),
+            resultType = type
+        )
+    }
+
 }

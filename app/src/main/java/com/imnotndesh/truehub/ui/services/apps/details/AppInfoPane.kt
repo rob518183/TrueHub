@@ -1,6 +1,3 @@
-// CREATE NEW FILE: AppInfoPane.kt
-// Place this in the same package as AppInfoDialog
-
 package com.imnotndesh.truehub.ui.services.apps.details
 
 import androidx.compose.foundation.horizontalScroll

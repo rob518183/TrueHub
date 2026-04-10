@@ -1,6 +1,6 @@
 package com.imnotndesh.truehub.ui
 
-import AppsScreenViewModel
+import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.Crossfade
