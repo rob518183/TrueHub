@@ -295,7 +295,6 @@ private fun TrueHubNavGraph(
                     appName = appName,
                     summary = summary,
                     manager = manager,
-                    upgradeJobState = uiState.upgradeJobs[appName],
                     onConfirmUpgrade = { viewModel.upgradeApp(appName, context)},
                     onNavigateBack = { navController.popBackStack() }
                 )
@@ -333,7 +332,6 @@ private fun TrueHubNavGraph(
                     appName = appName,
                     summary = summary,
                     manager = manager,
-                    upgradeJobState = uiState.upgradeJobs[appName],
                     onConfirmUpgrade = { viewModel.upgradeApp(appName,context) },
                     onNavigateBack = { navController.popBackStack() }
                 )

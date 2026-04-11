@@ -22,6 +22,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import com.imnotndesh.truehub.data.helpers.Prefs
 import com.imnotndesh.truehub.ui.MainScreen
 import com.imnotndesh.truehub.ui.Screen
@@ -66,6 +69,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MainActivityContent(
     viewModel: MainViewModel,
@@ -76,6 +80,9 @@ fun MainActivityContent(
     val appState by viewModel.appState.collectAsState()
     val manager by viewModel.manager.collectAsState()
     val navController = rememberNavController()
+    val notifPermission = rememberPermissionState(
+        android.Manifest.permission.POST_NOTIFICATIONS
+    )
 
     LaunchedEffect(Unit) {
         viewModel.initializeApp(context)
@@ -84,6 +91,11 @@ fun MainActivityContent(
     LaunchedEffect(manager) {
         manager?.let {
             viewModel.startPeriodicPing(context)
+        }
+    }
+    LaunchedEffect(Unit) {
+        if (!notifPermission.status.isGranted) {
+            notifPermission.launchPermissionRequest()
         }
     }
 
