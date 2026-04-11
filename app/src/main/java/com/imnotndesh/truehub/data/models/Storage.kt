@@ -144,7 +144,7 @@ object Storage {
         val children: List<DatasetDetailsResponse>,
         val snapshot_count: Int,
         val deduplication: ZfsSettingProperty,
-        val mountpoint: String,
+        val mountpoint: String?,
         val sync: ZfsSettingProperty,
         val compression: ZfsSettingProperty,
         val compressratio: ZfsSettingProperty,

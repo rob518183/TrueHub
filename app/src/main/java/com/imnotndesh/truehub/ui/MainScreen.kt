@@ -1,6 +1,6 @@
 package com.imnotndesh.truehub.ui
 
-import AppsScreenViewModel
+import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.Crossfade
@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -53,16 +54,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.homepage.HomeScreen
 import com.imnotndesh.truehub.ui.homepage.dataset.DatasetExplorerScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
-import com.imnotndesh.truehub.ui.services.apps.details.AppDataHolder
+import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
-import com.imnotndesh.truehub.ui.services.apps.details.AppInfoScreen
-import com.imnotndesh.truehub.ui.services.apps.details.UpgradeSummaryScreen
+import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppInfoScreen
+import com.imnotndesh.truehub.ui.services.apps.details.upgrade.UpgradeSummaryScreen
 import com.imnotndesh.truehub.ui.services.containers.ContainersScreen
 import com.imnotndesh.truehub.ui.services.containers.details.ContainerDataHolder
 import com.imnotndesh.truehub.ui.services.containers.details.ContainerInfoScreen
@@ -275,7 +277,7 @@ private fun TrueHubNavGraph(
             arguments = listOf(navArgument("appName") { type = NavType.StringType })
         ) { backStackEntry ->
             val appName = backStackEntry.arguments?.getString("appName") ?: ""
-
+            val context = LocalContext.current
             val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val uiState by viewModel.uiState.collectAsState()
             androidx.compose.runtime.LaunchedEffect(appName) {
@@ -293,8 +295,7 @@ private fun TrueHubNavGraph(
                     appName = appName,
                     summary = summary,
                     manager = manager,
-                    upgradeJobState = uiState.upgradeJobs[appName],
-                    onConfirmUpgrade = { viewModel.upgradeApp(appName) },
+                    onConfirmUpgrade = { viewModel.upgradeApp(appName, context)},
                     onNavigateBack = { navController.popBackStack() }
                 )
             } else if (uiState.error != null) {
@@ -310,6 +311,7 @@ private fun TrueHubNavGraph(
             arguments = listOf(navArgument("appName") { type = NavType.StringType })
         ) { backStackEntry ->
             val appName = backStackEntry.arguments?.getString("appName") ?: ""
+            val context = LocalContext.current
 
             val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val uiState by viewModel.uiState.collectAsState()
@@ -330,8 +332,7 @@ private fun TrueHubNavGraph(
                     appName = appName,
                     summary = summary,
                     manager = manager,
-                    upgradeJobState = uiState.upgradeJobs[appName], // Pass the full state object
-                    onConfirmUpgrade = { viewModel.upgradeApp(appName) },
+                    onConfirmUpgrade = { viewModel.upgradeApp(appName,context) },
                     onNavigateBack = { navController.popBackStack() }
                 )
             } else if (uiState.error != null) {

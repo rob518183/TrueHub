@@ -4,6 +4,7 @@ import com.squareup.moshi.JsonClass
 
 object Apps {
     @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
     data class AppQueryResponse(
         val name: String,
         val id: String,
@@ -18,7 +19,15 @@ object Apps {
         val metadata: Metadata? = null,
         @field:Json("active_workloads") val activeWorkloads: ActiveWorkloads? = null,
         val notes: String? = null,
-        val portals: Map<String, String>? = null
+        val portals: Map<String, String>? = null,
+        @field:Json("migrated_from_kubernetes") val migratedFromKubernetes: Boolean = false,
+        @field:Json("version_info") val versionInfo: VersionInfo? = null,
+        @field:Json("config") val config: Map<String, Any?>? = null
+    )
+    @JsonClass(generateAdapter = true)
+    data class VersionInfo(
+        val changelog: String? = null,
+        @field:Json("upgrade_notes") val upgradeNotes: String? = null
     )
 
     data class Metadata(
@@ -162,5 +171,55 @@ object Apps {
     data class RollbackOptions(
         val app_version: String? = "latest",
         val rollback_snapshot: Boolean = true
+    )
+
+    // App query stuff
+    @JsonClass(generateAdapter = true)
+    data class AppQueryExtra(
+        @field:Json(name = "host_ip") val hostIp: String? = null,
+        @field:Json(name = "include_app_schema") val includeAppSchema: Boolean = false,
+        @field:Json(name = "retrieve_config") val retrieveConfig: Boolean = false
+    )
+
+    @JsonClass(generateAdapter = true)
+    data class AppQueryOptions(
+        @field:Json(name = "extra") val extra: AppQueryExtra = AppQueryExtra(),
+        @field:Json(name = "order_by") val orderBy: List<String> = emptyList(),
+        @field:Json(name = "select") val select: List<String> = emptyList(),
+        @field:Json(name = "count") val count: Boolean = false,
+        @field:Json(name = "get") val get: Boolean = false,
+        @field:Json(name = "offset") val offset: Int = 0,
+        @field:Json(name = "limit") val limit: Int = 0,
+        @field:Json(name = "force_sql_filters") val forceSqlFilters: Boolean = false
+    )
+    /**
+     * Response item for app.similar
+     */
+    @JsonClass(generateAdapter = true)
+    data class AppSimilarResponse(
+        @field:Json(name = "app_readme") val appReadme: String? = null,
+        val categories: List<String>? = null,
+        val description: String? = null,
+        val healthy: Boolean? = null,
+        @field:Json(name = "healthy_error") val healthyError: String? = null,
+        val home: String? = null,
+        val location: String? = null,
+        @field:Json(name = "latest_version") val latestVersion: String? = null,
+        @field:Json(name = "latest_app_version") val latestAppVersion: String? = null,
+        @field:Json(name = "human_version") val humanVersion: String? = null,
+        @field:Json(name = "last_update") val lastUpdate: String? = null,
+        val name: String,
+        val recommended: Boolean = false,
+        val title: String? = null,
+        val maintainers: List<Maintainer>? = null,
+        val tags: List<String>? = null,
+        val screenshots: List<String>? = null,
+        val sources: List<String>? = null,
+        @field:Json(name = "icon_url") val iconUrl: String? = null,
+        val catalog: String? = null,
+        val installed: Boolean = false,
+        val train: String? = null,
+        val popularity: Int? = null,
+        @field:Json(ignore = true) val additionalProperties: Map<String, Any?> = emptyMap()
     )
 }

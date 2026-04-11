@@ -1,7 +1,12 @@
+package com.imnotndesh.truehub.ui.services.apps
+
+import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.imnotndesh.truehub.data.ApiResult
+import com.imnotndesh.truehub.data.helpers.GlobalJobTracker
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.AppCache
 import com.imnotndesh.truehub.data.models.Apps
@@ -28,12 +33,11 @@ data class AppsScreenUiState(
     val error: String? = null,
     val upgradeSummaryResult: Apps.AppUpgradeSummaryResult? = null,
     val isRefreshing: Boolean = false,
-    val upgradeJobs: Map<String, com.imnotndesh.truehub.data.models.System.UpgradeJobState> = emptyMap(),
+    val upgradeJobs: Map<String, System.UpgradeJobState> = emptyMap(),
     val isLoadingUpgradeSummaryForApp: String? = null,
     val rollbackVersions: List<String> = emptyList(),
     val isLoadingRollbackVersions: Boolean = false,
-    val rollbackJobs: Map<String, com.imnotndesh.truehub.data.models.System.UpgradeJobState> = emptyMap(),
-    // New State for Category
+    val rollbackJobs: Map<String, System.UpgradeJobState> = emptyMap(),
     val selectedCategory: AppCategory = AppCategory.ALL
 )
 
@@ -155,84 +159,27 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
         }
     }
 
-    fun upgradeApp(appName: String) {
+    fun upgradeApp(appName: String,context: Context ) {
         viewModelScope.launch {
             when (val result = manager.apps.upgradeAppWithResult(appName)) {
                 is ApiResult.Success -> {
                     val jobId = result.data
-                    _uiState.value = _uiState.value.copy(
-                        upgradeJobs = _uiState.value.upgradeJobs + (
-                                appName to com.imnotndesh.truehub.data.models.System.UpgradeJobState(state = "UPGRADING", progress = 0)
-                                )
+
+                    GlobalJobTracker.startTracking(
+                        context = context.applicationContext,
+                        manager = manager,
+                        jobId = jobId,
+                        appName = appName,
+                        showNotif = true
                     )
-                    var pollAttempts = 0
-                    val maxPollAttempts = 150
-
-                    while (pollAttempts < maxPollAttempts) {
-                        try {
-                            when (val jobResult = manager.system.getJobInfoJobWithResult(jobId)) {
-                                is ApiResult.Success -> {
-                                    val job = jobResult.data
-                                    val state = job.state
-                                    val percent = job.progress?.percent ?: 0
-                                    val description = job.progress?.description
-
-                                    _uiState.value = _uiState.value.copy(
-                                        upgradeJobs = _uiState.value.upgradeJobs + (
-                                                appName to com.imnotndesh.truehub.data.models.System.UpgradeJobState(
-                                                    state = state,
-                                                    progress = percent,
-                                                    description = description
-                                                )
-                                                )
-                                    )
-
-                                    if (state in listOf("SUCCESS", "FAILED", "ABORTED")) {
-                                        delay(3000)
-                                        _uiState.value = _uiState.value.copy(
-                                            upgradeJobs = _uiState.value.upgradeJobs - appName
-                                        )
-                                        if (state == "SUCCESS") {
-                                            loadApps()
-                                        }
-                                        break
-                                    }
-                                }
-                                is ApiResult.Error -> {
-                                    _uiState.value = _uiState.value.copy(
-                                        upgradeJobs = _uiState.value.upgradeJobs - appName,
-                                        error = "Upgrade monitoring failed: ${jobResult.message}"
-                                    )
-                                    break
-                                }
-                                is ApiResult.Loading -> {}
-                            }
-                        } catch (e: Exception) {
-                            _uiState.value = _uiState.value.copy(
-                                upgradeJobs = _uiState.value.upgradeJobs - appName,
-                                error = "Upgrade monitoring error: ${e.message}"
-                            )
-                            break
-                        }
-                        pollAttempts++
-                        delay(2000)
-                    }
-
-                    if (pollAttempts >= maxPollAttempts) {
-                        _uiState.value = _uiState.value.copy(
-                            upgradeJobs = _uiState.value.upgradeJobs - appName,
-                            error = "Upgrade monitoring timeout for $appName"
-                        )
-                    }
                 }
                 is ApiResult.Error -> {
-                    _uiState.value = _uiState.value.copy(error = result.message)
+                    _uiState.update { it.copy(error = result.message) }
                 }
                 else -> {}
             }
         }
     }
-
     fun loadUpgradeSummary(appName: String, appVersion: String? = "latest") {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(

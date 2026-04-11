@@ -1,7 +1,4 @@
-// CREATE NEW FILE: AppInfoPane.kt
-// Place this in the same package as AppInfoDialog
-
-package com.imnotndesh.truehub.ui.services.apps.details
+package com.imnotndesh.truehub.ui.services.apps.details.appdetails
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +33,6 @@ import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -340,10 +336,6 @@ private fun AppInfoPaneHeader(
         }
     }
 }
-
-// Reuse all the helper composables from AppInfoDialog.kt:
-// ServiceInfoSection, ServiceInfoRow, ServiceInfoChipGroup, etc.
-// They should be accessible if they're in the same package
 
 @Composable
 private fun ServiceInfoSection(

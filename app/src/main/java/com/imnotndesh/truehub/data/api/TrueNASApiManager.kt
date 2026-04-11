@@ -198,4 +198,5 @@ class TrueNASApiManager(
     suspend fun connect(): Boolean = client.connect()
     suspend fun disconnect() = client.disconnect()
     fun isConnected(): Boolean = client.getCurrentConnectionState() == ConnectionState.Connected
+
 }
