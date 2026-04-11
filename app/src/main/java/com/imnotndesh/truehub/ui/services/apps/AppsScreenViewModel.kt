@@ -159,16 +159,14 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
         }
     }
 
-    // Inside AppsScreenViewModel class
     fun upgradeApp(appName: String,context: Context ) {
         viewModelScope.launch {
-            // 1. Call the TrueNAS API to start the upgrade
             when (val result = manager.apps.upgradeAppWithResult(appName)) {
                 is ApiResult.Success -> {
                     val jobId = result.data
 
                     GlobalJobTracker.startTracking(
-                        context = context,
+                        context = context.applicationContext,
                         manager = manager,
                         jobId = jobId,
                         appName = appName,

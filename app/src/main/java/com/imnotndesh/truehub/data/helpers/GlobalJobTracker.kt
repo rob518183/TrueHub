@@ -48,6 +48,7 @@ object GlobalJobTracker {
                         running = false
                         delay(5000)
                         JobRepository.removeJob(jobId)
+                        continue
                     }
                 }
                 delay(2000)

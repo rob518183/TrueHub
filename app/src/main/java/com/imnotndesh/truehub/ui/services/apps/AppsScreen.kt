@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Error
@@ -75,6 +76,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -435,9 +437,7 @@ private fun ServiceCard(
     onAppInfoClick: (Apps.AppQueryResponse) -> Unit,
     isSelected: Boolean = false
 ) {
-    // 1. Observe the persistent Job Repository
     val activeJobs by JobRepository.activeJobs.collectAsState()
-    // Fix: Find the job by name to avoid the Type Inference error
     val persistentJob = activeJobs.values.find { it.appName == app.name }
 
     var showMoreOptions by remember { mutableStateOf(false) }
@@ -469,21 +469,38 @@ private fun ServiceCard(
                 .fillMaxWidth()
                 .padding(cardPadding)
         ) {
-            // --- HEADER SECTION (Compact vs Desktop) ---
             if (isCompact) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    AsyncImage(
-                        model = app.metadata?.icon,
-                        contentDescription = "App icon",
+                    Box(
                         modifier = Modifier
                             .size(52.dp)
-                            .clip(RoundedCornerShape(16.dp)),
-                        contentScale = ContentScale.Crop
-                    )
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (!app.metadata?.icon.isNullOrBlank()) {
+                            AsyncImage(
+                                model = app.metadata?.icon,
+                                contentDescription = "App icon",
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(10.dp)),
+                                contentScale = ContentScale.Fit,
+                                error = rememberVectorPainter(Icons.Default.Apps)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Apps,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -508,14 +525,32 @@ private fun ServiceCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
-                        AsyncImage(
-                            model = app.metadata?.icon,
-                            contentDescription = "App icon",
+                        Box(
                             modifier = Modifier
                                 .size(64.dp)
-                                .clip(RoundedCornerShape(18.dp)),
-                            contentScale = ContentScale.Crop
-                        )
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(MaterialTheme.colorScheme.secondaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (!app.metadata?.icon.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = app.metadata?.icon,
+                                    contentDescription = "App icon",
+                                    modifier = Modifier
+                                        .size(46.dp)
+                                        .clip(RoundedCornerShape(12.dp)),
+                                    contentScale = ContentScale.Fit,
+                                    error = rememberVectorPainter(Icons.Default.Apps)
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Apps,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                            }
+                        }
                         Box(
                             modifier = Modifier
                                 .size(12.dp)
@@ -560,8 +595,6 @@ private fun ServiceCard(
                         )
                     }
                 }
-
-                // Persistent Progress Bar
                 AnimatedVisibility(
                     visible = isJobRunning,
                     enter = expandVertically() + fadeIn(),
@@ -656,7 +689,6 @@ private fun ServiceCard(
                 }
             }
 
-            // --- MORE OPTIONS (Rollback) ---
             if (isCompact) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Surface(
