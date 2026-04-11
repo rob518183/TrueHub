@@ -1,5 +1,7 @@
 package com.imnotndesh.truehub.ui.services.apps.details.appdetails
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import com.imnotndesh.truehub.R
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -7,6 +9,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -70,6 +75,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -175,7 +181,7 @@ fun AppInfoScreen(
                     }
                 }
             }
-            if (similarApps.isNotEmpty()) {
+            if (isLoadingSimilar || similarApps.isNotEmpty()) {
                 SimilarAppsSection(
                     apps = similarApps,
                     isLoading = isLoadingSimilar,
@@ -830,61 +836,94 @@ fun SimilarAppPill(
     isLoading: Boolean = false,
     onClick: () -> Unit = {}
 ) {
-    val fallbackPainter = painterResource(id = R.drawable.missing_app_icon)
+    val pillColor by animateColorAsState(
+        targetValue = if (isLoading) Color.Transparent
+        else MaterialTheme.colorScheme.surfaceContainerLow,
+        animationSpec = tween(600),
+        label = "pill_bg"
+    )
 
     Surface(
         onClick = if (isLoading) ({}) else onClick,
-        shape = RoundedCornerShape(50.dp),
-        color = if (isLoading) Color.Transparent // Let shimmer handle the background
-        else MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(16.dp),
+        color = pillColor,
+        tonalElevation = if (isLoading) 0.dp else 1.dp,
         modifier = Modifier
             .height(56.dp)
             .then(if (isLoading) Modifier.shimmerLoadingAnimation() else Modifier)
-    ){
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)        ) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                if (!isLoading && app != null) {
-                    AsyncImage(
-                        model = app.iconUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        error = fallbackPainter,
-                        placeholder = fallbackPainter
-                    )
-                }else {
-                    Icon(
-                        painter = fallbackPainter,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(30.dp)
-                    )
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            AnimatedContent(
+                targetState = !isLoading && app != null,
+                transitionSpec = {
+                    fadeIn(tween(600, delayMillis = 200)) togetherWith fadeOut(tween(300))
+                },
+                label = "pill_icon"
+            ) { showReal ->
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (showReal && !app?.iconUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = app.iconUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            error = rememberVectorPainter(Icons.Default.Apps),
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Apps,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .width(80.dp)
-                        .height(16.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-                )
-            } else {
-                Text(
-                    text = app?.title ?: app?.name ?: "",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
-                )
+            Spacer(modifier = Modifier.width(10.dp))
+
+            AnimatedContent(
+                targetState = isLoading,
+                transitionSpec = {
+                    fadeIn(tween(600, delayMillis = 200)) togetherWith fadeOut(tween(300))
+                },
+                label = "pill_text"
+            ) { loading ->
+                if (loading) {
+                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .width(72.dp)
+                                .height(11.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(48.dp)
+                                .height(9.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f))
+                        )
+                    }
+                } else {
+                    Text(
+                        text = app?.title ?: app?.name ?: "",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
@@ -893,7 +932,7 @@ fun SimilarAppPill(
 fun Modifier.shimmerLoadingAnimation(): Modifier {
     val transition = rememberInfiniteTransition(label = "shimmer")
     val translateAnim by transition.animateFloat(
-        initialValue = 0f,
+        initialValue = -1000f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 1200, easing = LinearEasing),
@@ -904,14 +943,14 @@ fun Modifier.shimmerLoadingAnimation(): Modifier {
 
     val shimmerColors = listOf(
         MaterialTheme.colorScheme.surfaceVariant,
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
         MaterialTheme.colorScheme.surfaceVariant,
     )
 
     val brush = Brush.linearGradient(
         colors = shimmerColors,
-        start = Offset.Zero,
-        end = Offset(x = translateAnim, y = translateAnim)
+        start = Offset(x = translateAnim, y = 0f),
+        end = Offset(x = translateAnim + 500f, y = 0f)
     )
 
     return this.background(brush)

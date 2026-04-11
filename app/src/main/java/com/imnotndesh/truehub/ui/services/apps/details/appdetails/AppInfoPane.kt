@@ -337,10 +337,6 @@ private fun AppInfoPaneHeader(
     }
 }
 
-// Reuse all the helper composables from AppInfoDialog.kt:
-// ServiceInfoSection, ServiceInfoRow, ServiceInfoChipGroup, etc.
-// They should be accessible if they're in the same package
-
 @Composable
 private fun ServiceInfoSection(
     title: String,

@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -265,7 +266,7 @@ private fun TrueHubNavGraph(
             val app = AppDataHolder.selectedApp
             if (app != null) {
                 AppInfoScreen(
-                    app = app as Apps.AppQueryResponse,
+                    app = app,
                     manager = manager,
                     onNavigateBack = { navController.popBackStack() }
                 )
@@ -276,7 +277,7 @@ private fun TrueHubNavGraph(
             arguments = listOf(navArgument("appName") { type = NavType.StringType })
         ) { backStackEntry ->
             val appName = backStackEntry.arguments?.getString("appName") ?: ""
-
+            val context = LocalContext.current
             val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val uiState by viewModel.uiState.collectAsState()
             androidx.compose.runtime.LaunchedEffect(appName) {
@@ -295,7 +296,7 @@ private fun TrueHubNavGraph(
                     summary = summary,
                     manager = manager,
                     upgradeJobState = uiState.upgradeJobs[appName],
-                    onConfirmUpgrade = { viewModel.upgradeApp(appName) },
+                    onConfirmUpgrade = { viewModel.upgradeApp(appName, context)},
                     onNavigateBack = { navController.popBackStack() }
                 )
             } else if (uiState.error != null) {
@@ -311,6 +312,7 @@ private fun TrueHubNavGraph(
             arguments = listOf(navArgument("appName") { type = NavType.StringType })
         ) { backStackEntry ->
             val appName = backStackEntry.arguments?.getString("appName") ?: ""
+            val context = LocalContext.current
 
             val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val uiState by viewModel.uiState.collectAsState()
@@ -331,8 +333,8 @@ private fun TrueHubNavGraph(
                     appName = appName,
                     summary = summary,
                     manager = manager,
-                    upgradeJobState = uiState.upgradeJobs[appName], // Pass the full state object
-                    onConfirmUpgrade = { viewModel.upgradeApp(appName) },
+                    upgradeJobState = uiState.upgradeJobs[appName],
+                    onConfirmUpgrade = { viewModel.upgradeApp(appName,context) },
                     onNavigateBack = { navController.popBackStack() }
                 )
             } else if (uiState.error != null) {

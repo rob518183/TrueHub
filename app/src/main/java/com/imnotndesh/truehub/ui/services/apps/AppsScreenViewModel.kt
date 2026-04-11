@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.imnotndesh.truehub.data.ApiResult
-import com.imnotndesh.truehub.data.api.JobTrackerService
+import com.imnotndesh.truehub.data.helpers.GlobalJobTracker
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.AppCache
 import com.imnotndesh.truehub.data.models.Apps
@@ -159,20 +159,24 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
         }
     }
 
-    fun upgradeApp(appName: String, context: Context, showNotification: Boolean = true) {
+    // Inside AppsScreenViewModel class
+    fun upgradeApp(appName: String,context: Context ) {
         viewModelScope.launch {
+            // 1. Call the TrueNAS API to start the upgrade
             when (val result = manager.apps.upgradeAppWithResult(appName)) {
                 is ApiResult.Success -> {
                     val jobId = result.data
-                    val intent = Intent(context, JobTrackerService::class.java).apply {
-                        putExtra(JobTrackerService.EXTRA_JOB_ID, jobId)
-                        putExtra(JobTrackerService.EXTRA_APP_NAME, appName)
-                        putExtra(JobTrackerService.EXTRA_SHOW_NOTIF, showNotification)
-                    }
-                    context.startService(intent)
+
+                    GlobalJobTracker.startTracking(
+                        context = context,
+                        manager = manager,
+                        jobId = jobId,
+                        appName = appName,
+                        showNotif = true
+                    )
                 }
                 is ApiResult.Error -> {
-                    _uiState.value = _uiState.value.copy(error = result.message)
+                    _uiState.update { it.copy(error = result.message) }
                 }
                 else -> {}
             }
