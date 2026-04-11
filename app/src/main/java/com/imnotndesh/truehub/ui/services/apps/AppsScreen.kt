@@ -85,7 +85,7 @@ import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
-import com.imnotndesh.truehub.ui.services.apps.details.AppInfoPane
+import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppInfoPane
 import com.imnotndesh.truehub.ui.utils.AdaptiveLayoutHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -252,7 +252,7 @@ fun AppFilterBar(
                     selected = isSelected,
                     borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outline
                 ),
-                shape = RoundedCornerShape(12.dp) // Expressive shape
+                shape = RoundedCornerShape(12.dp)
             )
         }
     }
@@ -365,7 +365,6 @@ private fun AppsContent(
     val contentPadding = AdaptiveLayoutHelper.getContentPadding()
     val horizontalSpacing = AdaptiveLayoutHelper.getHorizontalSpacing()
 
-    // Using key for animations
     if (isCompact) {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -374,7 +373,7 @@ private fun AppsContent(
         ) {
             items(
                 items = apps,
-                key = { it.id } // Key is required for animateItem
+                key = { it.id }
             ) { app ->
                 Box(modifier = Modifier.animateItem()) {
                     ServiceCard(
@@ -447,13 +446,12 @@ private fun ServiceCard(
     val cardPadding = if (isCompact) 20.dp else 16.dp
     val cardHorizontalPadding = if (isCompact) 4.dp else 0.dp
 
-    // Expressive: Animate border width or color
     val borderColor by animateColorAsState(
         if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent, label = "border"
     )
 
     Card(
-        shape = RoundedCornerShape(24.dp), // Expressive: Larger corner radius
+        shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected)
@@ -471,7 +469,6 @@ private fun ServiceCard(
                 .fillMaxWidth()
                 .padding(cardPadding)
         ) {
-            // Header Section
             if (isCompact) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -483,7 +480,7 @@ private fun ServiceCard(
                             model = iconUrl,
                             contentDescription = "App icon",
                             modifier = Modifier
-                                .size(52.dp) // Expressive: slightly larger
+                                .size(52.dp)
                                 .clip(RoundedCornerShape(16.dp)),
                             contentScale = ContentScale.Crop
                         )

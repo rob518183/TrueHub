@@ -1,4 +1,4 @@
-package com.imnotndesh.truehub.ui.services.apps.details
+package com.imnotndesh.truehub.ui.services.apps.details.upgrade
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
@@ -24,9 +25,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -42,6 +45,7 @@ import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun UpgradeSummaryScreen(
     appName: String,
@@ -112,7 +116,7 @@ fun UpgradeSummaryScreen(
                         }
 
                         Icon(
-                            imageVector = Icons.Default.ArrowForward,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
                         )
@@ -144,17 +148,17 @@ fun UpgradeSummaryScreen(
                                 style = MaterialTheme.typography.labelMedium,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
-                            LinearProgressIndicator(
-                                progress = { (upgradeJobState?.progress ?: 0).toFloat() / 100f },
+                            LinearWavyProgressIndicator(
+                                progress = { (upgradeJobState.progress).toFloat() / 100f },
                                 modifier = Modifier.fillMaxWidth().height(8.dp),
                                 color = MaterialTheme.colorScheme.primary,
                                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                             )
                             Text(
                                 text = buildString {
-                                    append(upgradeJobState?.progress ?: 0)
+                                    append(upgradeJobState.progress)
                                     append("% - ")
-                                    append(upgradeJobState?.description ?: "")
+                                    append(upgradeJobState.description ?: "")
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -163,7 +167,6 @@ fun UpgradeSummaryScreen(
                         }
                     }
                 }
-
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                 // Changelog Section

@@ -72,6 +72,8 @@ dependencies {
     implementation(libs.jeziellago.compose.markdown)
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.androidx.compose.ui.unit)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.room.ktx)
     testImplementation(libs.junit)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)

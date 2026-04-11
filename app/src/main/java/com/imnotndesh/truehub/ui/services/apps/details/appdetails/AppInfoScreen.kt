@@ -1,11 +1,20 @@
-package com.imnotndesh.truehub.ui.services.apps.details
+package com.imnotndesh.truehub.ui.services.apps.details.appdetails
 
+import com.imnotndesh.truehub.R
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +23,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -44,17 +57,29 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
@@ -66,6 +91,19 @@ fun AppInfoScreen(
     manager: TrueNASApiManager,
     onNavigateBack: () -> Unit
 ) {
+    val viewModel: AppDetailsViewModel = viewModel(
+        factory = AppDetailsViewModel.provideFactory(manager),
+        key = app.name
+    )
+
+    val similarApps by viewModel.similarApps.collectAsState()
+    val isLoadingSimilar by viewModel.isLoadingSimilar.collectAsState()
+    LaunchedEffect(app.name) {
+        viewModel.loadSimilarApps(
+            appName = app.name,
+            train = app.metadata?.train ?: "stable"
+        )
+    }
     Scaffold(
         topBar = {
             UnifiedScreenHeader(
@@ -137,9 +175,17 @@ fun AppInfoScreen(
                     }
                 }
             }
+            if (similarApps.isNotEmpty()) {
+                SimilarAppsSection(
+                    apps = similarApps,
+                    isLoading = isLoadingSimilar,
+                    onSeeMoreClick = { /* onNavigateToSimilar(app.name) */ },
+                    onAppClick = { /* Handle navigation to another app's details */ }
+                )
+            }
             if (!app.metadata?.categories.isNullOrEmpty() || !app.metadata?.keywords.isNullOrEmpty()) {
                 ExpressiveSection(title = "Categories & Tags", icon = Icons.Default.Tag) {
-                    app.metadata?.categories?.let { categories ->
+                    app.metadata.categories?.let { categories ->
                         ServiceInfoChipGroup(
                             title = "Categories",
                             items = categories,
@@ -148,7 +194,7 @@ fun AppInfoScreen(
                         )
                     }
 
-                    app.metadata?.keywords?.let { keywords ->
+                    app.metadata.keywords?.let { keywords ->
                         if (keywords.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(16.dp))
                             ServiceInfoChipGroup(
@@ -722,4 +768,151 @@ fun LinkButton(name: String, url: String, icon: ImageVector) {
             Icon(Icons.AutoMirrored.Filled.OpenInNew, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun SimilarAppsSection(
+    apps: List<Apps.AppSimilarResponse>,
+    isLoading: Boolean,
+    onSeeMoreClick: () -> Unit,
+    onAppClick: (Apps.AppSimilarResponse) -> Unit
+) {
+    val displayedApps = apps.take(10)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Similar Applications",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            if (!isLoading) {
+                TextButton(onClick = onSeeMoreClick) {
+                    Text("See More")
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyHorizontalGrid(
+            rows = GridCells.Fixed(2),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(128.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.Start),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp)
+        ){
+            if (isLoading) {
+                items(6) {
+                    SimilarAppPill(isLoading = true)
+                }
+            } else {
+                items(apps) { app ->
+                    SimilarAppPill(
+                        app = app,
+                        isLoading = false,
+                        onClick = { onAppClick(app) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SimilarAppPill(
+    app: Apps.AppSimilarResponse? = null,
+    isLoading: Boolean = false,
+    onClick: () -> Unit = {}
+) {
+    val fallbackPainter = painterResource(id = R.drawable.missing_app_icon)
+
+    Surface(
+        onClick = if (isLoading) ({}) else onClick,
+        shape = RoundedCornerShape(50.dp),
+        color = if (isLoading) Color.Transparent // Let shimmer handle the background
+        else MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier
+            .height(56.dp)
+            .then(if (isLoading) Modifier.shimmerLoadingAnimation() else Modifier)
+    ){
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!isLoading && app != null) {
+                    AsyncImage(
+                        model = app.iconUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        error = fallbackPainter,
+                        placeholder = fallbackPainter
+                    )
+                }else {
+                    Icon(
+                        painter = fallbackPainter,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .width(80.dp)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                )
+            } else {
+                Text(
+                    text = app?.title ?: app?.name ?: "",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+@Composable
+fun Modifier.shimmerLoadingAnimation(): Modifier {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer_offset"
+    )
+
+    val shimmerColors = listOf(
+        MaterialTheme.colorScheme.surfaceVariant,
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        MaterialTheme.colorScheme.surfaceVariant,
+    )
+
+    val brush = Brush.linearGradient(
+        colors = shimmerColors,
+        start = Offset.Zero,
+        end = Offset(x = translateAnim, y = translateAnim)
+    )
+
+    return this.background(brush)
 }

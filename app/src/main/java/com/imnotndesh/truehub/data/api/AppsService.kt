@@ -145,11 +145,11 @@ class AppsService(val manager: TrueNASApiManager) {
      */
     suspend fun getSimilarApps(
         appName: String,
-        train: String = "latest"
+        train: String = ApiMethods.Apps.LATEST_APPS_TRAIN
     ): ApiResult<List<Apps.AppSimilarResponse>> {
         val type = Types.newParameterizedType(List::class.java, Apps.AppSimilarResponse::class.java)
         return manager.callWithResult(
-            method = "app.similar",
+            method = ApiMethods.Apps.SIMILAR_APPS,
             params = listOf(appName, train),
             resultType = type
         )

@@ -53,16 +53,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.homepage.HomeScreen
 import com.imnotndesh.truehub.ui.homepage.dataset.DatasetExplorerScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
-import com.imnotndesh.truehub.ui.services.apps.details.AppDataHolder
+import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
-import com.imnotndesh.truehub.ui.services.apps.details.AppInfoScreen
-import com.imnotndesh.truehub.ui.services.apps.details.UpgradeSummaryScreen
+import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppInfoScreen
+import com.imnotndesh.truehub.ui.services.apps.details.upgrade.UpgradeSummaryScreen
 import com.imnotndesh.truehub.ui.services.containers.ContainersScreen
 import com.imnotndesh.truehub.ui.services.containers.details.ContainerDataHolder
 import com.imnotndesh.truehub.ui.services.containers.details.ContainerInfoScreen
@@ -264,7 +265,7 @@ private fun TrueHubNavGraph(
             val app = AppDataHolder.selectedApp
             if (app != null) {
                 AppInfoScreen(
-                    app = app,
+                    app = app as Apps.AppQueryResponse,
                     manager = manager,
                     onNavigateBack = { navController.popBackStack() }
                 )
