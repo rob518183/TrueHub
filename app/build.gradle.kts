@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.unit)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.lifecycle.service)
     testImplementation(libs.junit)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)

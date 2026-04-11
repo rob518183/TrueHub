@@ -112,6 +112,14 @@ object System {
         val description: String? = null
     )
 
+    data class TrackedJob(
+        val jobId: Int,
+        val appName: String,
+        val state: String = "PENDING",
+        val progress: Int = 0,
+        val description: String? = null,
+        val showNotification: Boolean = false
+    )
     @Suppress("PropertyName")
     @JsonClass(generateAdapter = true)
     data class GraphResult(
