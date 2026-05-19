@@ -1,5 +1,6 @@
 package com.imnotndesh.truehub.ui.services.apps.details.marketplace
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,15 +27,19 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,9 +52,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -56,6 +65,11 @@ import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
+import kotlinx.coroutines.delay
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun MarketplaceScreen(
@@ -100,9 +114,7 @@ fun MarketplaceScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -119,7 +131,7 @@ fun MarketplaceScreen(
                 onBackPressed = onNavigateBack
             )
 
-            // Play Store Style Search Input Component Header
+            // M3 Expressive pill search bar
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -128,15 +140,21 @@ fun MarketplaceScreen(
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear search")
+                            Icon(Icons.Default.Close, contentDescription = "Clear")
                         }
                     }
                 },
                 singleLine = true,
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(50.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
             )
 
             Box(modifier = Modifier.weight(1f)) {
@@ -147,61 +165,66 @@ fun MarketplaceScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 32.dp)
+                        contentPadding = PaddingValues(bottom = 40.dp)
                     ) {
                         if (searchQuery.isBlank()) {
+
+                            // ── Hero Carousel ──────────────────────────────
                             if (recommendedApps.isNotEmpty()) {
                                 item {
-                                    Text(
-                                        text = "Recommended Solutions",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 12.dp)
+                                    SectionHeader(title = "Featured")
+                                    Spacer(Modifier.height(10.dp))
+                                    RecommendedCarousel(
+                                        apps = recommendedApps,
+                                        onAppClick = onAppDetailsClick
                                     )
-                                    LazyRow(
-                                        contentPadding = PaddingValues(horizontal = 16.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        items(recommendedApps, key = { "rec-${it.name}" }) { app ->
-                                            MarketplaceFeaturedCard(app = app, onClick = { onAppDetailsClick(app) })
-                                        }
-                                    }
+                                    Spacer(Modifier.height(28.dp))
                                 }
                             }
 
+                            // ── Category rows ──────────────────────────────
                             items(localCategories) { categoryName ->
-                                val categoryApps = searchFilteredApps.filter { it.categories?.contains(categoryName) == true }
+                                val categoryApps = searchFilteredApps.filter {
+                                    it.categories?.contains(categoryName) == true
+                                }
                                 if (categoryApps.isNotEmpty()) {
-                                    Text(
-                                        text = categoryName.replaceFirstChar { it.uppercase() },
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 12.dp)
+                                    SectionHeader(
+                                        title = categoryName.replaceFirstChar { it.uppercase() }
                                     )
+                                    Spacer(Modifier.height(10.dp))
                                     LazyRow(
-                                        contentPadding = PaddingValues(horizontal = 16.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        contentPadding = PaddingValues(horizontal = 20.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                                     ) {
-                                        items(categoryApps, key = { "cat-$categoryName-${it.name}" }) { app ->
-                                            MarketplaceRowStandardItem(app = app, onClick = { onAppDetailsClick(app) })
+                                        items(
+                                            categoryApps,
+                                            key = { "cat-$categoryName-${it.name}" }
+                                        ) { app ->
+                                            AppGridItem(app = app, onClick = { onAppDetailsClick(app) })
                                         }
                                     }
+                                    Spacer(Modifier.height(24.dp))
                                 }
                             }
-                        }
-                        else {
+
+                        } else {
+                            // ── Search results ─────────────────────────────
                             item {
                                 Text(
-                                    text = "Search Results (${searchFilteredApps.size})",
-                                    style = MaterialTheme.typography.titleMedium,
+                                    text = "${searchFilteredApps.size} result${if (searchFilteredApps.size != 1) "s" else ""}",
+                                    style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 12.dp)
+                                    modifier = Modifier.padding(
+                                        start = 20.dp, top = 16.dp, bottom = 6.dp
+                                    )
                                 )
                             }
                             items(searchFilteredApps, key = { "search-${it.name}" }) { app ->
-                                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                                    MarketplaceSearchRowResultItem(app = app, onClick = { onAppDetailsClick(app) })
-                                }
+                                SearchResultRow(
+                                    app = app,
+                                    onClick = { onAppDetailsClick(app) },
+                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                )
                             }
                         }
                     }
@@ -211,156 +234,336 @@ fun MarketplaceScreen(
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Section header
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
-fun MarketplaceFeaturedCard(
-    app: Apps.AppAvailableItem,
-    onClick: () -> Unit
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.headlineSmall,
+        fontWeight = FontWeight.ExtraBold,
+        modifier = Modifier.padding(start = 20.dp)
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hero auto-scrolling carousel
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun RecommendedCarousel(
+    apps: List<Apps.AppAvailableItem>,
+    onAppClick: (Apps.AppAvailableItem) -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .width(260.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AppIconFrame(iconUrl = app.icon_url, title = app.title, size = 48)
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = app.title.ifBlank { app.name },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (app.installed) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CheckCircle, null, Modifier.size(12.dp), tint = Color(0xFF2E7D32))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Installed", style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
-                        }
-                    }
-                }
+    val pagerState = rememberPagerState(pageCount = { apps.size })
+
+    // Auto-advance every 4 s
+    LaunchedEffect(pagerState) {
+        while (true) {
+            delay(4_000)
+            val next = (pagerState.currentPage + 1) % apps.size
+            pagerState.animateScrollToPage(next, animationSpec = tween(durationMillis = 500))
+        }
+    }
+
+    Column {
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            pageSpacing = 12.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) { page ->
+            val app = apps[page]
+            HeroCarouselCard(app = app, onClick = { onAppClick(app) })
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        // Pill dot indicators
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            repeat(apps.size) { index ->
+                val selected = pagerState.currentPage == index
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 3.dp)
+                        .size(width = if (selected) 20.dp else 6.dp, height = 6.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant
+                        )
+                )
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = app.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
         }
     }
 }
 
 @Composable
-fun MarketplaceRowStandardItem(
+fun HeroCarouselCard(
     app: Apps.AppAvailableItem,
     onClick: () -> Unit
 ) {
+    val screenshot = app.screenshots?.firstOrNull()
+    val hasScreenshot = !screenshot.isNullOrBlank()
+    val contentColor = if (hasScreenshot) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(210.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(28.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+
+            // Screenshot background
+            if (hasScreenshot) {
+                AsyncImage(
+                    model = screenshot,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                // Gradient scrim so text stays readable
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0.0f to Color.Transparent,
+                                    0.45f to Color.Black.copy(alpha = 0.15f),
+                                    1.0f to Color.Black.copy(alpha = 0.80f)
+                                )
+                            )
+                        )
+                )
+            }
+
+            // "Featured" badge — top-right
+            SuggestionChip(
+                onClick = {},
+                label = {
+                    Text(
+                        "Featured",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                icon = { Icon(Icons.Default.Star, null, Modifier.size(12.dp)) },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp),
+                colors = SuggestionChipDefaults.suggestionChipColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                border = null
+            )
+
+            // App info — bottom
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(16.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AppIcon(iconUrl = app.icon_url, title = app.title, size = 44)
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = app.title.ifBlank { app.name },
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = contentColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (app.installed) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.CheckCircle, null,
+                                        Modifier.size(12.dp),
+                                        tint = Color(0xFF69F0AE)
+                                    )
+                                    Spacer(Modifier.width(3.dp))
+                                    Text(
+                                        "Installed",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF69F0AE)
+                                    )
+                                }
+                            }
+                            app.categories?.firstOrNull()?.let { cat ->
+                                Text(
+                                    text = cat.replaceFirstChar { it.uppercase() },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = contentColor.copy(alpha = 0.75f)
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = app.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = 0.85f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Category row item
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun AppGridItem(app: Apps.AppAvailableItem, onClick: () -> Unit) {
     Column(
         modifier = Modifier
-            .width(96.dp)
+            .width(76.dp)
             .clickable { onClick() },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(contentAlignment = Alignment.TopEnd) {
-            AppIconFrame(iconUrl = app.icon_url, title = app.title, size = 64)
+            AppIcon(iconUrl = app.icon_url, title = app.title, size = 60)
             if (app.installed) {
                 Box(
                     modifier = Modifier
                         .size(18.dp)
-                        .background(Color.White, CircleShape)
-                        .padding(1.dp),
+                        .background(MaterialTheme.colorScheme.background, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.CheckCircle, null, Modifier.size(16.dp), tint = Color(0xFF2E7D32))
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Installed",
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(Modifier.height(6.dp))
         Text(
             text = app.title.ifBlank { app.name },
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
     }
 }
 
 @Composable
-fun MarketplaceSearchRowResultItem(
+fun SearchResultRow(
     app: Apps.AppAvailableItem,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = Modifier
+    Row(
+        modifier = modifier
             .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (app.installed) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Installed",
-                    tint = Color(0xFF2E7D32),
-                    modifier = Modifier.padding(end = 10.dp).size(20.dp)
-                )
-            }
-            AppIconFrame(iconUrl = app.icon_url, title = app.title, size = 52)
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
+        AppIcon(iconUrl = app.icon_url, title = app.title, size = 52)
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Text(
                     text = app.title.ifBlank { app.name },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
+                if (app.installed) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Installed",
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+            Text(
+                text = app.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (!app.categories.isNullOrEmpty()) {
                 Text(
-                    text = app.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = app.categories.joinToString(" · ") { it.replaceFirstChar { c -> c.uppercase() } },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
         }
     }
+    HorizontalDivider(
+        modifier = Modifier
+            .padding(start = 70.dp)
+            .padding(horizontal = 4.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+        thickness = 0.5.dp
+    )
 }
 
 @Composable
-fun AppIconFrame(iconUrl: String?, title: String, size: Int) {
-    Box(
-        modifier = Modifier
-            .size(size.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.secondaryContainer),
-        contentAlignment = Alignment.Center
-    ) {
-        if (!iconUrl.isNullOrBlank()) {
-            AsyncImage(
-                model = iconUrl,
-                contentDescription = "$title logo",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize().padding(6.dp)
-            )
-        } else {
+fun AppIcon(iconUrl: String?, title: String, size: Int) {
+    val cornerRadius = (size * 0.22f).dp
+    if (!iconUrl.isNullOrBlank()) {
+        AsyncImage(
+            model = iconUrl,
+            contentDescription = "$title icon",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .size(size.dp)
+                .clip(RoundedCornerShape(cornerRadius))
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(size.dp)
+                .clip(RoundedCornerShape(cornerRadius))
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
             Icon(
                 imageVector = Icons.Default.Apps,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size((size / 2).dp)
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size((size * 0.5f).dp)
             )
         }
     }
