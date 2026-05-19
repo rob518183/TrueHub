@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -53,17 +52,17 @@ fun MarketplaceAppDetailsScreen(
                 .padding(bottom = innerPadding.calculateBottomPadding()),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            // 1. Hero Banner Header Section
+
             item {
                 HeroHeaderSection(app = app, onNavigateBack = onNavigateBack)
             }
 
-            // 2. Main Content Body
+
             item {
                 Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Categories & Tags Row
+
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -85,7 +84,7 @@ fun MarketplaceAppDetailsScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Description
+
                     Text(
                         text = "About this application",
                         style = MaterialTheme.typography.titleMedium,
@@ -137,7 +136,7 @@ fun MarketplaceAppDetailsScreen(
                 }
             }
 
-            // 4. Quick Specs Grids & Extras
+
             item {
                 Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                     Text(
@@ -147,11 +146,11 @@ fun MarketplaceAppDetailsScreen(
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
 
-                    // Health / Status Card
+
                     HealthStatusCard(healthy = app.healthy, errorMsg = app.healthy_error)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Technical Grid Matrix
+
                     ElevatedCard(
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.elevatedCardColors(
@@ -174,7 +173,7 @@ fun MarketplaceAppDetailsScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Maintainers & Developers Section
+
                     if (!app.maintainers.isNullOrEmpty()) {
                         Text(
                             text = "Maintainers",
@@ -224,6 +223,40 @@ fun MarketplaceAppDetailsScreen(
                     }
                 }
             }
+
+
+            if (!app.app_readme.isNullOrBlank()) {
+                item {
+                    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(bottom = 20.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = "Application Documentation",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Card(
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = app.app_readme,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(16.dp),
+                                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.3f
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -240,7 +273,6 @@ private fun HeroHeaderSection(
     ) {
         val firstScreenshot = app.screenshots?.firstOrNull()
 
-        // Background Hero Cover Graphic
         if (!firstScreenshot.isNullOrBlank()) {
             AsyncImage(
                 model = firstScreenshot,
@@ -250,7 +282,6 @@ private fun HeroHeaderSection(
                     .fillMaxWidth()
                     .height(200.dp)
             )
-            // Visual blend scrim
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -262,7 +293,6 @@ private fun HeroHeaderSection(
                     )
             )
         } else {
-            // Generative placeholder gradient container if no screenshot asset
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -275,7 +305,6 @@ private fun HeroHeaderSection(
             )
         }
 
-        // Custom Floating Back Control Icon Button
         IconButton(
             onClick = onNavigateBack,
             modifier = Modifier
@@ -291,7 +320,6 @@ private fun HeroHeaderSection(
             )
         }
 
-        // Overlapping Absolute Layout Details Container Block
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -299,7 +327,6 @@ private fun HeroHeaderSection(
                 .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            // Main Icon Overlapped
             Surface(
                 shape = RoundedCornerShape(22.dp),
                 color = MaterialTheme.colorScheme.surface,
@@ -314,7 +341,6 @@ private fun HeroHeaderSection(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Text Info alongside
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -452,7 +478,6 @@ private fun ActionBottomBar(
                     Text("Uninstall", fontWeight = FontWeight.Bold)
                 }
 
-                // Primary Button: Deploy Another Container Node Instance
                 Button(
                     onClick = onInstallAnotherClick,
                     shape = RoundedCornerShape(16.dp),
@@ -471,7 +496,6 @@ private fun ActionBottomBar(
     }
 }
 
-// Simple Composable wrapper flow layout to safely manage dynamic chips natively without external flow layouts
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FlowRow(

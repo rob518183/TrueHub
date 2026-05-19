@@ -1,6 +1,7 @@
 package com.imnotndesh.truehub.ui.services.apps.details.marketplace
 
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,7 +24,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -41,6 +43,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,12 +58,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.imnotndesh.truehub.R
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
@@ -78,6 +83,9 @@ fun MarketplaceScreen(
     )
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+
+
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         if (uiState.marketplaceApps.isEmpty()) {
@@ -100,8 +108,11 @@ fun MarketplaceScreen(
         }
     }
 
+
     val recommendedApps by remember(searchFilteredApps) {
-        derivedStateOf { searchFilteredApps.filter { it.recommended } }
+        derivedStateOf {
+            searchFilteredApps.filter { it.recommended }.ifEmpty { searchFilteredApps.take(5) }
+        }
     }
 
     val localCategories by remember(searchFilteredApps) {
@@ -112,20 +123,24 @@ fun MarketplaceScreen(
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
+            modifier = Modifier.fillMaxSize()
         ) {
             UnifiedScreenHeader(
-                title = "Marketplace",
-                subtitle = "Discover chart applications",
+                title = selectedCategory ?: "Marketplace",
+                subtitle = if (selectedCategory != null) "Discover $selectedCategory apps" else "Discover chart applications",
                 isLoading = uiState.isLoading,
                 isRefreshing = uiState.isRefreshing,
                 error = uiState.error,
                 onDismissError = { viewModel.clearError() },
                 manager = manager,
-                onBackPressed = onNavigateBack
+                onBackPressed = {
+                    if (selectedCategory != null) {
+                        selectedCategory = null
+                    } else {
+                        onNavigateBack()
+                    }
+                }
             )
-
 
             OutlinedTextField(
                 value = searchQuery,
@@ -163,45 +178,90 @@ fun MarketplaceScreen(
                         contentPadding = PaddingValues(bottom = 40.dp)
                     ) {
                         if (searchQuery.isBlank()) {
+                            if (selectedCategory == null) {
 
-
-                            if (recommendedApps.isNotEmpty()) {
-                                item {
-                                    SectionHeader(title = "Featured")
-                                    Spacer(Modifier.height(10.dp))
-                                    RecommendedCarousel(
-                                        apps = recommendedApps,
-                                        onAppClick = onMarketplaceApplicationClicked
-                                    )
-                                    Spacer(Modifier.height(28.dp))
-                                }
-                            }
-
-
-                            items(localCategories) { categoryName ->
-                                val categoryApps = searchFilteredApps.filter {
-                                    it.categories?.contains(categoryName) == true
-                                }
-                                if (categoryApps.isNotEmpty()) {
-                                    SectionHeader(
-                                        title = categoryName.replaceFirstChar { it.uppercase() }
-                                    )
-                                    Spacer(Modifier.height(10.dp))
-                                    LazyRow(
-                                        contentPadding = PaddingValues(horizontal = 20.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                    ) {
-                                        items(
-                                            categoryApps,
-                                            key = { "cat-$categoryName-${it.name}" }
-                                        ) { app ->
-                                            AppGridItem(app = app, onClick = { onMarketplaceApplicationClicked(app) })
-                                        }
+                                if (recommendedApps.isNotEmpty()) {
+                                    item {
+                                        SectionHeader(title = "Featured")
+                                        Spacer(Modifier.height(10.dp))
+                                        RecommendedCarousel(
+                                            apps = recommendedApps,
+                                            onAppClick = onMarketplaceApplicationClicked
+                                        )
+                                        Spacer(Modifier.height(28.dp))
                                     }
-                                    Spacer(Modifier.height(24.dp))
+                                }
+
+                                items(localCategories) { categoryName ->
+                                    val categoryApps = searchFilteredApps.filter {
+                                        it.categories?.contains(categoryName) == true
+                                    }
+                                    if (categoryApps.isNotEmpty()) {
+                                        SectionHeaderWithAction(
+                                            title = categoryName.replaceFirstChar { it.uppercase() },
+                                            onShowMoreClick = { selectedCategory = categoryName }
+                                        )
+                                        Spacer(Modifier.height(10.dp))
+                                        LazyRow(
+                                            contentPadding = PaddingValues(horizontal = 20.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+
+                                            items(
+                                                categoryApps.take(5),
+                                                key = { "cat-$categoryName-${it.name}" }
+                                            ) { app ->
+                                                AppGridItem(app = app, onClick = { onMarketplaceApplicationClicked(app) })
+                                            }
+
+
+                                            if (categoryApps.size > 5) {
+                                                item {
+                                                    ShowMoreGridItem(onClick = { selectedCategory = categoryName })
+                                                }
+                                            }
+                                        }
+                                        Spacer(Modifier.height(24.dp))
+                                    }
+                                }
+                            } else {
+
+                                val categoryApps = searchFilteredApps.filter {
+                                    it.categories?.contains(selectedCategory) == true
+                                }
+
+                                val categoryRecommended = categoryApps.filter { it.recommended }
+                                    .ifEmpty { categoryApps.take(5) }
+
+                                if (categoryRecommended.isNotEmpty()) {
+                                    item {
+                                        SectionHeader(title = "Featured in $selectedCategory")
+                                        Spacer(Modifier.height(10.dp))
+                                        RecommendedCarousel(
+                                            apps = categoryRecommended,
+                                            onAppClick = onMarketplaceApplicationClicked
+                                        )
+                                        Spacer(Modifier.height(28.dp))
+                                    }
+                                }
+
+                                item {
+                                    Text(
+                                        text = "All ${selectedCategory?.replaceFirstChar { it.uppercase() }} Apps (${categoryApps.size})",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 12.dp)
+                                    )
+                                }
+
+                                items(categoryApps, key = { "cat-page-${selectedCategory}-${it.name}" }) { app ->
+                                    SearchResultRow(
+                                        app = app,
+                                        onClick = { onMarketplaceApplicationClicked(app) },
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
                                 }
                             }
-
                         } else {
 
                             item {
@@ -240,12 +300,64 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
+private fun SectionHeaderWithAction(title: String, onShowMoreClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.ExtraBold
+        )
+        TextButton(onClick = onShowMoreClick) {
+            Text("Show More", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun ShowMoreGridItem(onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .width(76.dp)
+            .clickable { onClick() },
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .clip(RoundedCornerShape((60 * 0.22f).dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Show More",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "See All",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
 fun RecommendedCarousel(
     apps: List<Apps.AppAvailableItem>,
     onAppClick: (Apps.AppAvailableItem) -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { apps.size })
-
 
     LaunchedEffect(pagerState) {
         while (true) {
@@ -267,7 +379,6 @@ fun RecommendedCarousel(
         }
 
         Spacer(Modifier.height(14.dp))
-
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -311,8 +422,6 @@ fun HeroCarouselCard(
         )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-
-
             if (hasScreenshot) {
                 AsyncImage(
                     model = screenshot,
@@ -336,7 +445,6 @@ fun HeroCarouselCard(
                 )
             }
 
-
             SuggestionChip(
                 onClick = {},
                 label = {
@@ -357,7 +465,6 @@ fun HeroCarouselCard(
                 ),
                 border = null
             )
-
 
             Column(
                 modifier = Modifier
@@ -530,6 +637,8 @@ fun AppIcon(iconUrl: String?, title: String, size: Int) {
             model = iconUrl,
             contentDescription = "$title icon",
             contentScale = ContentScale.Fit,
+            placeholder = painterResource(id = R.drawable.missing_app_icon),
+            error = painterResource(id = R.drawable.missing_app_icon),
             modifier = Modifier
                 .size(size.dp)
                 .clip(RoundedCornerShape(cornerRadius))
@@ -542,11 +651,10 @@ fun AppIcon(iconUrl: String?, title: String, size: Int) {
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Apps,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size((size * 0.5f).dp)
+            Image(
+                painter = painterResource(id = R.drawable.missing_app_icon),
+                contentDescription = "$title default icon",
+                modifier = Modifier.size((size * 0.7f).dp)
             )
         }
     }
