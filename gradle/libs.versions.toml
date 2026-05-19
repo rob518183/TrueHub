@@ -1,7 +1,7 @@
 [versions]
 accompanistPermissions = "0.37.3"
 activityCompose = "1.13.0"
-agp = "9.1.0"
+agp = "9.2.1"
 coilCompose = "2.7.0"
 composeBom = "2026.03.01"
 composeMarkdownVersion = "0.3.1"

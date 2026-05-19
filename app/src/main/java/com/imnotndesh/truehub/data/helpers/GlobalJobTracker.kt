@@ -30,10 +30,8 @@ object GlobalJobTracker {
                     val state = data.state
                     val isDone = state in listOf("SUCCESS", "FAILED", "ABORTED")
 
-                    // 1. Update UI Repository
                     JobRepository.updateJob(TrackedJob(jobId, appName, state, progress, data.progress?.description))
 
-                    // 2. Update Notification Service
                     if (showNotif) {
                         val intent = Intent(context, JobNotificationService::class.java).apply {
                             putExtra("id", jobId)
