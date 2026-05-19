@@ -6,6 +6,10 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.ColorFilter
+import coil.request.ImageRequest
+import coil.decode.SvgDecoder
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
@@ -454,6 +458,7 @@ private fun ServiceCard(
     onAppInfoClick: (Apps.AppQueryResponse) -> Unit,
     isSelected: Boolean = false
 ) {
+    val context = LocalContext.current
     val activeJobs by JobRepository.activeJobs.collectAsState()
     val persistentJob = activeJobs.values.find { it.appName == app.name }
 
@@ -468,7 +473,7 @@ private fun ServiceCard(
     )
 
     Card(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected)
@@ -501,18 +506,24 @@ private fun ServiceCard(
                     ) {
                         if (!app.metadata?.icon.isNullOrBlank()) {
                             AsyncImage(
-                                model = app.metadata?.icon,
-                                contentDescription = "App icon",
+                                model = ImageRequest.Builder(context)
+                                    .data(app.metadata.icon)
+                                    .decoderFactory(SvgDecoder.Factory())
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "${app.metadata.title ?: app.name} icon",
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(RoundedCornerShape(10.dp)),
                                 contentScale = ContentScale.Fit,
+                                placeholder = rememberVectorPainter(Icons.Default.Apps),
                                 error = rememberVectorPainter(Icons.Default.Apps)
                             )
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Apps,
                                 contentDescription = null,
+
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.size(28.dp)
                             )
@@ -545,18 +556,23 @@ private fun ServiceCard(
                         Box(
                             modifier = Modifier
                                 .size(64.dp)
-                                .clip(RoundedCornerShape(18.dp))
+                                .clip(RoundedCornerShape(20.dp))
                                 .background(MaterialTheme.colorScheme.secondaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
                             if (!app.metadata?.icon.isNullOrBlank()) {
                                 AsyncImage(
-                                    model = app.metadata?.icon,
-                                    contentDescription = "App icon",
+                                    model = ImageRequest.Builder(context)
+                                        .data(app.metadata.icon)
+                                        .decoderFactory(SvgDecoder.Factory())
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "${app.metadata.title ?: app.name} icon",
                                     modifier = Modifier
                                         .size(46.dp)
-                                        .clip(RoundedCornerShape(12.dp)),
+                                        .clip(RoundedCornerShape(14.dp)),
                                     contentScale = ContentScale.Fit,
+                                    placeholder = rememberVectorPainter(Icons.Default.Apps),
                                     error = rememberVectorPainter(Icons.Default.Apps)
                                 )
                             } else {
@@ -590,6 +606,7 @@ private fun ServiceCard(
                     )
                 }
             }
+
             val isJobRunning = persistentJob != null
 
             if (app.upgrade_available || isJobRunning) {
@@ -710,12 +727,12 @@ private fun ServiceCard(
                 Spacer(modifier = Modifier.height(12.dp))
                 Surface(
                     onClick = { showMoreOptions = !showMoreOptions },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -760,7 +777,7 @@ private fun CompactActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Expressive: Animate color change on state
+
     val containerColor by animateColorAsState(
         if (isPrimary) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
         label = "container"
@@ -772,7 +789,7 @@ private fun CompactActionButton(
 
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp), // Expressive: Rounder
+        shape = RoundedCornerShape(16.dp),
         color = containerColor,
         modifier = modifier
     ) {
@@ -832,66 +849,12 @@ private fun UpgradeButton(
     }
 }
 
-@Composable
-private fun UpgradeStatusChip(upgradeState: System.UpgradeJobState) {
-    val containerColor = when (upgradeState.state.lowercase()) {
-        "success" -> MaterialTheme.colorScheme.primaryContainer
-        "failed", "aborted" -> MaterialTheme.colorScheme.errorContainer
-        else -> MaterialTheme.colorScheme.secondaryContainer
-    }
-    Surface(
-        color = containerColor,
-        shape = RoundedCornerShape(100.dp) // Expressive: Pill shape
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            when (upgradeState.state.lowercase()) {
-                "success" -> Icon(
-                    Icons.Default.CloudUpload,
-                    null,
-                    Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                "failed", "aborted" -> Icon(
-                    Icons.Default.Error,
-                    null,
-                    Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onErrorContainer
-                )
-                else -> CircularProgressIndicator(
-                    Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = when (upgradeState.state.lowercase()) {
-                    "upgrading" -> "Upgrading..."
-                    "success" -> "Updated"
-                    "failed" -> "Failed"
-                    "aborted" -> "Aborted"
-                    else -> upgradeState.state.lowercase().replaceFirstChar { it.uppercase() }
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = when (upgradeState.state.lowercase()) {
-                    "success" -> MaterialTheme.colorScheme.onPrimaryContainer
-                    "failed", "aborted" -> MaterialTheme.colorScheme.onErrorContainer
-                    else -> MaterialTheme.colorScheme.onSecondaryContainer
-                },
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
 
 @Composable
 private fun StatusChip(state: String, icon: ImageVector) {
     Surface(
         color = getStatusColor(state).copy(alpha = 0.12f),
-        shape = RoundedCornerShape(100.dp), // Expressive: Pill shape
+        shape = RoundedCornerShape(100.dp),
         modifier = Modifier.padding(0.dp)
     ) {
         Row(
@@ -943,7 +906,7 @@ private fun ActionButton(
     Surface(
         onClick = onClick,
         enabled = enabled,
-        shape = RoundedCornerShape(16.dp), // Expressive
+        shape = RoundedCornerShape(16.dp),
         color = containerColor,
         modifier = modifier
     ) {

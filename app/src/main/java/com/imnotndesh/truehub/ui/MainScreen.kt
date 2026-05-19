@@ -266,16 +266,61 @@ private fun TrueHubNavGraph(
                 }
             )
         }
-
         composable("app_details") {
             val app = AppDataHolder.selectedApp
-            if (app != null) {
-                AppInfoScreen(
-                    app = app,
-                    manager = manager,
-                    onNavigateBack = { navController.popBackStack() }
-                )
+
+            val appsViewModel: AppsScreenViewModel = viewModel(
+                factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
+            )
+            LaunchedEffect(Unit) {
+                if (appsViewModel.uiState.value.marketplaceApps.isEmpty()) {
+                    appsViewModel.loadMarketplaceApps()
+                }
             }
+
+            AppInfoScreen(
+                app = app!!,
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToMarketplaceCategory = { categoryName ->
+                    navController.navigate("marketplace?category=${categoryName}")
+                },
+                onNavigateToMarketplaceAppDetails = { appName ->
+                    val matchedAvailableItem = appsViewModel.uiState.value.marketplaceApps
+                        .find { it.name == appName }
+
+                    if (matchedAvailableItem != null) {
+                        AppDataHolder.selectedMarketplaceApp = matchedAvailableItem
+                        navController.navigate("marketplace_app_details")
+                    } else {
+                        navController.navigate("marketplace?category=")
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = "marketplace?category={category}",
+            arguments = listOf(
+                navArgument("category") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                    nullable = true
+                }
+            )
+        ) { backStackEntry ->
+            val category = backStackEntry.arguments?.getString("category")
+                ?.takeIf { it.isNotBlank() }
+
+            MarketplaceScreen(
+                manager = manager,
+                initialCategory = category,
+                onNavigateBack = { navController.popBackStack() },
+                onMarketplaceApplicationClicked = { app ->
+                    AppDataHolder.selectedMarketplaceApp = app
+                    navController.navigate("marketplace_app_details")
+                }
+            )
         }
         composable(
             route = "marketplace",
@@ -307,7 +352,7 @@ private fun TrueHubNavGraph(
             val isLoading = (uiState.isLoadingUpgradeSummaryForApp == appName) && (summary == null)
 
             if (isLoading) {
-                com.imnotndesh.truehub.ui.components.LoadingScreen("Checking upgrades...")
+                LoadingScreen("Checking upgrades...")
             } else if (summary != null) {
                 UpgradeSummaryScreen(
                     appName = appName,

@@ -72,20 +72,24 @@ import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
 import kotlinx.coroutines.delay
+import coil.request.ImageRequest
+import coil.decode.SvgDecoder
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun MarketplaceScreen(
     manager: TrueNASApiManager,
     onNavigateBack: () -> Unit,
-    onMarketplaceApplicationClicked: (Apps.AppAvailableItem) -> Unit
-) {
+    onMarketplaceApplicationClicked: (Apps.AppAvailableItem) -> Unit,
+    initialCategory: String? = null
+){
     val viewModel: AppsScreenViewModel = viewModel(
         factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
     )
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
 
-    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var selectedCategory by remember { mutableStateOf<String?>(initialCategory) }
     BackHandler(enabled = selectedCategory != null) {
         selectedCategory = null
     }
@@ -634,10 +638,16 @@ fun SearchResultRow(
 
 @Composable
 fun AppIcon(iconUrl: String?, title: String, size: Int) {
+    val context = LocalContext.current
     val cornerRadius = (size * 0.22f).dp
+
     if (!iconUrl.isNullOrBlank()) {
         AsyncImage(
-            model = iconUrl,
+            model = ImageRequest.Builder(context)
+                .data(iconUrl)
+                .decoderFactory(SvgDecoder.Factory())
+                .crossfade(true)
+                .build(),
             contentDescription = "$title icon",
             contentScale = ContentScale.Fit,
             placeholder = painterResource(id = R.drawable.missing_app_icon),

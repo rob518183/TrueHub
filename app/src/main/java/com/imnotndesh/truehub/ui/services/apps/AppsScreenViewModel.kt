@@ -38,7 +38,8 @@ data class AppsScreenUiState(
     val rollbackVersions: List<String> = emptyList(),
     val isLoadingRollbackVersions: Boolean = false,
     val rollbackJobs: Map<String, System.UpgradeJobState> = emptyMap(),
-    val selectedCategory: AppCategory = AppCategory.ALL
+    val selectedCategory: AppCategory = AppCategory.ALL,
+    val searchQuery: String = ""
 )
 
 class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() {
@@ -58,6 +59,10 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
 
     fun updateCategory(category: AppCategory) {
         _uiState.update { it.copy(selectedCategory = category) }
+    }
+
+    fun onSearchQueryChange(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
     }
 
     private fun startPeriodicRefresh() {

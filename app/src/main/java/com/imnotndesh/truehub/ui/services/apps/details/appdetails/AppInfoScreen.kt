@@ -1,5 +1,7 @@
 package com.imnotndesh.truehub.ui.services.apps.details.appdetails
 
+import android.text.method.LinkMovementMethod
+import android.widget.TextView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import com.imnotndesh.truehub.R
@@ -13,6 +15,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,6 +57,7 @@ import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -77,8 +81,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.text.HtmlCompat
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -86,6 +92,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
@@ -95,8 +103,11 @@ import dev.jeziellago.compose.markdowntext.MarkdownText
 fun AppInfoScreen(
     app: Apps.AppQueryResponse,
     manager: TrueNASApiManager,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToMarketplaceCategory: (String) -> Unit = {},
+    onNavigateToMarketplaceAppDetails: (String) -> Unit = {}
 ) {
+    val context = LocalContext.current
     val viewModel: AppDetailsViewModel = viewModel(
         factory = AppDetailsViewModel.provideFactory(manager),
         key = app.name
@@ -104,12 +115,14 @@ fun AppInfoScreen(
 
     val similarApps by viewModel.similarApps.collectAsState()
     val isLoadingSimilar by viewModel.isLoadingSimilar.collectAsState()
+
     LaunchedEffect(app.name) {
         viewModel.loadSimilarApps(
             appName = app.name,
             train = app.metadata?.train ?: "stable"
         )
     }
+
     Scaffold(
         topBar = {
             UnifiedScreenHeader(
@@ -133,33 +146,98 @@ fun AppInfoScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+
+            // Hero Header Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(76.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.secondaryContainer)
+                            .clickable { onNavigateToMarketplaceAppDetails(app.name) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (!app.metadata?.icon.isNullOrBlank()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(app.metadata.icon)
+                                    .decoderFactory(SvgDecoder.Factory())
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "${app.metadata.title ?: app.name} icon",
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Fit,
+                                placeholder = rememberVectorPainter(Icons.Default.Apps),
+                                error = rememberVectorPainter(Icons.Default.Apps)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Apps,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = app.metadata?.title ?: app.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.clickable { onNavigateToMarketplaceAppDetails(app.name) }
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Version: ${app.humanVersion ?: app.version ?: "Unknown"}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             ExpressiveSection(title = "Basic Information", icon = Icons.Default.Info) {
                 ExpressiveInfoCard {
                     InfoRow(label = "App Name", value = app.metadata?.title ?: app.name)
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     InfoRow(label = "ID", value = app.id)
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    InfoRow(
-                        label = "Version",
-                        value = app.humanVersion ?: app.version ?: "Unknown"
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    InfoRow(label = "Version", value = app.humanVersion ?: app.version ?: "Unknown")
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     InfoRow(label = "Status", value = app.state.replaceFirstChar { it.uppercase() })
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    InfoRow(label = "Catalog", value = app.metadata?.train ?: "Unknown") // Using metadata.train as per struct
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    InfoRow(label = "Catalog", value = app.metadata?.train ?: "Unknown")
 
                     if (app.upgrade_available) {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         InfoRow(label = "Latest Version", value = app.latestVersion ?: "Update Available")
                     }
 
                     app.metadata?.dateAdded?.let {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                        InfoRow(label = "Date Added", value = formatDate(it))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        InfoRow(label = "Date Added", value = it)
                     }
                     app.metadata?.lastUpdate?.let {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                        InfoRow(label = "Last Updated", value = formatDate(it))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        InfoRow(label = "Last Updated", value = it)
                     }
                 }
             }
@@ -168,27 +246,41 @@ fun AppInfoScreen(
                 ExpressiveSection(title = "Description", icon = Icons.Default.Description) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(20.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            lineHeight = 24.sp,
-                            modifier = Modifier.padding(16.dp)
+                        val textColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        val linkColor = MaterialTheme.colorScheme.primary
+
+                        AndroidView(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            factory = { ctx ->
+                                TextView(ctx).apply {
+                                    movementMethod = LinkMovementMethod.getInstance()
+                                    textSize = 14f
+                                }
+                            },
+                            update = { textView ->
+                                textView.setTextColor(textColor.hashCode())
+                                textView.setLinkTextColor(linkColor.hashCode())
+                                textView.text = HtmlCompat.fromHtml(description, HtmlCompat.FROM_HTML_MODE_LEGACY)
+                            }
                         )
                     }
                 }
             }
+
             if (isLoadingSimilar || similarApps.isNotEmpty()) {
                 SimilarAppsSection(
                     apps = similarApps,
                     isLoading = isLoadingSimilar,
-                    onSeeMoreClick = { /* onNavigateToSimilar(app.name) */ },
-                    onAppClick = { /* Handle navigation to another app's details */ }
+                    onSeeMoreClick = { onNavigateToMarketplaceCategory(app.metadata?.categories?.firstOrNull() ?: "") },
+                    onAppClick = { selectedSimilarAppName -> onNavigateToMarketplaceAppDetails(selectedSimilarAppName) }
                 )
             }
+
             if (!app.metadata?.categories.isNullOrEmpty() || !app.metadata?.keywords.isNullOrEmpty()) {
                 ExpressiveSection(title = "Categories & Tags", icon = Icons.Default.Tag) {
                     app.metadata.categories?.let { categories ->
@@ -196,7 +288,8 @@ fun AppInfoScreen(
                             title = "Categories",
                             items = categories,
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            onChipClick = { onNavigateToMarketplaceCategory(it) }
                         )
                     }
 
@@ -207,12 +300,14 @@ fun AppInfoScreen(
                                 title = "Keywords",
                                 items = keywords,
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                onChipClick = {}
                             )
                         }
                     }
                 }
             }
+
             app.portals?.let { portals ->
                 if (portals.isNotEmpty()) {
                     ExpressiveSection(title = "Web Portals", icon = Icons.AutoMirrored.Filled.Launch) {
@@ -223,6 +318,7 @@ fun AppInfoScreen(
                     }
                 }
             }
+
             app.activeWorkloads?.usedPorts?.let { ports ->
                 if (ports.isNotEmpty()) {
                     ExpressiveSection(title = "Network & Ports", icon = Icons.Default.NetworkCheck) {
@@ -233,6 +329,7 @@ fun AppInfoScreen(
                     }
                 }
             }
+
             app.activeWorkloads?.containerDetails?.let { containers ->
                 if (containers.isNotEmpty()) {
                     ExpressiveSection(title = "Containers", icon = Icons.Default.Apps) {
@@ -243,6 +340,7 @@ fun AppInfoScreen(
                     }
                 }
             }
+
             val volumes = app.activeWorkloads?.volumes
             val hostMounts = app.metadata?.hostMounts
 
@@ -258,6 +356,7 @@ fun AppInfoScreen(
                     }
                 }
             }
+
             app.metadata?.runAsContext?.let { contexts ->
                 if (contexts.isNotEmpty()) {
                     ExpressiveSection(title = "Security Context", icon = Icons.Default.AccountBox) {
@@ -268,6 +367,7 @@ fun AppInfoScreen(
                     }
                 }
             }
+
             app.metadata?.capabilities?.let { capabilities ->
                 if (capabilities.isNotEmpty()) {
                     ExpressiveSection(title = "Capabilities", icon = Icons.Default.Build) {
@@ -289,6 +389,7 @@ fun AppInfoScreen(
                     }
                 }
             }
+
             if (app.metadata?.home != null || !app.metadata?.sources.isNullOrEmpty()) {
                 ExpressiveSection(title = "Resources", icon = Icons.Default.Link) {
                     app.metadata.home?.let { home ->
@@ -313,7 +414,7 @@ fun AppInfoScreen(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainer
                             ),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(20.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Box(modifier = Modifier.padding(16.dp)) {
@@ -333,14 +434,6 @@ fun AppInfoScreen(
     }
 }
 
-private fun formatDate(dateString: String): String {
-    return try {
-        dateString
-    } catch (e: Exception) {
-        dateString
-    }
-}
-
 @Composable
 fun ExpressiveSection(
     title: String,
@@ -354,15 +447,15 @@ fun ExpressiveSection(
         ) {
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.size(32.dp)
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.size(36.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -418,12 +511,14 @@ fun InfoRow(label: String, value: String) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ServiceInfoChipGroup(
     title: String,
     items: List<String>,
     containerColor: Color,
-    contentColor: Color
+    contentColor: Color,
+    onChipClick: (String) -> Unit
 ) {
     Column {
         Text(
@@ -440,7 +535,7 @@ private fun ServiceInfoChipGroup(
         ) {
             items.forEach { item ->
                 FilterChip(
-                    onClick = { },
+                    onClick = { onChipClick(item) },
                     label = { Text(text = item) },
                     selected = false,
                     colors = FilterChipDefaults.filterChipColors(
@@ -450,7 +545,7 @@ private fun ServiceInfoChipGroup(
                         disabledLabelColor = contentColor
                     ),
                     border = null,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(14.dp)
                 )
             }
         }
@@ -461,7 +556,7 @@ private fun ServiceInfoChipGroup(
 private fun ServicePortCard(port: Apps.UsedPort) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -469,7 +564,7 @@ private fun ServicePortCard(port: Apps.UsedPort) {
                 Icon(
                     Icons.Default.NetworkCheck,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -486,12 +581,12 @@ private fun ServicePortCard(port: Apps.UsedPort) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
-                        .padding(start = 24.dp, top = 2.dp)
+                        .padding(start = 24.dp, top = 4.dp)
                         .background(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                            RoundedCornerShape(4.dp)
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                            RoundedCornerShape(6.dp)
                         )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
         }
@@ -503,7 +598,7 @@ private fun ServicePortalCard(name: String, url: String) {
     val uriHandler = LocalUriHandler.current
     Surface(
         onClick = { uriHandler.openUri(url) },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.primaryContainer,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -520,7 +615,7 @@ private fun ServicePortalCard(name: String, url: String) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = name,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -540,29 +635,13 @@ private fun ServicePortalCard(name: String, url: String) {
 private fun ServiceContainerCard(container: Apps.ContainerDetail) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = container.serviceName,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Text(text = container.serviceName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Image: ${container.image}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "State: ${container.state}",
-                style = MaterialTheme.typography.bodySmall,
-                color = if (container.state.equals("running", true))
-                    Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium
-            )
+            Text(text = "Image: ${container.image}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -574,31 +653,9 @@ private fun ServiceVolumeCard(volume: Apps.Volume) {
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Default.Storage,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = "${volume.source} → ${volume.destination}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                volume.mode?.let { mode ->
-                    Text(
-                        text = "Mode: $mode",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = "Source: ${volume.source}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(text = "Destination: ${volume.destination}", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -606,35 +663,13 @@ private fun ServiceVolumeCard(volume: Apps.Volume) {
 @Composable
 private fun ServiceHostMountCard(mount: Apps.HostMount) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Default.Folder,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = "Host Path: ${mount.hostPath ?: "Unknown"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                mount.description?.let { desc ->
-                    Text(
-                        text = desc,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = "Host Mount", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Text(text = "Host Path: ${mount.hostPath}", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -646,24 +681,10 @@ private fun ServiceRunAsContextCard(context: Apps.RunAsContext) {
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "User: ${context.userName ?: context.uid ?: "Root"}",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "Group: ${context.groupName ?: context.gid ?: "Root"}",
-                style = MaterialTheme.typography.bodySmall
-            )
-            context.description?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.AccountBox, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(text = "UID: ${context.uid} | GID: ${context.gid}", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -671,34 +692,11 @@ private fun ServiceRunAsContextCard(context: Apps.RunAsContext) {
 @Composable
 private fun ServiceCapabilityCard(capability: Apps.Capability) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Default.Build,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = capability.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = capability.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        Text(text = capability.name, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -709,249 +707,93 @@ private fun ServiceMaintainerCard(maintainer: Apps.Maintainer) {
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = maintainer.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                maintainer.email?.let { email ->
-                    Text(
-                        text = email,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = maintainer.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(text = "Email: ${maintainer.email}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
 
 @Composable
-fun LinkButton(name: String, url: String, icon: ImageVector) {
+private fun LinkButton(name: String, url: String, icon: ImageVector) {
     val uriHandler = LocalUriHandler.current
-    Surface(
+    Card(
         onClick = { uriHandler.openUri(url) },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.width(16.dp))
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text(
-                    text = url,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Text(text = name, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium)
+                Text(text = url, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Icon(Icons.AutoMirrored.Filled.OpenInNew, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(imageVector = Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
         }
     }
 }
-@OptIn(ExperimentalLayoutApi::class)
+
 @Composable
 fun SimilarAppsSection(
     apps: List<Apps.AppSimilarResponse>,
     isLoading: Boolean,
     onSeeMoreClick: () -> Unit,
-    onAppClick: (Apps.AppSimilarResponse) -> Unit
+    onAppClick: (String) -> Unit
 ) {
-    val displayedApps = apps.take(10)
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Similar Applications",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            Text(text = "Similar Applications", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (!isLoading) {
                 TextButton(onClick = onSeeMoreClick) {
-                    Text("See More")
+                    Text(text = "See More", fontWeight = FontWeight.SemiBold)
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(8.dp))
-
         LazyHorizontalGrid(
-            rows = GridCells.Fixed(2),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(128.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.Start),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 4.dp)
-        ){
-            if (isLoading) {
-                items(6) {
-                    SimilarAppPill(isLoading = true)
-                }
-            } else {
-                items(apps) { app ->
-                    SimilarAppPill(
-                        app = app,
-                        isLoading = false,
-                        onClick = { onAppClick(app) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SimilarAppPill(
-    app: Apps.AppSimilarResponse? = null,
-    isLoading: Boolean = false,
-    onClick: () -> Unit = {}
-) {
-    val pillColor by animateColorAsState(
-        targetValue = if (isLoading) Color.Transparent
-        else MaterialTheme.colorScheme.surfaceContainerLow,
-        animationSpec = tween(600),
-        label = "pill_bg"
-    )
-
-    Surface(
-        onClick = if (isLoading) ({}) else onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = pillColor,
-        tonalElevation = if (isLoading) 0.dp else 1.dp,
-        modifier = Modifier
-            .height(56.dp)
-            .then(if (isLoading) Modifier.shimmerLoadingAnimation() else Modifier)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            rows = GridCells.Fixed(1),
+            modifier = Modifier.height(120.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            AnimatedContent(
-                targetState = !isLoading && app != null,
-                transitionSpec = {
-                    fadeIn(tween(600, delayMillis = 200)) togetherWith fadeOut(tween(300))
-                },
-                label = "pill_icon"
-            ) { showReal ->
-                Box(
+            items(apps) { appItem ->
+                Card(
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.secondaryContainer),
-                    contentAlignment = Alignment.Center
+                        .width(240.dp)
+                        .clickable { onAppClick(appItem.name) },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
                 ) {
-                    if (showReal && !app?.iconUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = app.iconUrl,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            error = rememberVectorPainter(Icons.Default.Apps),
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Apps,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            AnimatedContent(
-                targetState = isLoading,
-                transitionSpec = {
-                    fadeIn(tween(600, delayMillis = 200)) togetherWith fadeOut(tween(300))
-                },
-                label = "pill_text"
-            ) { loading ->
-                if (loading) {
-                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .width(72.dp)
-                                .height(11.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
-                        )
-                        Box(
-                            modifier = Modifier
-                                .width(48.dp)
-                                .height(9.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f))
-                        )
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.secondaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Apps, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            appItem.title?.let {
+                                Text(
+                                    text = it,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
-                } else {
-                    Text(
-                        text = app?.title ?: app?.name ?: "",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
                 }
             }
         }
     }
-}
-@Composable
-fun Modifier.shimmerLoadingAnimation(): Modifier {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim by transition.animateFloat(
-        initialValue = -1000f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmer_offset"
-    )
-
-    val shimmerColors = listOf(
-        MaterialTheme.colorScheme.surfaceVariant,
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
-        MaterialTheme.colorScheme.surfaceVariant,
-    )
-
-    val brush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(x = translateAnim, y = 0f),
-        end = Offset(x = translateAnim + 500f, y = 0f)
-    )
-
-    return this.background(brush)
 }

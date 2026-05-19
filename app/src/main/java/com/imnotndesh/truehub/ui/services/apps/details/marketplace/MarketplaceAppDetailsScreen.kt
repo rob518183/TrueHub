@@ -13,6 +13,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import android.text.method.LinkMovementMethod
+import android.widget.TextView
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.text.HtmlCompat
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -224,7 +228,6 @@ fun MarketplaceAppDetailsScreen(
                 }
             }
 
-
             if (!app.app_readme.isNullOrBlank()) {
                 item {
                     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
@@ -243,15 +246,32 @@ fun MarketplaceAppDetailsScreen(
                             shape = RoundedCornerShape(20.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                contentColor = MaterialTheme.colorScheme.onSurface
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = app.app_readme,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(16.dp),
-                                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.3f
+                            val textColor = MaterialTheme.colorScheme.onSurface
+                            val linkColor = MaterialTheme.colorScheme.primary
+
+                            AndroidView(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                factory = { context ->
+                                    TextView(context).apply {
+                                        movementMethod = LinkMovementMethod.getInstance()
+                                        textSize = 14f
+                                    }
+                                },
+                                update = { textView ->
+
+                                    textView.setTextColor(textColor.hashCode())
+                                    textView.setLinkTextColor(linkColor.hashCode())
+
+                                    textView.text = HtmlCompat.fromHtml(
+                                        app.app_readme,
+                                        HtmlCompat.FROM_HTML_MODE_LEGACY
+                                    )
+                                }
                             )
                         }
                     }
