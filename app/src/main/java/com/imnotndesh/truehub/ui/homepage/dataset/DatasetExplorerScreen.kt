@@ -12,7 +12,10 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -36,17 +39,18 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.FolderSpecial
@@ -58,13 +62,11 @@ import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -91,6 +93,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -125,6 +129,7 @@ fun DatasetExplorerScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var currentSelectedDataset by remember { mutableStateOf("") }
+    var isMobileSheetExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(poolName) { viewModel.loadDatasets(poolName) }
 
@@ -161,109 +166,119 @@ fun DatasetExplorerScreen(
         )
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButton = {
-            DatasetFabGroup(
-                isExpanded = showFabMenu,
-                selectedDataset = selectedDataset,
-                onToggle = { showFabMenu = !showFabMenu },
-                onCreateDataset = {
-                    showFabMenu = false
-                    showCreateDialog = true
-                },
-                onDeleteDataset = {
-                    showFabMenu = false
-                    selectedDataset?.name?.let {
-                        currentSelectedDataset = it
-                        showDeleteDialog = true
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            floatingActionButton = {
+                DatasetFabGroup(
+                    isMenuExpanded = showFabMenu,
+                    isDetailsPanelExpanded = isMobileSheetExpanded,
+                    selectedDataset = selectedDataset,
+                    onToggleMenu = { showFabMenu = !showFabMenu },
+                    onToggleDetailsPanel = {
+                        if (selectedDataset != null) {
+                            isMobileSheetExpanded = !isMobileSheetExpanded
+                        }
+                    },
+                    onCreateDataset = {
+                        showFabMenu = false
+                        showCreateDialog = true
+                    },
+                    onDeleteDataset = {
+                        showFabMenu = false
+                        selectedDataset?.name?.let {
+                            currentSelectedDataset = it
+                            showDeleteDialog = true
+                        }
                     }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            UnifiedScreenHeader(
-                title = "Datasets",
-                subtitle = poolName,
-                isLoading = uiState is DatasetExplorerViewModel.UiState.Loading,
-                isRefreshing = false,
-                error = (uiState as? DatasetExplorerViewModel.UiState.Error)?.message,
-                onRefresh = { viewModel.loadDatasets(poolName) },
-                onDismissError = { },
-                manager = manager,
-                onBackPressed = onNavigateBack
-            )
-            DatasetToolbar(
-                isSearchActive = isSearchActive,
-                searchQuery = searchQuery,
-                viewMode = viewMode,
-                onSearchToggle = {
-                    isSearchActive = !isSearchActive
-                    if (!isSearchActive) searchQuery = ""
-                },
-                onQueryChange = { searchQuery = it },
-                onViewModeChange = { viewMode = it }
-            )
-            when (val state = uiState) {
-                is DatasetExplorerViewModel.UiState.Loading -> LoadingScreen("Loading Datasets…")
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                UnifiedScreenHeader(
+                    title = "Datasets",
+                    subtitle = poolName,
+                    isLoading = uiState is DatasetExplorerViewModel.UiState.Loading,
+                    isRefreshing = false,
+                    error = (uiState as? DatasetExplorerViewModel.UiState.Error)?.message,
+                    onRefresh = { viewModel.loadDatasets(poolName) },
+                    onDismissError = { },
+                    manager = manager,
+                    onBackPressed = onNavigateBack
+                )
+                DatasetToolbar(
+                    isSearchActive = isSearchActive,
+                    searchQuery = searchQuery,
+                    viewMode = viewMode,
+                    onSearchToggle = {
+                        isSearchActive = !isSearchActive
+                        if (!isSearchActive) searchQuery = ""
+                    },
+                    onQueryChange = { searchQuery = it },
+                    onViewModeChange = { viewMode = it }
+                )
+                when (val state = uiState) {
+                    is DatasetExplorerViewModel.UiState.Loading -> LoadingScreen("Loading Datasets…")
+                    is DatasetExplorerViewModel.UiState.Error -> {}
+                    is DatasetExplorerViewModel.UiState.Success,
+                    is DatasetExplorerViewModel.UiState.LoadingWithCache -> {
+                        val rootNode = when (val s = uiState) {
+                            is DatasetExplorerViewModel.UiState.Success -> s.rootNode
+                            is DatasetExplorerViewModel.UiState.LoadingWithCache -> s.rootNode
+                            else -> null
+                        }
 
-                is DatasetExplorerViewModel.UiState.Error -> {}
+                        if (rootNode == null || (rootNode.children.isEmpty() && allNodes.size <= 1)) {
+                            NoDatasetsCard(poolName = poolName)
+                        } else {
+                            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                                val isTablet = maxWidth > 840.dp
 
-                is DatasetExplorerViewModel.UiState.Success,
-                is DatasetExplorerViewModel.UiState.LoadingWithCache -> {
-                    val rootNode = when (val s = uiState) {
-                        is DatasetExplorerViewModel.UiState.Success -> s.rootNode
-                        is DatasetExplorerViewModel.UiState.LoadingWithCache -> s.rootNode
-                        else -> null
-                    }
-
-                    if (rootNode == null || (rootNode.children.isEmpty() && allNodes.size <= 1)) {
-                        NoDatasetsCard(poolName = poolName)
-                    } else {
-                        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                            val isTablet = maxWidth > 840.dp
-
-                            if (isTablet) {
-                                TabletDatasetLayout(
-                                    rootNode = rootNode,
-                                    allNodes = if (isSearchActive) filteredNodes else allNodes,
-                                    isSearchActive = isSearchActive,
-                                    viewMode = viewMode,
-                                    expandedIds = viewModel.expandedNodeIds,
-                                    selectedDataset = selectedDataset,
-                                    onToggle = { viewModel.toggleExpansion(it) },
-                                    onSelect = { viewModel.selectNode(it) },
-                                    onCreateChild = { showCreateDialog = true },
-                                    onDeleteDataset = { name ->
-                                        currentSelectedDataset = name
-                                        showDeleteDialog = true
-                                    }
-                                )
-                            } else {
-                                PhoneDatasetLayout(
-                                    rootNode = rootNode,
-                                    allNodes = if (isSearchActive) filteredNodes else allNodes,
-                                    isSearchActive = isSearchActive,
-                                    viewMode = viewMode,
-                                    expandedIds = viewModel.expandedNodeIds,
-                                    selectedDataset = selectedDataset,
-                                    onToggle = { viewModel.toggleExpansion(it) },
-                                    onSelect = { viewModel.selectNode(it) },
-                                    onCreateChild = { showCreateDialog = true },
-                                    onDeleteDataset = { name ->
-                                        currentSelectedDataset = name
-                                        showDeleteDialog = true
-                                    }
-                                )
+                                if (isTablet) {
+                                    TabletDatasetLayout(
+                                        rootNode = rootNode,
+                                        allNodes = if (isSearchActive) filteredNodes else allNodes,
+                                        isSearchActive = isSearchActive,
+                                        viewMode = viewMode,
+                                        expandedIds = viewModel.expandedNodeIds,
+                                        selectedDataset = selectedDataset,
+                                        onToggle = { viewModel.toggleExpansion(it) },
+                                        onSelect = { viewModel.selectNode(it) },
+                                        onCreateChild = { showCreateDialog = true }
+                                    )
+                                } else {
+                                    PhoneDatasetLayout(
+                                        rootNode = rootNode,
+                                        allNodes = if (isSearchActive) filteredNodes else allNodes,
+                                        isSearchActive = isSearchActive,
+                                        viewMode = viewMode,
+                                        expandedIds = viewModel.expandedNodeIds,
+                                        selectedDataset = selectedDataset,
+                                        onToggle = { viewModel.toggleExpansion(it) },
+                                        onSelect = { viewModel.selectNode(it) } // FIXED: Deliberately select node only. No auto-pop up activation here anymore.
+                                    )
+                                }
                             }
                         }
                     }
                 }
+            }
+        }
+
+        // Overlay Slide-Over Panel for Mobile viewports
+        AnimatedVisibility(
+            visible = isMobileSheetExpanded && selectedDataset != null,
+            enter = slideInHorizontally(initialOffsetX = { it }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
+            exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeOut()
+        ) {
+            if (selectedDataset != null) {
+                MobileSlideOverPanel(
+                    dataset = selectedDataset!!,
+                    onDismiss = { isMobileSheetExpanded = false }
+                )
             }
         }
     }
@@ -324,7 +339,6 @@ private fun DatasetToolbar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // View mode segmented buttons
                     SingleChoiceSegmentedButtonRow {
                         DatasetViewMode.entries.forEachIndexed { idx, mode ->
                             SegmentedButton(
@@ -379,8 +393,7 @@ private fun TabletDatasetLayout(
     selectedDataset: Storage.ZfsDataset?,
     onToggle: (String) -> Unit,
     onSelect: (Storage.ZfsDataset) -> Unit,
-    onCreateChild: () -> Unit,
-    onDeleteDataset: (String) -> Unit
+    onCreateChild: () -> Unit
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.weight(1f)) {
@@ -396,13 +409,12 @@ private fun TabletDatasetLayout(
             )
         }
 
-        // Details panel
         Box(
             modifier = Modifier
-                .width(380.dp)
+                .width(400.dp)
                 .fillMaxHeight()
                 .padding(12.dp)
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(24.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
         ) {
             if (selectedDataset != null) {
@@ -427,15 +439,8 @@ private fun PhoneDatasetLayout(
     expandedIds: List<String>,
     selectedDataset: Storage.ZfsDataset?,
     onToggle: (String) -> Unit,
-    onSelect: (Storage.ZfsDataset) -> Unit,
-    onCreateChild: () -> Unit,
-    onDeleteDataset: (String) -> Unit
+    onSelect: (Storage.ZfsDataset) -> Unit
 ) {
-    var isMobileSheetExpanded by remember { mutableStateOf(false) }
-    val bottomPadding = if (selectedDataset != null) {
-        if (isMobileSheetExpanded) 380.dp else 100.dp
-    } else 96.dp  // space for FAB
-
     Column(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.weight(1f)) {
             DatasetContentArea(
@@ -447,17 +452,7 @@ private fun PhoneDatasetLayout(
                 selectedId = selectedDataset?.id,
                 onToggle = onToggle,
                 onSelect = onSelect,
-                extraBottomPadding = bottomPadding
-            )
-        }
-
-        if (selectedDataset != null) {
-            MobileDetailsSheet(
-                dataset = selectedDataset,
-                isExpanded = isMobileSheetExpanded,
-                onToggleExpand = { isMobileSheetExpanded = !isMobileSheetExpanded },
-                onCreateDatasetClicked = onCreateChild,
-                onDeleteDatasetClicked = onDeleteDataset
+                extraBottomPadding = 110.dp
             )
         }
     }
@@ -481,7 +476,6 @@ private fun DatasetContentArea(
         label = "viewMode"
     ) { mode ->
         when {
-            // In search mode always show flat list regardless of toggle
             isSearchActive -> {
                 FlatListView(
                     nodes = nodes,
@@ -692,19 +686,20 @@ private fun GridView(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun DatasetFabGroup(
-    isExpanded: Boolean,
+    isMenuExpanded: Boolean,
+    isDetailsPanelExpanded: Boolean,
     selectedDataset: Storage.ZfsDataset?,
-    onToggle: () -> Unit,
+    onToggleMenu: () -> Unit,
+    onToggleDetailsPanel: () -> Unit,
     onCreateDataset: () -> Unit,
     onDeleteDataset: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Secondary actions - animate in/out
         AnimatedVisibility(
-            visible = isExpanded,
+            visible = isMenuExpanded,
             enter = expandVertically(
                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                 expandFrom = Alignment.Bottom
@@ -716,34 +711,23 @@ private fun DatasetFabGroup(
         ) {
             Column(
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 4.dp, end = 4.dp)
             ) {
-                // Delete (only when a dataset is selected)
                 if (selectedDataset != null) {
                     ExtendedFloatingActionButton(
                         onClick = onDeleteDataset,
-                        icon = {
-                            Icon(
-                                Icons.Default.Delete, null,
-                                tint = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        },
-                        text = {
-                            Text(
-                                "Delete Dataset",
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        },
+                        icon = { Icon(Icons.Default.Delete, null) },
+                        text = { Text("Delete Dataset") },
                         containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         elevation = FloatingActionButtonDefaults.elevation(4.dp)
                     )
                 }
 
                 ExtendedFloatingActionButton(
                     onClick = onCreateDataset,
-                    icon = {
-                        Icon(Icons.Default.Folder, null)
-                    },
+                    icon = { Icon(Icons.Default.Add, null) },
                     text = {
                         Text(
                             if (selectedDataset != null) "Create Child Dataset"
@@ -757,22 +741,65 @@ private fun DatasetFabGroup(
             }
         }
 
-        val fabRotation by animateFloatAsState(
-            targetValue = if (isExpanded) 45f else 0f,
-            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-            label = "fabRotation"
-        )
-        FloatingActionButton(
-            onClick = onToggle,
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            elevation = FloatingActionButtonDefaults.elevation(6.dp),
-            shape = RoundedCornerShape(20.dp)
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = if (selectedDataset != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            tonalElevation = 6.dp,
+            shadowElevation = 6.dp
         ) {
-            Icon(
-                Icons.Default.Add, "Actions",
-                modifier = Modifier.rotate(fabRotation)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.height(64.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .clickable(enabled = selectedDataset != null) { onToggleDetailsPanel() }
+                        .padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (isDetailsPanelExpanded) Icons.Default.FolderOpen else Icons.Default.Info,
+                        contentDescription = "Toggle Details",
+                        tint = if (selectedDataset != null) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = if (isDetailsPanelExpanded) "Hide Info" else "Show Info",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedDataset != null) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .fillMaxHeight(0.5f)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                )
+
+                val arrowRotation by animateFloatAsState(
+                    targetValue = if (isMenuExpanded) 180f else 0f,
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    label = "arrowRotation"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(56.dp)
+                        .clickable { onToggleMenu() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.ExpandLess,
+                        contentDescription = "More Actions",
+                        tint = if (selectedDataset != null) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.rotate(arrowRotation)
+                    )
+                }
+            }
         }
     }
 }
@@ -827,10 +854,7 @@ fun DatasetTreeItem(
 
     Column {
         Surface(
-            onClick = {
-                onSelect(dataset)
-                if (hasChildren) onToggle(dataset.id)
-            },
+            onClick = { onSelect(dataset) },
             shape = if (isRoot) RoundedCornerShape(16.dp) else RoundedCornerShape(12.dp),
             color = when {
                 isSelected -> MaterialTheme.colorScheme.primaryContainer
@@ -849,7 +873,6 @@ fun DatasetTreeItem(
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
                 Box(
                     modifier = Modifier
                         .size(24.dp)
@@ -925,14 +948,11 @@ fun DatasetTreeItem(
             }
         }
 
+        // Child node tree animation frame
         AnimatedVisibility(
             visible = isExpanded,
-            enter = expandVertically(
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-            ) + fadeIn(),
-            exit = shrinkVertically(
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-            ) + fadeOut()
+            enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
+            exit = shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeOut()
         ) {
             Column {
                 dataset.children.forEach { child ->
@@ -957,11 +977,7 @@ fun DatasetDetailsPanel(
     isTablet: Boolean,
     onCreateDatasetClicked: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(if (isTablet) 16.dp else 0.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().padding(if (isTablet) 16.dp else 0.dp)) {
         if (isTablet) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -995,157 +1011,235 @@ fun DatasetDetailsPanel(
     }
 }
 
+// NEW: Expressive Donut Storage space utilization Chart Component
+@Composable
+fun DatasetSpaceDonutChart(
+    usedStr: String,
+    availableStr: String,
+    modifier: Modifier = Modifier
+) {
+    val parseSize = { s: String -> s.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 1.0 }
+    val usedVal = parseSize(usedStr)
+    val availVal = parseSize(availableStr)
+    val total = usedVal + availVal
+    val sweptAngle = ((usedVal / total) * 360f).toFloat().coerceIn(10f, 350f)
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Box(
+            modifier = Modifier.size(100.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.size(90.dp)) {
+                drawArc(
+                    color = trackColor,
+                    startAngle = 0f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round)
+                )
+                drawArc(
+                    color = primaryColor,
+                    startAngle = -90f,
+                    sweepAngle = sweptAngle,
+                    useCenter = false,
+                    style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round)
+                )
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = usedStr,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black
+                )
+                Text(
+                    text = "Used",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            ChartLegendRow(color = primaryColor, title = "Allocated Used Space", value = usedStr)
+            ChartLegendRow(color = trackColor, title = "Available Free Space", value = availableStr)
+        }
+    }
+}
+
+@Composable
+private fun ChartLegendRow(color: Color, title: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(modifier = Modifier.size(10.dp).background(color, CircleShape))
+        Column {
+            Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+// NEW: Expressive Layout Refactor with Elegant Cards & Visual Analytics
 @Composable
 private fun DatasetDetailsContent(
     dataset: Storage.ZfsDataset,
     isTablet: Boolean = true
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-        shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 14.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        // Path Header Card
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Storage,
-                        null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
+                Icon(Icons.Default.Folder, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                Column {
+                    Text("Mount Path", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     Text(
-                        text = dataset.name.substringAfterLast("/").ifEmpty { dataset.name },
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        maxLines = 1,
+                        text = dataset.mountpoint,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
             }
+        }
 
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 4.dp),
-                color = DividerDefaults.color.copy(alpha = 0.5f)
+        // Storage Usage Visualization Group
+        Text(
+            text = "Storage Capacity Breakdown",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 4.dp)
+        )
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            DatasetSpaceDonutChart(
+                usedStr = dataset.used.value ?: "0B",
+                availableStr = dataset.available.value ?: "0B"
             )
+        }
 
-            DetailRow("Full Path", dataset.name)
-            DetailRow("Mountpoint", dataset.mountpoint)
-            DetailRow("Used", dataset.used.value ?: "N/A")
-            DetailRow("Available", dataset.available.value ?: "N/A")
-            DetailRow("Compression", dataset.compression.value ?: "N/A")
-            DetailRow("Ratio", dataset.compressratio.value ?: "N/A")
-            DetailRow("Deduplication", dataset.deduplication.value ?: "N/A")
-            DetailRow("Sync", dataset.sync.value ?: "N/A")
-            DetailRow("Read Only", dataset.readonly.value ?: "N/A")
-            DetailRow("Encryption", if (dataset.encrypted) "Yes" else "No")
+        // Grid of Advanced System Parameter Cards
+        Text(
+            text = "Dataset Parameters",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 4.dp)
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            ParamCard("Compression", dataset.compression.value ?: "N/A", Modifier.weight(1f))
+            ParamCard("Ratio", dataset.compressratio.value ?: "N/A", Modifier.weight(1f))
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            ParamCard("Deduplication", dataset.deduplication.value ?: "N/A", Modifier.weight(1f))
+            ParamCard("Sync Mode", dataset.sync.value ?: "N/A", Modifier.weight(1f))
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            ParamCard("Read Only", dataset.readonly.value ?: "N/A", Modifier.weight(1f))
+            ParamCard("Encrypted", if (dataset.encrypted) "Yes" else "No", Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun ParamCard(label: String, value: String, modifier: Modifier = Modifier) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = RoundedCornerShape(14.dp),
+        modifier = modifier
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(4.dp))
+            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.ExtraBold)
         }
     }
 }
 
 
 @Composable
-fun MobileDetailsSheet(
+fun MobileSlideOverPanel(
     dataset: Storage.ZfsDataset,
-    isExpanded: Boolean,
-    onToggleExpand: () -> Unit,
-    onCreateDatasetClicked: () -> Unit,
-    onDeleteDatasetClicked: (String) -> Unit,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        shadowElevation = 12.dp,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 8.dp
+        modifier = modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Column {
+        Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(horizontal = 12.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { onToggleExpand() }
-                ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Close Info Page"
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column {
                     Text(
-                        text = "Dataset Details",
+                        text = "Dataset Analytics",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = dataset.name.substringAfterLast("/"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        text = dataset.name.substringAfterLast("/").ifEmpty { dataset.name },
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconButton(onClick = onCreateDatasetClicked) {
-                        Icon(Icons.Default.Add, "Create child", modifier = Modifier.size(20.dp))
-                    }
-                    IconButton(onClick = { onDeleteDatasetClicked(dataset.name) }) {
-                        Icon(
-                            Icons.Default.Delete, "Delete",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    IconButton(onClick = onToggleExpand) {
-                        Icon(
-                            imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
             }
 
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                Column {
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp))
-                    Box(
-                        modifier = Modifier
-                            .height(320.dp)
-                            .padding(horizontal = 20.dp, vertical = 16.dp)
-                    ) {
-                        DatasetDetailsContent(dataset = dataset, isTablet = false)
-                    }
-                }
+                DatasetDetailsContent(dataset = dataset, isTablet = false)
             }
         }
     }
 }
-
 
 
 @Composable
@@ -1232,31 +1326,6 @@ fun EmptySelectionState() {
 }
 
 @Composable
-fun DetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.End,
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 12.dp)
-        )
-    }
-}
-
-@Composable
 private fun NoDatasetsCard(poolName: String) {
     Box(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -1294,8 +1363,6 @@ private fun NoDatasetsCard(poolName: String) {
     }
 }
 
-
-/** Flatten a dataset tree into a depth-first ordered list */
 fun flattenTree(root: Storage.ZfsDataset?): List<Storage.ZfsDataset> {
     if (root == null) return emptyList()
     val result = mutableListOf<Storage.ZfsDataset>()

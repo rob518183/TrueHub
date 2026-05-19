@@ -52,6 +52,31 @@ object Apps {
         @field:Json("host_mounts") val hostMounts: List<HostMount>? = null
     )
 
+    data class AppAvailableItem(
+        val app_readme : String ?= null,
+        val categories: List<String>?,
+        val description: String,
+        val healthy: Boolean?,
+        val healthy_error: String? = null,
+        val home : String,
+        val location : String,
+        val latest_version: String ?= null,
+        val latest_app_version : String ?= null,
+        val latest_human_version : String ?= null,
+        val last_update : String ?= null,
+        val name : String,
+        val recommended: Boolean,
+        val title: String,
+        val maintainers: List<Maintainer>,
+        val tags : String,
+        val screenshots: List<String>?,
+        val sources: List<String>?,
+        val icon_url : String ?=null,
+        val catalog: String?,
+        val installed: Boolean,
+        val train: String,
+    )
+
     data class Capability(
         val name: String,
         val description: String
