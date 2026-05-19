@@ -17,6 +17,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -58,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.ui.alerts.AlertsBellButton
 import kotlinx.coroutines.delay
+
 @Composable
 fun UnifiedScreenHeader(
     title: String,
@@ -70,9 +72,9 @@ fun UnifiedScreenHeader(
     manager: TrueNASApiManager,
     onBackPressed: (() -> Unit)? = null,
     onNavigateToSettings: (() -> Unit)? = null,
-    onShutdownInvoke: (() -> Unit)? = null
+    onShutdownInvoke: (() -> Unit)? = null,
+    trailingActions: @Composable RowScope.() -> Unit = {}
 ) {
-    // Logic to auto-hide "Welcome back" subtitle
     var isSubtitleVisible by remember { mutableStateOf(true) }
 
     LaunchedEffect(subtitle) {
@@ -92,13 +94,11 @@ fun UnifiedScreenHeader(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            // Header Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left Side: Back Button + Titles
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
@@ -154,7 +154,10 @@ fun UnifiedScreenHeader(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    trailingActions()
+
                     AlertsBellButton(manager = manager)
+
                     onRefresh?.let{ onRefresh ->
                         ExpressiveIconButton(
                             onClick = onRefresh,
@@ -199,13 +202,11 @@ fun UnifiedScreenHeader(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
                                 shape = RoundedCornerShape(2.dp)
                             ),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = Color.Transparent
+                        color = MaterialTheme.colorScheme.primary, trackColor = Color.Transparent
                     )
                 }
             }
 
-            // Error Message
             AnimatedVisibility(
                 visible = error != null,
                 enter = expandVertically() + fadeIn(),
@@ -253,8 +254,9 @@ fun UnifiedScreenHeader(
         }
     }
 }
+
 @Composable
-private fun ExpressiveIconButton(
+fun ExpressiveIconButton(
     onClick: () -> Unit,
     icon: ImageVector,
     contentDescription: String,
@@ -266,7 +268,6 @@ private fun ExpressiveIconButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Bouncy scale animation
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.9f else 1f,
         animationSpec = tween(durationMillis = 100),

@@ -55,7 +55,7 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
         startPeriodicRefresh()
     }
 
-    // New Function to handle category selection
+
     fun updateCategory(category: AppCategory) {
         _uiState.update { it.copy(selectedCategory = category) }
     }

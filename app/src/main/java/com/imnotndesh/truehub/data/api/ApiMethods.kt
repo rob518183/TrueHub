@@ -63,6 +63,7 @@ object ApiMethods {
         const val STOP_APP = "app.stop"
         const val UPGRADE_APP = "app.upgrade"
         const val GET_UPGRADE_SUMMARY = "app.upgrade_summary"
+        const val QUERY_MARKETPLACE_APPS = "app.available"
 
         /**
          * App rollback Method

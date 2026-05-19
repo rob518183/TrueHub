@@ -125,6 +125,15 @@ class AppsService(val manager: TrueNASApiManager) {
         )
     }
 
+    suspend fun queryMarketplaceAvailableItems(): ApiResult<List<Apps.AppAvailableItem>>{
+        val type = Types.newParameterizedType(List::class.java,Apps.AppAvailableItem::class.java)
+        return  manager.callWithResult(
+            method = ApiMethods.Apps.QUERY_MARKETPLACE_APPS,
+            params = listOf(),
+            resultType = type
+        )
+    }
+
     suspend fun getAppByName(name: String): ApiResult<Apps.AppQueryResponse?> {
         val filters = listOf(listOf("name", "=", name))
         val options = Apps.AppQueryOptions(get = true)
