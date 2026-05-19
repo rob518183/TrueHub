@@ -1,0 +1,518 @@
+package com.imnotndesh.truehub.ui.services.apps.details.marketplace
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.imnotndesh.truehub.data.models.Apps
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MarketplaceAppDetailsScreen(
+    app: Apps.AppAvailableItem,
+    onNavigateBack: () -> Unit
+) {
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            ActionBottomBar(
+                isInstalled = app.installed,
+                onInstallClick = { /* Handle install placeholder */ },
+                onUninstallClick = { /* Handle uninstall placeholder */ },
+                onInstallAnotherClick = { /* Handle second instance placeholder */ }
+            )
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = innerPadding.calculateBottomPadding()),
+            contentPadding = PaddingValues(bottom = 24.dp)
+        ) {
+            // 1. Hero Banner Header Section
+            item {
+                HeroHeaderSection(app = app, onNavigateBack = onNavigateBack)
+            }
+
+            // 2. Main Content Body
+            item {
+                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Categories & Tags Row
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        app.categories?.forEach { category ->
+                            SuggestionChip(
+                                onClick = {},
+                                label = { Text(category.replaceFirstChar { it.uppercase() }) },
+                                colors = SuggestionChipDefaults.suggestionChipColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                ),
+                                border = null,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Description
+                    Text(
+                        text = "About this application",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = app.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+
+            if (!app.screenshots.isNullOrEmpty()) {
+                item {
+                    Text(
+                        text = "Screenshots",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp, vertical = 10.dp)
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        app.screenshots.forEach { screenshotUrl ->
+                            AsyncImage(
+                                model = screenshotUrl,
+                                contentDescription = "App Screenshot",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .width(280.dp)
+                                    .height(160.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+
+            // 4. Quick Specs Grids & Extras
+            item {
+                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    Text(
+                        text = "Technical Details",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    // Health / Status Card
+                    HealthStatusCard(healthy = app.healthy, errorMsg = app.healthy_error)
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Technical Grid Matrix
+                    ElevatedCard(
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            InfoRowItem(icon = Icons.Default.Info, label = "Latest Version", value = app.latest_human_version ?: app.latest_version ?: "N/A")
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRowItem(icon = Icons.Default.Folder, label = "Catalog Train", value = "${app.catalog ?: "Unknown"} / ${app.train}")
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRowItem(icon = Icons.Default.Update, label = "Last Updated", value = app.lastUpdateString)
+                            if (app.tagsString.isNotBlank()) {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                InfoRowItem(icon = Icons.Default.LocalOffer, label = "Tags", value = app.tagsString)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Maintainers & Developers Section
+                    if (!app.maintainers.isNullOrEmpty()) {
+                        Text(
+                            text = "Maintainers",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        app.maintainers.forEach { maintainer ->
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Person,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = maintainer.name,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroHeaderSection(
+    app: Apps.AppAvailableItem,
+    onNavigateBack: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(260.dp)
+    ) {
+        val firstScreenshot = app.screenshots?.firstOrNull()
+
+        // Background Hero Cover Graphic
+        if (!firstScreenshot.isNullOrBlank()) {
+            AsyncImage(
+                model = firstScreenshot,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            )
+            // Visual blend scrim
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Black.copy(alpha = 0.3f), Color.Transparent, MaterialTheme.colorScheme.background)
+                        )
+                    )
+            )
+        } else {
+            // Generative placeholder gradient container if no screenshot asset
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.tertiaryContainer)
+                        )
+                    )
+            )
+        }
+
+        // Custom Floating Back Control Icon Button
+        IconButton(
+            onClick = onNavigateBack,
+            modifier = Modifier
+                .padding(start = 16.dp, top = 16.dp)
+                .align(Alignment.TopStart)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.75f), CircleShape)
+                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Navigate back",
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        // Overlapping Absolute Layout Details Container Block
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomStart)
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            // Main Icon Overlapped
+            Surface(
+                shape = RoundedCornerShape(22.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 4.dp,
+                shadowElevation = 3.dp,
+                modifier = Modifier.size(84.dp)
+            ) {
+                Box(modifier = Modifier.padding(6.dp)) {
+                    AppIcon(iconUrl = app.icon_url, title = app.title, size = 72)
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Text Info alongside
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(bottom = 4.dp)
+            ) {
+                Text(
+                    text = app.title.ifBlank { app.name },
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "App Name: ${app.name}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HealthStatusCard(healthy: Boolean?, errorMsg: String?) {
+    val isHealthy = healthy ?: true
+    val containerColor = if (isHealthy) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+    else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+    val contentColor = if (isHealthy) MaterialTheme.colorScheme.onPrimaryContainer
+    else MaterialTheme.colorScheme.onErrorContainer
+    val icon = if (isHealthy) Icons.Default.CheckCircle else Icons.Default.Warning
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor, contentColor = contentColor),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = contentColor)
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = if (isHealthy) "Application Stable & Healthy" else "System Health Alert",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                if (!isHealthy && !errorMsg.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(text = errorMsg, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoRowItem(icon: ImageVector, label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun ActionBottomBar(
+    isInstalled: Boolean,
+    onInstallClick: () -> Unit,
+    onUninstallClick: () -> Unit,
+    onInstallAnotherClick: () -> Unit
+) {
+    Surface(
+        tonalElevation = 8.dp,
+        shadowElevation = 16.dp,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (!isInstalled) {
+                Button(
+                    onClick = onInstallClick,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) {
+                    Icon(Icons.Default.Download, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Install Application", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                }
+            } else {
+                OutlinedButton(
+                    onClick = onUninstallClick,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                    ),
+                    modifier = Modifier.weight(1f).height(52.dp)
+                ) {
+                    Icon(Icons.Default.DeleteOutline, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Uninstall", fontWeight = FontWeight.Bold)
+                }
+
+                // Primary Button: Deploy Another Container Node Instance
+                Button(
+                    onClick = onInstallAnotherClick,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    ),
+                    modifier = Modifier.weight(1.2f).height(52.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Install Another", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+    }
+}
+
+// Simple Composable wrapper flow layout to safely manage dynamic chips natively without external flow layouts
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FlowRow(
+    modifier: Modifier = Modifier,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    content: @Composable () -> Unit
+) {
+    Layout(
+        content = content,
+        modifier = modifier
+    ) { measurables, constraints ->
+        val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0, minHeight = 0)) }
+        val rows = mutableListOf<List<Placeable>>()
+        var currentRow = mutableListOf<Placeable>()
+        var currentWidth = 0
+
+        placeables.forEach { placeable ->
+            if (currentWidth + placeable.width > constraints.maxWidth && currentRow.isNotEmpty()) {
+                rows.add(currentRow)
+                currentRow = mutableListOf()
+                currentWidth = 0
+            }
+            currentRow.add(placeable)
+            currentWidth += placeable.width + horizontalArrangement.spacing.roundToPx()
+        }
+        if (currentRow.isNotEmpty()) rows.add(currentRow)
+
+        val rowHeights = rows.map { row -> row.maxOfOrNull { it.height } ?: 0 }
+        val totalHeight = rowHeights.sum() + verticalArrangement.spacing.roundToPx() * (rows.size - 1)
+
+        layout(constraints.maxWidth, totalHeight.coerceAtMost(constraints.maxHeight)) {
+            var y = 0
+            rows.forEachIndexed { index, row ->
+                var x = 0
+                row.forEach { placeable ->
+                    placeable.placeRelative(x, y)
+                    x += placeable.width + horizontalArrangement.spacing.roundToPx()
+                }
+                y += rowHeights[index] + verticalArrangement.spacing.roundToPx()
+            }
+        }
+    }
+}

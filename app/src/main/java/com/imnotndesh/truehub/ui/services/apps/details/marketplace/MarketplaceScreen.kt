@@ -67,15 +67,11 @@ import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
 import kotlinx.coroutines.delay
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Screen
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Composable
 fun MarketplaceScreen(
     manager: TrueNASApiManager,
     onNavigateBack: () -> Unit,
-    onAppDetailsClick: (Apps.AppAvailableItem) -> Unit
+    onMarketplaceApplicationClicked: (Apps.AppAvailableItem) -> Unit
 ) {
     val viewModel: AppsScreenViewModel = viewModel(
         factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
@@ -118,7 +114,6 @@ fun MarketplaceScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding())
         ) {
             UnifiedScreenHeader(
                 title = "Marketplace",
@@ -131,7 +126,7 @@ fun MarketplaceScreen(
                 onBackPressed = onNavigateBack
             )
 
-            // M3 Expressive pill search bar
+
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -169,20 +164,20 @@ fun MarketplaceScreen(
                     ) {
                         if (searchQuery.isBlank()) {
 
-                            // ── Hero Carousel ──────────────────────────────
+
                             if (recommendedApps.isNotEmpty()) {
                                 item {
                                     SectionHeader(title = "Featured")
                                     Spacer(Modifier.height(10.dp))
                                     RecommendedCarousel(
                                         apps = recommendedApps,
-                                        onAppClick = onAppDetailsClick
+                                        onAppClick = onMarketplaceApplicationClicked
                                     )
                                     Spacer(Modifier.height(28.dp))
                                 }
                             }
 
-                            // ── Category rows ──────────────────────────────
+
                             items(localCategories) { categoryName ->
                                 val categoryApps = searchFilteredApps.filter {
                                     it.categories?.contains(categoryName) == true
@@ -200,7 +195,7 @@ fun MarketplaceScreen(
                                             categoryApps,
                                             key = { "cat-$categoryName-${it.name}" }
                                         ) { app ->
-                                            AppGridItem(app = app, onClick = { onAppDetailsClick(app) })
+                                            AppGridItem(app = app, onClick = { onMarketplaceApplicationClicked(app) })
                                         }
                                     }
                                     Spacer(Modifier.height(24.dp))
@@ -208,7 +203,7 @@ fun MarketplaceScreen(
                             }
 
                         } else {
-                            // ── Search results ─────────────────────────────
+
                             item {
                                 Text(
                                     text = "${searchFilteredApps.size} result${if (searchFilteredApps.size != 1) "s" else ""}",
@@ -222,7 +217,7 @@ fun MarketplaceScreen(
                             items(searchFilteredApps, key = { "search-${it.name}" }) { app ->
                                 SearchResultRow(
                                     app = app,
-                                    onClick = { onAppDetailsClick(app) },
+                                    onClick = { onMarketplaceApplicationClicked(app) },
                                     modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
@@ -234,10 +229,6 @@ fun MarketplaceScreen(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Section header
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Composable
 private fun SectionHeader(title: String) {
     Text(
@@ -248,10 +239,6 @@ private fun SectionHeader(title: String) {
     )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Hero auto-scrolling carousel
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Composable
 fun RecommendedCarousel(
     apps: List<Apps.AppAvailableItem>,
@@ -259,7 +246,7 @@ fun RecommendedCarousel(
 ) {
     val pagerState = rememberPagerState(pageCount = { apps.size })
 
-    // Auto-advance every 4 s
+
     LaunchedEffect(pagerState) {
         while (true) {
             delay(4_000)
@@ -281,7 +268,7 @@ fun RecommendedCarousel(
 
         Spacer(Modifier.height(14.dp))
 
-        // Pill dot indicators
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
@@ -325,7 +312,7 @@ fun HeroCarouselCard(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
 
-            // Screenshot background
+
             if (hasScreenshot) {
                 AsyncImage(
                     model = screenshot,
@@ -333,7 +320,7 @@ fun HeroCarouselCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-                // Gradient scrim so text stays readable
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -349,7 +336,7 @@ fun HeroCarouselCard(
                 )
             }
 
-            // "Featured" badge — top-right
+
             SuggestionChip(
                 onClick = {},
                 label = {
@@ -371,7 +358,7 @@ fun HeroCarouselCard(
                 border = null
             )
 
-            // App info — bottom
+
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
@@ -430,10 +417,6 @@ fun HeroCarouselCard(
         }
     }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Category row item
-// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun AppGridItem(app: Apps.AppAvailableItem, onClick: () -> Unit) {

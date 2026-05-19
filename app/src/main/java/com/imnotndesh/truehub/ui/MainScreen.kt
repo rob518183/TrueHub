@@ -64,6 +64,7 @@ import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppInfoScreen
+import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceAppDetailsScreen
 import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceScreen
 import com.imnotndesh.truehub.ui.services.apps.details.upgrade.UpgradeSummaryScreen
 import com.imnotndesh.truehub.ui.services.containers.ContainersScreen
@@ -277,6 +278,19 @@ private fun TrueHubNavGraph(
             }
         }
         composable(
+            route = "marketplace",
+        ){
+            MarketplaceScreen(
+                manager = manager,
+                onNavigateBack = {navController.popBackStack()},
+                onMarketplaceApplicationClicked = {app ->
+                    AppDataHolder.selectedMarketplaceApp = app
+                    navController.navigate("marketplace_app_details")
+                }
+            )
+        }
+
+        composable(
             route = "app_upgrade/{appName}",
             arguments = listOf(navArgument("appName") { type = NavType.StringType })
         ) { backStackEntry ->
@@ -309,17 +323,16 @@ private fun TrueHubNavGraph(
             }
         }
 
-        composable(
-            route = "marketplace",
-        ){
-            MarketplaceScreen(
-                manager = manager,
-                onNavigateBack = {navController.popBackStack()},
-                onAppDetailsClick = {}
-            )
+        composable(route = "marketplace_app_details") {
+            val app = AppDataHolder.selectedMarketplaceApp
+            if (app != null) {
+                MarketplaceAppDetailsScreen(
+                    app = app,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
 
-        // App Rollback
         composable(
             route = "app_upgrade/{appName}",
             arguments = listOf(navArgument("appName") { type = NavType.StringType })
