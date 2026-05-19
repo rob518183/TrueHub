@@ -64,6 +64,7 @@ import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppInfoScreen
+import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceScreen
 import com.imnotndesh.truehub.ui.services.apps.details.upgrade.UpgradeSummaryScreen
 import com.imnotndesh.truehub.ui.services.containers.ContainersScreen
 import com.imnotndesh.truehub.ui.services.containers.details.ContainerDataHolder
@@ -248,6 +249,9 @@ private fun TrueHubNavGraph(
                 },
                 onNavigateToRollback = { appName ->
                     navController.navigate("app_rollback/$appName")
+                },
+                onNavigateToMarketplace = {
+                    navController.navigate("marketplace")
                 }
             )
         }
@@ -303,6 +307,17 @@ private fun TrueHubNavGraph(
                     navController.popBackStack()
                 }
             }
+        }
+
+        // Marketplace section
+        composable(
+            route = "marketplace",
+        ){
+            MarketplaceScreen(
+                manager = manager,
+                onNavigateBack = {navController.popBackStack()},
+                onAppDetailsClick = {}
+            )
         }
 
         // App Rollback

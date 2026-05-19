@@ -52,6 +52,8 @@ object Apps {
         @field:Json("host_mounts") val hostMounts: List<HostMount>? = null
     )
 
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
     data class AppAvailableItem(
         val app_readme : String ?= null,
         val categories: List<String>?,

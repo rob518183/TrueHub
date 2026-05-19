@@ -1,14 +1,13 @@
 package com.imnotndesh.truehub.ui.services.apps
 
 import android.content.Context
-import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.imnotndesh.truehub.data.ApiResult
 import com.imnotndesh.truehub.data.helpers.GlobalJobTracker
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
-import com.imnotndesh.truehub.data.helpers.AppCache
+import com.imnotndesh.truehub.ui.utils.AppCache
 import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.ToastManager
@@ -30,6 +29,7 @@ enum class AppCategory(val label: String) {
 data class AppsScreenUiState(
     val isLoading: Boolean = false,
     val apps: List<Apps.AppQueryResponse> = emptyList(),
+    val marketplaceApps : List<Apps.AppAvailableItem> = emptyList(),
     val error: String? = null,
     val upgradeSummaryResult: Apps.AppUpgradeSummaryResult? = null,
     val isRefreshing: Boolean = false,
@@ -67,6 +67,50 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
                 if (_uiState.value.apps.isNotEmpty()) {
                     _uiState.update { it.copy(isRefreshing = true) }
                     loadApps()
+                }
+            }
+        }
+    }
+
+    fun loadMarketplaceApps() {
+        viewModelScope.launch {
+            if (_uiState.value.marketplaceApps.isEmpty()) {
+                _uiState.update { it.copy(isLoading = true) }
+            } else {
+                _uiState.update { it.copy(isRefreshing = true) }
+            }
+            try {
+                when (val result = manager.apps.queryMarketplaceAvailableItems()) {
+                    is ApiResult.Success -> {
+                        AppCache.updateMarketplaceApps(result.data)
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isRefreshing = false,
+                                marketplaceApps = result.data,
+                                error = null
+                            )
+                        }
+                    }
+                    is ApiResult.Error -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isRefreshing = false,
+                                error = if (it.marketplaceApps.isEmpty()) result.message else null
+                            )
+                        }
+                    }
+                    is ApiResult.Loading -> {
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        error = if (it.marketplaceApps.isEmpty()) e.message ?: "Failed to load apps" else null
+                    )
                 }
             }
         }

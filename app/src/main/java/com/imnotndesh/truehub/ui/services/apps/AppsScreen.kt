@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -55,6 +56,8 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -98,7 +101,8 @@ fun AppsScreen(
     manager: TrueNASApiManager,
     onNavigateToAppInfo: (Apps.AppQueryResponse) -> Unit = {},
     onNavigateToUpgrade: (String) -> Unit = {},
-    onNavigateToRollback: (String) -> Unit = {}
+    onNavigateToRollback: (String) -> Unit = {},
+    onNavigateToMarketplace: () -> Unit = {}
 ) {
     val appsScreenViewModel: AppsScreenViewModel = viewModel(
         factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
@@ -128,7 +132,21 @@ fun AppsScreen(
             isRefreshing = uiState.isRefreshing,
             error = uiState.error,
             onDismissError = { appsScreenViewModel.clearError() },
-            manager = manager
+            manager = manager,
+            trailingActions = {
+                IconButton(
+                    onClick = { onNavigateToMarketplace() },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Storefront,
+                        contentDescription = "Open App Marketplace"
+                    )
+                }
+            }
         )
 
         AppFilterBar(

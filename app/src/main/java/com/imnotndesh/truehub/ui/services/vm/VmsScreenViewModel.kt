@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.imnotndesh.truehub.data.ApiResult
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
-import com.imnotndesh.truehub.data.helpers.AppCache
+import com.imnotndesh.truehub.ui.utils.AppCache
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.data.models.Vm
 import com.imnotndesh.truehub.ui.components.ToastManager
