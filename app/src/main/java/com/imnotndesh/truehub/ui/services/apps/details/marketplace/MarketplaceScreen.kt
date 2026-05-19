@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,7 +26,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -57,6 +57,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -84,8 +85,10 @@ fun MarketplaceScreen(
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
 
-
     var selectedCategory by remember { mutableStateOf<String?>(null) }
+    BackHandler(enabled = selectedCategory != null) {
+        selectedCategory = null
+    }
 
     LaunchedEffect(Unit) {
         if (uiState.marketplaceApps.isEmpty()) {
@@ -121,7 +124,7 @@ fun MarketplaceScreen(
         }
     }
 
-    Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.background) { _ ->
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -654,6 +657,7 @@ fun AppIcon(iconUrl: String?, title: String, size: Int) {
             Image(
                 painter = painterResource(id = R.drawable.missing_app_icon),
                 contentDescription = "$title default icon",
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onPrimaryContainer),
                 modifier = Modifier.size((size * 0.7f).dp)
             )
         }
