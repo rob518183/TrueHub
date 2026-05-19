@@ -83,7 +83,7 @@ fun MarketplaceScreen(
                 uiState.marketplaceApps.filter { app ->
                     app.title.contains(searchQuery, ignoreCase = true) ||
                             app.name.contains(searchQuery, ignoreCase = true) ||
-                            app.tags.contains(searchQuery, ignoreCase = true) ||
+                            app.tagsString.contains(searchQuery, ignoreCase = true) ||
                             app.description.contains(searchQuery, ignoreCase = true)
                 }
             }

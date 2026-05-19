@@ -309,7 +309,6 @@ private fun TrueHubNavGraph(
             }
         }
 
-        // Marketplace section
         composable(
             route = "marketplace",
         ){

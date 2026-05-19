@@ -51,7 +51,10 @@ object Apps {
         @field:Json("run_as_context") val runAsContext: List<RunAsContext>? = null,
         @field:Json("host_mounts") val hostMounts: List<HostMount>? = null
     )
-
+    @JsonClass(generateAdapter = true)
+    data class TruenasDate(
+        @Json(name = "\$date") val `$date`: Long? = null
+    )
     @Suppress("PropertyName")
     @JsonClass(generateAdapter = true)
     data class AppAvailableItem(
@@ -65,19 +68,24 @@ object Apps {
         val latest_version: String ?= null,
         val latest_app_version : String ?= null,
         val latest_human_version : String ?= null,
-        val last_update : String ?= null,
+        val last_update : TruenasDate ?= null,
         val name : String,
         val recommended: Boolean,
         val title: String,
         val maintainers: List<Maintainer>,
-        val tags : String,
+        val tags : List<String> ?= emptyList(),
         val screenshots: List<String>?,
         val sources: List<String>?,
         val icon_url : String ?=null,
         val catalog: String?,
         val installed: Boolean,
         val train: String,
-    )
+    ){
+        val lastUpdateString: String
+            get() = last_update?.`$date`?.toString() ?: "Unknown"
+        val tagsString: String
+            get() = tags?.joinToString(", ") ?: ""
+    }
 
     data class Capability(
         val name: String,
