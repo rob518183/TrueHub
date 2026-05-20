@@ -402,10 +402,9 @@ private fun TrueHubNavGraph(
                 appName = appName,
                 train = train,
                 viewModel = appsViewModel,
+                manager = manager,
                 onBack = { navController.popBackStack() },
-                onInstall = { name, values ->
-                    // Handle installation execution flow here
-                }
+                onInstallSuccess = {navController.popBackStack()}
             )
         }
 

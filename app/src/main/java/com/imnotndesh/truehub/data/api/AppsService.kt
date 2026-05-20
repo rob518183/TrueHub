@@ -174,4 +174,34 @@ class AppsService(val manager: TrueNASApiManager) {
         )
     }
 
+    /**
+     * Create an application with user configuration values.
+     * @param appName Name of the deployed application instance
+     * @param catalogApp The catalog app identifier
+     * @param train The catalog branch train (e.g. "stable")
+     * @param version The targeted version string
+     * @param values Nested configuration parameters
+     * @return ApiResult wrapping the Int Job ID
+     */
+    suspend fun createAppWithResult(
+        appName: String,
+        catalogApp: String,
+        train: String,
+        version: String,
+        values: Map<String, Any?>
+    ): ApiResult<Int> {
+        val payload = mapOf(
+            "app_name" to appName,
+            "catalog_app" to catalogApp,
+            "train" to train,
+            "version" to version,
+            "values" to values
+        )
+        return manager.callWithResult(
+            method = ApiMethods.Apps.APP_CREATE,
+            params = listOf(payload),
+            resultType = Int::class.java
+        )
+    }
+
 }

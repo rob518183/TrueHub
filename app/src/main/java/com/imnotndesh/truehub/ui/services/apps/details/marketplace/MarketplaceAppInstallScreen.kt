@@ -18,14 +18,22 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.imnotndesh.truehub.data.ApiResult
+import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.data.helpers.GlobalJobTracker
+import com.imnotndesh.truehub.data.helpers.JobRepository
 import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,9 +42,32 @@ fun MarketplaceAppInstallScreen(
     train: String,
     viewModel: AppsScreenViewModel,
     onBack: () -> Unit,
-    onInstall: (appName: String, values: Map<String, Any?>) -> Unit
+    onInstallSuccess: () -> Unit,
+    manager : TrueNASApiManager
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var isInstalling by remember { mutableStateOf(false) }
+    var installJobId by remember { mutableStateOf<Int?>(null) }
+    var installError by remember { mutableStateOf<String?>(null) }
+
+    val activeJobsMap by JobRepository.activeJobs.collectAsStateWithLifecycle()
+    val trackedJob = installJobId?.let { gid -> activeJobsMap[gid] }
+    LaunchedEffect(trackedJob) {
+        if (trackedJob != null) {
+            when (trackedJob.state.uppercase()) {
+                "SUCCESS" -> {
+                    isInstalling = false
+                    onInstallSuccess()
+                }
+                "FAILED", "ABORTED" -> {
+                    isInstalling = false
+                    installError = trackedJob.description ?: "Application installation failed."
+                }
+            }
+        }
+    }
 
     LaunchedEffect(appName) {
         viewModel.loadCatalogAppDetails(appName, train)
@@ -46,7 +77,7 @@ fun MarketplaceAppInstallScreen(
         onDispose { viewModel.clearCatalogAppDetails() }
     }
 
-    val isLoading = uiState.isLoadingCatalogDetails && uiState.catalogAppDetails == null
+    val isLoadingDetails = uiState.isLoadingCatalogDetails && uiState.catalogAppDetails == null
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
         Box(
@@ -55,7 +86,7 @@ fun MarketplaceAppInstallScreen(
                 .padding(bottom = innerPadding.calculateBottomPadding())
         ) {
             when {
-                isLoading -> {
+                isLoadingDetails -> {
                     Column(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -63,7 +94,7 @@ fun MarketplaceAppInstallScreen(
                     ) {
                         CircularProgressIndicator()
                         Text(
-                            "Loading configuration\u2026",
+                            "Loading configurations\u2026",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -84,12 +115,7 @@ fun MarketplaceAppInstallScreen(
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(48.dp)
                         )
-                        Text("Failed to load options", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            uiState.catalogDetailsError!!,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text("Failed to load schema", style = MaterialTheme.typography.titleMedium)
                         Button(onClick = { viewModel.loadCatalogAppDetails(appName, train) }) {
                             Text("Retry")
                         }
@@ -98,7 +124,6 @@ fun MarketplaceAppInstallScreen(
 
                 uiState.catalogAppDetails != null -> {
                     val details = uiState.catalogAppDetails!!
-
                     var selectedVersionKey by remember(details) {
                         mutableStateOf(details.versions?.keys?.firstOrNull() ?: "")
                     }
@@ -111,8 +136,115 @@ fun MarketplaceAppInstallScreen(
                         selectedVersionKey = selectedVersionKey,
                         onVersionSelected = { selectedVersionKey = it },
                         onBack = onBack,
-                        onInstall = onInstall
+                        onInstallAction = { targetedInstanceName, flatMapValues ->
+                            scope.launch {
+                                isInstalling = true
+                                installError = null
+
+                                val structuralValues = unflattenMap(flatMapValues)
+
+                                when (val result = manager.apps.createAppWithResult(
+                                    appName = targetedInstanceName,
+                                    catalogApp = details.name,
+                                    train = train,
+                                    version = selectedVersionKey,
+                                    values = structuralValues
+                                )) {
+                                    is ApiResult.Success -> {
+                                        installJobId = result.data
+                                        // Pass the required parameters down into GlobalJobTracker
+                                        GlobalJobTracker.startTracking(
+                                            context = context,
+                                            manager = manager,
+                                            jobId = result.data,
+                                            appName = targetedInstanceName,
+                                            showNotif = true
+                                        )
+                                    }
+                                    is ApiResult.Error -> {
+                                        isInstalling = false
+                                        installError = result.message
+                                    }
+                                    else -> { isInstalling = false }
+                                }
+                            }
+                        }
                     )
+                }
+            }
+
+            if (isInstalling || installError != null) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        if (installError != null) {
+                            Icon(
+                                imageVector = Icons.Default.Error,
+                                contentDescription = "Error",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Installation Failed",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = installError ?: "Unknown deployment exception occurred.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(
+                                onClick = { installError = null },
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text("Dismiss Layout")
+                            }
+                        } else {
+                            val progressValue = (trackedJob?.progress ?: 0) / 100f
+                            val progressPercent = trackedJob?.progress ?: 0
+                            val currentStepDescription = trackedJob?.description ?: "Initializing system middleware provisioning..."
+
+                            CircularProgressIndicator(
+                                progress = { progressValue },
+                                modifier = Modifier.size(84.dp),
+                                strokeWidth = 8.dp,
+                                trackColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Text(
+                                text = "Deploying Application",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            Text(
+                                text = "$progressPercent%",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Black
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = currentStepDescription,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -127,7 +259,7 @@ private fun InstallOptionsContent(
     selectedVersionKey: String,
     onVersionSelected: (String) -> Unit,
     onBack: () -> Unit,
-    onInstall: (appName: String, values: Map<String, Any?>) -> Unit
+    onInstallAction: (appName: String, values: Map<String, Any?>) -> Unit
 ) {
     val schema = versionData?.schema
     val defaults = versionData?.values ?: emptyMap()
@@ -137,6 +269,8 @@ private fun InstallOptionsContent(
             flattenDefaults(defaults, map)
         }
     }
+
+    var targetedAppNameInstance by remember(details) { mutableStateOf(details.name) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -152,6 +286,48 @@ private fun InstallOptionsContent(
         item {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Application Instance Name",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+                OutlinedTextField(
+                    value = targetedAppNameInstance,
+                    onValueChange = { targetedAppNameInstance = it.lowercase() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Default.Label, null, modifier = Modifier.size(18.dp)) },
+                    placeholder = { Text("e.g. wireguard") }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val categories = details.categories
+                if (!categories.isNullOrEmpty()) {
+                    InstallFlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        categories.forEach { cat ->
+                            SuggestionChip(
+                                onClick = {},
+                                label = { Text(cat.replaceFirstChar { it.uppercase() }) },
+                                colors = SuggestionChipDefaults.suggestionChipColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                ),
+                                border = null,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
                 if (versionsMap.isNotEmpty()) {
                     Text(
@@ -182,7 +358,7 @@ private fun InstallOptionsContent(
                             shape = RoundedCornerShape(14.dp),
                             singleLine = true,
                             supportingText = versionData?.humanVersion?.let {
-                                { Text("Build Version: $it") }
+                                { Text("Build Config Version: $it") }
                             }
                         )
                         ExposedDropdownMenu(
@@ -206,35 +382,6 @@ private fun InstallOptionsContent(
                                     }
                                 )
                             }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                details.runAsContext?.firstOrNull()?.description?.let { ctx ->
-                    Card(
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.tertiary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                ctx,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -273,17 +420,14 @@ private fun InstallOptionsContent(
             Spacer(Modifier.height(8.dp))
             InstallBottomAction(
                 title = details.title ?: details.name,
-                onInstall = { onInstall(details.name, formState.toMap()) }
+                onInstall = { onInstallAction(targetedAppNameInstance, formState.toMap()) }
             )
         }
     }
 }
 
 @Composable
-private fun InstallHeroHeader(
-    title: String,
-    onBack: () -> Unit
-) {
+private fun InstallHeroHeader(title: String, onBack: () -> Unit) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = Modifier.fillMaxWidth()
@@ -299,12 +443,11 @@ private fun InstallHeroHeader(
             ) {
                 IconButton(
                     onClick = onBack,
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Navigate back",
+                        contentDescription = "Back",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -319,7 +462,7 @@ private fun InstallHeroHeader(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "Installation",
+                        text = "Deployment Wizard",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
@@ -341,9 +484,7 @@ private fun SchemaGroupCard(
 
     ElevatedCard(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -370,7 +511,7 @@ private fun SchemaGroupCard(
                 IconButton(onClick = { expanded = !expanded }) {
                     Icon(
                         if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = if (expanded) "Collapse" else "Expand"
+                        contentDescription = "Toggle"
                     )
                 }
             }
@@ -414,23 +555,13 @@ private fun QuestionRow(
     val isNullable = schema.`null` == true
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                label,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
-            )
+            Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium)
             if (isRequired) {
-                Text(
-                    " *",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.error
-                )
+                Text(" *", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
             }
             if (isNullable) {
                 Spacer(Modifier.width(4.dp))
@@ -443,11 +574,7 @@ private fun QuestionRow(
         }
 
         question.description?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         when (schema.type) {
@@ -465,25 +592,13 @@ private fun QuestionRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun StringField(
-    schema: Apps.SchemaDefinition,
-    path: String,
-    formState: MutableMap<String, Any?>
-) {
+private fun StringField(schema: Apps.SchemaDefinition, path: String, formState: MutableMap<String, Any?>) {
     val isPrivate = schema.private == true
 
     if (!schema.enum.isNullOrEmpty()) {
         var dropdownExpanded by remember { mutableStateOf(false) }
-
-        val currentVal: String = (formState[path] ?: schema.default)
-            ?.toString()
-            ?: schema.enum.firstOrNull()?.value?.toString()
-            ?: ""
-
-        val displayText: String = schema.enum
-            .find { it.value?.toString() == currentVal }
-            ?.description
-            ?: currentVal
+        val currentVal = (formState[path] ?: schema.default)?.toString() ?: schema.enum.firstOrNull()?.value?.toString() ?: ""
+        val displayText = schema.enum.find { it.value?.toString() == currentVal }?.description ?: currentVal
 
         ExposedDropdownMenuBox(
             expanded = dropdownExpanded,
@@ -493,18 +608,13 @@ private fun StringField(
                 value = displayText,
                 onValueChange = {},
                 readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp)
             )
-            ExposedDropdownMenu(
-                expanded = dropdownExpanded,
-                onDismissRequest = { dropdownExpanded = false }
-            ) {
+            ExposedDropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {
                 schema.enum.forEach { option ->
                     val optionValue = option.value?.toString() ?: ""
                     val optionLabel = option.description ?: optionValue
@@ -513,11 +623,7 @@ private fun StringField(
                             Column {
                                 Text(optionLabel, style = MaterialTheme.typography.bodyMedium)
                                 if (optionLabel != optionValue && optionValue.isNotBlank()) {
-                                    Text(
-                                        optionValue,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Text(optionValue, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         },
@@ -530,28 +636,23 @@ private fun StringField(
             }
         }
     } else {
-        var text by remember {
-            mutableStateOf(
-                (formState[path] ?: schema.default)?.toString() ?: ""
-            )
-        }
+        var text by remember { mutableStateOf((formState[path] ?: schema.default)?.toString() ?: "") }
         var passwordVisible by remember { mutableStateOf(false) }
 
         OutlinedTextField(
             value = text,
             onValueChange = { text = it; formState[path] = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Enter value\u2026") },
+            placeholder = { Text("Enter token parameter...") },
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
-            visualTransformation = if (isPrivate && !passwordVisible)
-                PasswordVisualTransformation() else VisualTransformation.None,
+            visualTransformation = if (isPrivate && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
             trailingIcon = if (isPrivate) {
                 {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = if (passwordVisible) "Hide" else "Show"
+                            contentDescription = "Toggle Visibility"
                         )
                     }
                 }
@@ -561,81 +662,46 @@ private fun StringField(
 }
 
 @Composable
-private fun IntField(
-    schema: Apps.SchemaDefinition,
-    path: String,
-    formState: MutableMap<String, Any?>
-) {
-    var text by remember {
-        mutableStateOf(
-            (formState[path] ?: schema.default)
-                ?.toString()
-                ?.takeIf { it != "null" }
-                ?: ""
-        )
-    }
-    val supportText: String? = when {
-        schema.min != null && schema.max != null -> "Range: ${schema.min} \u2013 ${schema.max}"
-        schema.min != null -> "Min: ${schema.min}"
-        schema.max != null -> "Max: ${schema.max}"
+private fun IntField(schema: Apps.SchemaDefinition, path: String, formState: MutableMap<String, Any?>) {
+    var text by remember { mutableStateOf((formState[path] ?: schema.default)?.toString()?.takeIf { it != "null" } ?: "") }
+    val supportText = when {
+        schema.min != null && schema.max != null -> "Bounds: ${schema.min} \u2013 ${schema.max}"
+        schema.min != null -> "Minimum required: ${schema.min}"
+        schema.max != null -> "Maximum allocation: ${schema.max}"
         else -> null
     }
     OutlinedTextField(
         value = text,
-        onValueChange = { v ->
-            text = v
-            formState[path] = v.toIntOrNull()
-        },
+        onValueChange = { v -> text = v; formState[path] = v.toIntOrNull() },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         shape = RoundedCornerShape(12.dp),
-        placeholder = { Text("Enter number\u2026") },
+        placeholder = { Text("Enter dynamic port or capacity integer...") },
         supportingText = supportText?.let { msg -> { Text(msg, style = MaterialTheme.typography.labelSmall) } },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
     )
 }
 
 @Composable
-private fun BooleanField(
-    schema: Apps.SchemaDefinition,
-    path: String,
-    formState: MutableMap<String, Any?>
-) {
-    var checked by remember {
-        mutableStateOf((formState[path] ?: schema.default) as? Boolean ?: false)
-    }
+private fun BooleanField(schema: Apps.SchemaDefinition, path: String, formState: MutableMap<String, Any?>) {
+    var checked by remember { mutableStateOf((formState[path] ?: schema.default) as? Boolean ?: false) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Switch(
-            checked = checked,
-            onCheckedChange = { checked = it; formState[path] = it }
-        )
-        Text(
-            if (checked) "Enabled" else "Disabled",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Switch(checked = checked, onCheckedChange = { checked = it; formState[path] = it })
+        Text(if (checked) "Active" else "Inactive", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
-private fun DictField(
-    schema: Apps.SchemaDefinition,
-    pathPrefix: String,
-    formState: MutableMap<String, Any?>
-) {
+private fun DictField(schema: Apps.SchemaDefinition, pathPrefix: String, formState: MutableMap<String, Any?>) {
     if (schema.attrs.isNullOrEmpty()) return
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(16.dp)
-            )
+            .background(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), shape = RoundedCornerShape(16.dp))
             .padding(end = 12.dp, top = 8.dp, bottom = 8.dp)
     ) {
         Box(
@@ -643,22 +709,13 @@ private fun DictField(
                 .width(4.dp)
                 .height(IntrinsicSize.Max)
                 .align(Alignment.CenterVertically)
-                .background(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                    shape = RoundedCornerShape(2.dp)
-                )
+                .background(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), shape = RoundedCornerShape(2.dp))
         )
-
         Spacer(modifier = Modifier.width(12.dp))
-
         Column(modifier = Modifier.weight(1f)) {
             schema.attrs.forEachIndexed { idx, attr ->
                 if (attr.schema?.hidden != true) {
-                    QuestionRow(
-                        question = attr,
-                        formState = formState,
-                        pathPrefix = "$pathPrefix.${attr.variable}"
-                    )
+                    QuestionRow(question = attr, formState = formState, pathPrefix = "$pathPrefix.${attr.variable}")
                     if (idx < schema.attrs.lastIndex) {
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 4.dp),
@@ -680,10 +737,8 @@ private fun PathField(path: String, formState: MutableMap<String, Any?>) {
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         shape = RoundedCornerShape(12.dp),
-        placeholder = { Text("/mnt/\u2026") },
-        leadingIcon = {
-            Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
-        }
+        placeholder = { Text("/mnt/dataset/appdata") },
+        leadingIcon = { Icon(Icons.Default.Folder, null, modifier = Modifier.size(18.dp)) }
     )
 }
 
@@ -692,31 +747,15 @@ private fun ListFieldInfo() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                shape = RoundedCornerShape(12.dp)
-            )
+            .background(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f), shape = RoundedCornerShape(12.dp))
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            Icons.AutoMirrored.Filled.List,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp)
-        )
+        Icon(Icons.AutoMirrored.Filled.List, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
         Column {
-            Text(
-                "List field — items can be added after install",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                "Defaults to empty",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
+            Text("Collection Parameters Configuration", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Appends natively via backend blocks", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
         }
     }
 }
@@ -730,7 +769,7 @@ private fun DefaultField(type: String?, path: String, formState: MutableMap<Stri
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         shape = RoundedCornerShape(12.dp),
-        placeholder = { Text("($type) value\u2026") }
+        placeholder = { Text("($type) raw syntax entry...") }
     )
 }
 
@@ -739,33 +778,20 @@ private fun InstallBottomAction(title: String, onInstall: () -> Unit) {
     Surface(
         tonalElevation = 0.dp,
         color = Color.Transparent,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
     ) {
         Button(
             onClick = onInstall,
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp)
+            modifier = Modifier.fillMaxWidth().height(52.dp)
         ) {
-            Icon(Icons.Default.Download, contentDescription = null)
+            Icon(Icons.Default.Download, null)
             Spacer(Modifier.width(8.dp))
-            Text(
-                "Install $title",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.labelLarge
-            )
+            Text("Deploy instance: $title", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
-
-private fun flattenDefaults(
-    source: Map<String, Any?>,
-    target: MutableMap<String, Any?>,
-    prefix: String = ""
-) {
+private fun flattenDefaults(source: Map<String, Any?>, target: MutableMap<String, Any?>, prefix: String = "") {
     source.forEach { (key, value) ->
         val path = if (prefix.isBlank()) key else "$prefix.$key"
         @Suppress("UNCHECKED_CAST")
@@ -775,6 +801,24 @@ private fun flattenDefaults(
             target[path] = value
         }
     }
+}
+
+private fun unflattenMap(flatMap: Map<String, Any?>): Map<String, Any?> {
+    val result = mutableMapOf<String, Any?>()
+    for ((key, value) in flatMap) {
+        if (value == null) continue
+        val parts = key.split(".")
+        var currentMap = result
+        for (i in 0 until parts.lastIndex) {
+            val part = parts[i]
+            @Suppress("UNCHECKED_CAST")
+            val nextMap = currentMap[part] as? MutableMap<String, Any?>
+                ?: mutableMapOf<String, Any?>().also { currentMap[part] = it }
+            currentMap = nextMap
+        }
+        currentMap[parts[parts.lastIndex]] = value
+    }
+    return result
 }
 
 @Composable
@@ -802,8 +846,7 @@ private fun InstallFlowRow(
         if (currentRow.isNotEmpty()) rows.add(currentRow)
 
         val rowHeights = rows.map { row -> row.maxOfOrNull { it.height } ?: 0 }
-        val totalHeight = rowHeights.sum() +
-                verticalArrangement.spacing.roundToPx() * (rows.size - 1).coerceAtLeast(0)
+        val totalHeight = rowHeights.sum() + verticalArrangement.spacing.roundToPx() * (rows.size - 1).coerceAtLeast(0)
 
         layout(constraints.maxWidth, totalHeight.coerceAtMost(constraints.maxHeight)) {
             var y = 0
