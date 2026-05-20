@@ -54,7 +54,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
-import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.homepage.HomeScreen
@@ -64,6 +63,7 @@ import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppInfoScreen
+import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceAppInstallScreen
 import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceAppDetailsScreen
 import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceScreen
 import com.imnotndesh.truehub.ui.services.apps.details.upgrade.UpgradeSummaryScreen
@@ -369,13 +369,44 @@ private fun TrueHubNavGraph(
         }
 
         composable(route = "marketplace_app_details") {
+            val appsViewModel: AppsScreenViewModel = viewModel(
+                factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
+            )
             val app = AppDataHolder.selectedMarketplaceApp
             if (app != null) {
                 MarketplaceAppDetailsScreen(
                     app = app,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    manager = manager,
+                    onInstallClick = { appName, train ->
+                        appsViewModel.loadCatalogAppDetails(appName, train)
+                        navController.navigate("catalog_install/$appName/$train")
+                    }
                 )
             }
+        }
+        composable(
+            route = "catalog_install/{appName}/{train}",
+            arguments = listOf(
+                navArgument("appName") { type = NavType.StringType },
+                navArgument("train") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val appsViewModel: AppsScreenViewModel = viewModel(
+                factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
+            )
+            val appName = backStackEntry.arguments?.getString("appName") ?: ""
+            val train = backStackEntry.arguments?.getString("train") ?: ""
+
+            MarketplaceAppInstallScreen(
+                appName = appName,
+                train = train,
+                viewModel = appsViewModel,
+                onBack = { navController.popBackStack() },
+                onInstall = { name, values ->
+                    // Handle installation execution flow here
+                }
+            )
         }
 
         composable(

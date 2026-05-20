@@ -145,6 +145,16 @@ class AppsService(val manager: TrueNASApiManager) {
             }
         }
     }
+    suspend fun getCatalogAppDetails(
+        appName: String,
+        train: String = ApiMethods.Apps.STABLE_APPS_TRAIN
+    ): ApiResult<Apps.CatalogAppDetails> {
+        return manager.callWithResult(
+            method = ApiMethods.Apps.GET_CATALOG_APP_DETAILS,
+            params = listOf(appName, mapOf("train" to train)),
+            resultType = Apps.CatalogAppDetails::class.java
+        )
+    }
 
     /**
      * Retrieve applications similar to the given app name.
@@ -154,7 +164,7 @@ class AppsService(val manager: TrueNASApiManager) {
      */
     suspend fun getSimilarApps(
         appName: String,
-        train: String = ApiMethods.Apps.LATEST_APPS_TRAIN
+        train: String = ApiMethods.Apps.STABLE_APPS_TRAIN
     ): ApiResult<List<Apps.AppSimilarResponse>> {
         val type = Types.newParameterizedType(List::class.java, Apps.AppSimilarResponse::class.java)
         return manager.callWithResult(

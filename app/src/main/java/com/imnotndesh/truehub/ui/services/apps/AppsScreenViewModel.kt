@@ -1,6 +1,7 @@
 package com.imnotndesh.truehub.ui.services.apps
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -39,7 +40,11 @@ data class AppsScreenUiState(
     val isLoadingRollbackVersions: Boolean = false,
     val rollbackJobs: Map<String, System.UpgradeJobState> = emptyMap(),
     val selectedCategory: AppCategory = AppCategory.ALL,
-    val searchQuery: String = ""
+    val searchQuery: String = "",
+    val catalogAppDetails: Apps.CatalogAppDetails? = null,
+    val isLoadingCatalogDetails: Boolean = false,
+    val catalogDetailsError: String? = null,
+    val preloadedDetailsCache: Map<String, Apps.CatalogAppDetails> = emptyMap()
 )
 
 class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() {
@@ -64,6 +69,7 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
     fun onSearchQueryChange(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
     }
+
 
     private fun startPeriodicRefresh() {
         viewModelScope.launch {
@@ -334,6 +340,66 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
                 else -> {}
             }
         }
+    }
+    fun preloadCatalogDetails(appName: String, train: String) {
+
+        if (_uiState.value.preloadedDetailsCache.containsKey(appName)) return
+        viewModelScope.launch {
+            when (val result = manager.apps.getCatalogAppDetails(appName, train)) {
+                is ApiResult.Success -> {
+                    Log.d("CatalogDetails", "Success: ${result.data}")
+                    _uiState.update { it.copy(catalogAppDetails = result.data, isLoadingCatalogDetails = false) }
+                }
+                is ApiResult.Error -> {
+                    Log.e("CatalogDetails", "Error: ${result.message}", result.throwable)
+                    _uiState.update { it.copy(catalogDetailsError = result.message, isLoadingCatalogDetails = false) }
+                }
+
+                else -> {
+                    Log.e("CatalogDetails","Error: Unknown error")
+                }
+            }
+        }
+    }
+
+    fun loadCatalogAppDetails(appName: String, train: String) {
+
+        val cached = _uiState.value.preloadedDetailsCache[appName]
+        if (cached != null) {
+            _uiState.update {
+                it.copy(
+                    catalogAppDetails = cached,
+                    isLoadingCatalogDetails = false,
+                    catalogDetailsError = null
+                )
+            }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingCatalogDetails = true, catalogDetailsError = null) }
+            when (val result = manager.apps.getCatalogAppDetails(appName, train)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoadingCatalogDetails = false,
+                            catalogAppDetails = result.data,
+                            preloadedDetailsCache = it.preloadedDetailsCache + (appName to result.data),
+                            catalogDetailsError = null
+                        )
+                    }
+                }
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(isLoadingCatalogDetails = false, catalogDetailsError = result.message)
+                    }
+                }
+                else -> {}
+            }
+        }
+    }
+
+    fun clearCatalogAppDetails() {
+        _uiState.update { it.copy(catalogAppDetails = null, catalogDetailsError = null) }
     }
 
     fun clearRollbackVersions() {

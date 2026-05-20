@@ -18,6 +18,8 @@ import android.widget.TextView
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,21 +32,40 @@ import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.Apps
+import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketplaceAppDetailsScreen(
+    manager: TrueNASApiManager,
     app: Apps.AppAvailableItem,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onInstallClick: (String,String) -> Unit
 ) {
+    val viewModel: AppsScreenViewModel = viewModel(
+        factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
+    )
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(app.name) {
+        delay(1500L)
+        viewModel.preloadCatalogDetails(app.name, app.train)
+    }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
+            // TODO: figure the app install options to make this section work well.
             ActionBottomBar(
                 isInstalled = app.installed,
-                onInstallClick = { /* Handle install placeholder */ },
+                app = app,
+                onInstallClick = { appName , train ->
+                    onInstallClick(appName,train)
+                },
                 onUninstallClick = { /* Handle uninstall placeholder */ },
                 onInstallAnotherClick = { /* Handle second instance placeholder */ }
             )
@@ -203,7 +224,10 @@ fun MarketplaceAppDetailsScreen(
                                     Box(
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                            .background(
+                                                MaterialTheme.colorScheme.primaryContainer,
+                                                CircleShape
+                                            ),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
@@ -308,7 +332,11 @@ private fun HeroHeaderSection(
                     .height(200.dp)
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(Color.Black.copy(alpha = 0.3f), Color.Transparent, MaterialTheme.colorScheme.background)
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.3f),
+                                Color.Transparent,
+                                MaterialTheme.colorScheme.background
+                            )
                         )
                     )
             )
@@ -319,7 +347,10 @@ private fun HeroHeaderSection(
                     .height(200.dp)
                     .background(
                         Brush.linearGradient(
-                            colors = listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.tertiaryContainer)
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.tertiaryContainer
+                            )
                         )
                     )
             )
@@ -331,7 +362,11 @@ private fun HeroHeaderSection(
                 .padding(start = 16.dp, top = 16.dp)
                 .align(Alignment.TopStart)
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.75f), CircleShape)
-                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
+                .border(
+                    0.5.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    CircleShape
+                )
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -453,7 +488,8 @@ private fun InfoRowItem(icon: ImageVector, label: String, value: String) {
 @Composable
 private fun ActionBottomBar(
     isInstalled: Boolean,
-    onInstallClick: () -> Unit,
+    app: Apps.AppAvailableItem,
+    onInstallClick: (String,String) -> Unit,
     onUninstallClick: () -> Unit,
     onInstallAnotherClick: () -> Unit
 ) {
@@ -472,9 +508,11 @@ private fun ActionBottomBar(
         ) {
             if (!isInstalled) {
                 Button(
-                    onClick = onInstallClick,
+                    onClick = { onInstallClick(app.name,app.train) },
                     shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
                 ) {
                     Icon(Icons.Default.Download, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -491,7 +529,9 @@ private fun ActionBottomBar(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
                     ),
-                    modifier = Modifier.weight(1f).height(52.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp)
                 ) {
                     Icon(Icons.Default.DeleteOutline, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
@@ -505,7 +545,9 @@ private fun ActionBottomBar(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     ),
-                    modifier = Modifier.weight(1.2f).height(52.dp)
+                    modifier = Modifier
+                        .weight(1.2f)
+                        .height(52.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
