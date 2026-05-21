@@ -44,6 +44,8 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -88,8 +90,9 @@ fun MarketplaceScreen(
     )
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf(initialCategory) }
+    val refreshState = rememberPullToRefreshState()
 
-    var selectedCategory by remember { mutableStateOf<String?>(initialCategory) }
     BackHandler(enabled = selectedCategory != null) {
         selectedCategory = null
     }
@@ -114,7 +117,6 @@ fun MarketplaceScreen(
             }
         }
     }
-
 
     val recommendedApps by remember(searchFilteredApps) {
         derivedStateOf {
@@ -175,118 +177,124 @@ fun MarketplaceScreen(
             )
 
             Box(modifier = Modifier.weight(1f)) {
-                if (uiState.isLoading && uiState.marketplaceApps.isEmpty()) {
+                if (uiState.isLoading && uiState.marketplaceApps.isEmpty() && !uiState.isRefreshing) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 40.dp)
+                    PullToRefreshBox(
+                        isRefreshing = uiState.isRefreshing,
+                        onRefresh = { viewModel.loadMarketplaceApps() },
+                        state = refreshState,
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        if (searchQuery.isBlank()) {
-                            if (selectedCategory == null) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 40.dp)
+                        ) {
+                            if (searchQuery.isBlank()) {
+                                if (selectedCategory == null) {
 
-                                if (recommendedApps.isNotEmpty()) {
-                                    item {
-                                        SectionHeader(title = "Featured")
-                                        Spacer(Modifier.height(10.dp))
-                                        RecommendedCarousel(
-                                            apps = recommendedApps,
-                                            onAppClick = onMarketplaceApplicationClicked
-                                        )
-                                        Spacer(Modifier.height(28.dp))
+                                    if (recommendedApps.isNotEmpty()) {
+                                        item {
+                                            SectionHeader(title = "Featured")
+                                            Spacer(Modifier.height(10.dp))
+                                            RecommendedCarousel(
+                                                apps = recommendedApps,
+                                                onAppClick = onMarketplaceApplicationClicked
+                                            )
+                                            Spacer(Modifier.height(28.dp))
+                                        }
                                     }
-                                }
 
-                                items(localCategories) { categoryName ->
-                                    val categoryApps = searchFilteredApps.filter {
-                                        it.categories?.contains(categoryName) == true
-                                    }
-                                    if (categoryApps.isNotEmpty()) {
-                                        SectionHeaderWithAction(
-                                            title = categoryName.replaceFirstChar { it.uppercase() },
-                                            onShowMoreClick = { selectedCategory = categoryName }
-                                        )
-                                        Spacer(Modifier.height(10.dp))
-                                        LazyRow(
-                                            contentPadding = PaddingValues(horizontal = 20.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                        ) {
+                                    items(localCategories) { categoryName ->
+                                        val categoryApps = searchFilteredApps.filter {
+                                            it.categories?.contains(categoryName) == true
+                                        }
+                                        if (categoryApps.isNotEmpty()) {
+                                            SectionHeaderWithAction(
+                                                title = categoryName.replaceFirstChar { it.uppercase() },
+                                                onShowMoreClick = { selectedCategory = categoryName }
+                                            )
+                                            Spacer(Modifier.height(10.dp))
+                                            LazyRow(
+                                                contentPadding = PaddingValues(horizontal = 20.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                            ) {
 
-                                            items(
-                                                categoryApps.take(5),
-                                                key = { "cat-$categoryName-${it.name}" }
-                                            ) { app ->
-                                                AppGridItem(app = app, onClick = { onMarketplaceApplicationClicked(app) })
-                                            }
+                                                items(
+                                                    categoryApps.take(5),
+                                                    key = { "cat-$categoryName-${it.name}" }
+                                                ) { app ->
+                                                    AppGridItem(app = app, onClick = { onMarketplaceApplicationClicked(app) })
+                                                }
 
-
-                                            if (categoryApps.size > 5) {
-                                                item {
-                                                    ShowMoreGridItem(onClick = { selectedCategory = categoryName })
+                                                if (categoryApps.size > 5) {
+                                                    item {
+                                                        ShowMoreGridItem(onClick = { selectedCategory = categoryName })
+                                                    }
                                                 }
                                             }
+                                            Spacer(Modifier.height(24.dp))
                                         }
-                                        Spacer(Modifier.height(24.dp))
+                                    }
+                                } else {
+
+                                    val categoryApps = searchFilteredApps.filter {
+                                        it.categories?.contains(selectedCategory) == true
+                                    }
+
+                                    val categoryRecommended = categoryApps.filter { it.recommended }
+                                        .ifEmpty { categoryApps.take(5) }
+
+                                    if (categoryRecommended.isNotEmpty()) {
+                                        item {
+                                            SectionHeader(title = "Featured in $selectedCategory")
+                                            Spacer(Modifier.height(10.dp))
+                                            RecommendedCarousel(
+                                                apps = categoryRecommended,
+                                                onAppClick = onMarketplaceApplicationClicked
+                                            )
+                                            Spacer(Modifier.height(28.dp))
+                                        }
+                                    }
+
+                                    item {
+                                        Text(
+                                            text = "All ${selectedCategory?.replaceFirstChar { it.uppercase() }} Apps (${categoryApps.size})",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 12.dp)
+                                        )
+                                    }
+
+                                    items(categoryApps, key = { "cat-page-${selectedCategory}-${it.name}" }) { app ->
+                                        SearchResultRow(
+                                            app = app,
+                                            onClick = { onMarketplaceApplicationClicked(app) },
+                                            modifier = Modifier.padding(horizontal = 16.dp)
+                                        )
                                     }
                                 }
                             } else {
 
-                                val categoryApps = searchFilteredApps.filter {
-                                    it.categories?.contains(selectedCategory) == true
-                                }
-
-                                val categoryRecommended = categoryApps.filter { it.recommended }
-                                    .ifEmpty { categoryApps.take(5) }
-
-                                if (categoryRecommended.isNotEmpty()) {
-                                    item {
-                                        SectionHeader(title = "Featured in $selectedCategory")
-                                        Spacer(Modifier.height(10.dp))
-                                        RecommendedCarousel(
-                                            apps = categoryRecommended,
-                                            onAppClick = onMarketplaceApplicationClicked
-                                        )
-                                        Spacer(Modifier.height(28.dp))
-                                    }
-                                }
-
                                 item {
                                     Text(
-                                        text = "All ${selectedCategory?.replaceFirstChar { it.uppercase() }} Apps (${categoryApps.size})",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 12.dp)
+                                        text = "${searchFilteredApps.size} result${if (searchFilteredApps.size != 1) "s" else ""}",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(
+                                            start = 20.dp, top = 16.dp, bottom = 6.dp
+                                        )
                                     )
                                 }
-
-                                items(categoryApps, key = { "cat-page-${selectedCategory}-${it.name}" }) { app ->
+                                items(searchFilteredApps, key = { "search-${it.name}" }) { app ->
                                     SearchResultRow(
                                         app = app,
                                         onClick = { onMarketplaceApplicationClicked(app) },
                                         modifier = Modifier.padding(horizontal = 16.dp)
                                     )
                                 }
-                            }
-                        } else {
-
-                            item {
-                                Text(
-                                    text = "${searchFilteredApps.size} result${if (searchFilteredApps.size != 1) "s" else ""}",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(
-                                        start = 20.dp, top = 16.dp, bottom = 6.dp
-                                    )
-                                )
-                            }
-                            items(searchFilteredApps, key = { "search-${it.name}" }) { app ->
-                                SearchResultRow(
-                                    app = app,
-                                    onClick = { onMarketplaceApplicationClicked(app) },
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
                             }
                         }
                     }
