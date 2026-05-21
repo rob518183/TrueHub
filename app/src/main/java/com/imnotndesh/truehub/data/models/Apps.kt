@@ -207,6 +207,14 @@ object Apps {
         val app_version: String? = "latest",
         val rollback_snapshot: Boolean = true
     )
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class DeleteAppOptions(
+        val remove_images : Boolean ? = true,
+        val remove_ix_volumes : Boolean ?= false,
+        val force_remove_ix_volumes :Boolean ?= false,
+        val force_remove_custom_ap : Boolean ?= false
+    )
 
     @JsonClass(generateAdapter = true)
     data class AppQueryExtra(

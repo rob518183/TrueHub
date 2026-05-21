@@ -173,16 +173,16 @@ class AppsService(val manager: TrueNASApiManager) {
             resultType = type
         )
     }
-
-    /**
-     * Create an application with user configuration values.
-     * @param appName Name of the deployed application instance
-     * @param catalogApp The catalog app identifier
-     * @param train The catalog branch train (e.g. "stable")
-     * @param version The targeted version string
-     * @param values Nested configuration parameters
-     * @return ApiResult wrapping the Int Job ID
-     */
+    suspend fun removeAppWithResult(
+        appName: String,
+        options: Apps.DeleteAppOptions = Apps.DeleteAppOptions()
+    ): ApiResult<Int>{
+      return manager.callWithResult(
+          method = ApiMethods.Apps.DELETE_APP,
+          params = listOf(appName, options),
+          resultType = Int::class.java
+      )
+    }
     suspend fun createAppWithResult(
         appName: String,
         catalogApp: String,
