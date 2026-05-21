@@ -21,7 +21,7 @@ class AppsService(val manager: TrueNASApiManager) {
 
     // Start an app
     suspend fun startAppWithResult(appName: String): ApiResult<Any> {
-        return manager.callWithResult<Any>(
+        return manager.callWithResult(
             method = ApiMethods.Apps.START_APP,
             params = listOf(appName),
             resultType = Any::class.java
@@ -30,7 +30,7 @@ class AppsService(val manager: TrueNASApiManager) {
 
     // Stop App
     suspend fun stopAppWithResult(appName: String): ApiResult<Any> {
-        return manager.callWithResult<Any>(
+        return manager.callWithResult(
             method = ApiMethods.Apps.STOP_APP,
             params = listOf(appName),
             resultType = Any::class.java
@@ -95,8 +95,8 @@ class AppsService(val manager: TrueNASApiManager) {
      * Rollback an app.
      *
      * @param appName The name of the app.
-     * @param version The version of the app to rollback to.
-     * @param rollbackSnapshot Whether to rollback the app's snapshot.
+     * @param version The version of the app to roll back to.
+     * @param rollbackSnapshot Whether to roll back the app's snapshot.
      * @return The ID of the rollback job.
      */
     suspend fun rollbackAppWithResult(appName: String, version: String = "latest", rollbackSnapshot:Boolean = true): ApiResult<Int> {

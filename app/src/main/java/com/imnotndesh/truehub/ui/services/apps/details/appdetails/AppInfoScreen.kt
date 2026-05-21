@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
@@ -39,6 +40,7 @@ import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,6 +57,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,6 +91,7 @@ fun AppInfoScreen(
     app: Apps.AppQueryResponse,
     manager: TrueNASApiManager,
     onNavigateBack: () -> Unit,
+    onDeleteSuccess: () -> Unit,
     onNavigateToMarketplaceCategory: (String) -> Unit = {},
     onNavigateToMarketplaceAppDetails: (String) -> Unit = {}
 ) {
@@ -94,6 +100,15 @@ fun AppInfoScreen(
         factory = AppDetailsViewModel.provideFactory(manager),
         key = app.name
     )
+    var showDeleteConfigDialog by remember { mutableStateOf(false) }
+    val deletionJobId by viewModel.deletionJobId.collectAsState()
+    val activeJobs by com.imnotndesh.truehub.data.helpers.JobRepository.activeJobs.collectAsState()
+    val currentDeletionJob = deletionJobId?.let { activeJobs[it] }
+    LaunchedEffect(currentDeletionJob?.state) {
+        if (currentDeletionJob?.state == "SUCCESS") {
+            onDeleteSuccess()
+        }
+    }
 
     val similarApps by viewModel.similarApps.collectAsState()
     val isLoadingSimilar by viewModel.isLoadingSimilar.collectAsState()
@@ -102,6 +117,16 @@ fun AppInfoScreen(
         viewModel.loadSimilarApps(
             appName = app.name,
             train = app.metadata?.train ?: "stable"
+        )
+    }
+    if (showDeleteConfigDialog) {
+        DeleteAppConfigDialog(
+            appName = app.name,
+            onDismiss = { showDeleteConfigDialog = false },
+            onConfirm = { selectedOptions ->
+                showDeleteConfigDialog = false
+                viewModel.deleteApp(context, app.name, selectedOptions)
+            }
         )
     }
 
@@ -405,6 +430,69 @@ fun AppInfoScreen(
                                     color = MaterialTheme.colorScheme.onSurface,
                                     style = MaterialTheme.typography.bodyMedium
                                 )
+                            }
+                        }
+                    }
+                }
+            }
+            ExpressiveSection(title = "Danger Zone", icon = Icons.Default.Build) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)
+                    ),
+                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Removing this application will terminate active container containers and wipe local middleware workloads.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            textAlign = TextAlign.Center
+                        )
+
+                        androidx.compose.material3.Button(
+                            onClick = { showDeleteConfigDialog = true },
+                            enabled = currentDeletionJob == null,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (currentDeletionJob != null) {
+                                    androidx.compose.material3.CircularProgressIndicator(
+                                        color = MaterialTheme.colorScheme.onError,
+                                        modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    val statusText = when (currentDeletionJob.state) {
+                                        "RUNNING" -> "Deleting... ${currentDeletionJob.progress}%"
+                                        "WAITING" -> "Queueing Uninstallation..."
+                                        else -> currentDeletionJob.state
+                                    }
+                                    Text(text = statusText, fontWeight = FontWeight.Bold)
+                                } else {
+                                    Icon(
+                                        imageVector = androidx.compose.material.icons.Icons.Default.Delete,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(text = "Uninstall Application", fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
@@ -801,5 +889,174 @@ fun SimilarAppsSection(
                 }
             }
         }
+    }
+}
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun DeleteAppConfigDialog(
+    appName: String,
+    onDismiss: () -> Unit,
+    onConfirm: (Apps.DeleteAppOptions) -> Unit
+) {
+    var removeImages by remember { mutableStateOf(true) }
+    var removeIxVolumes by remember { mutableStateOf(false) }
+    var forceRemoveIxVolumes by remember { mutableStateOf(false) }
+    var forceRemoveCustomApp by remember { mutableStateOf(false) }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(
+            usePlatformDefaultWidth = false
+        ),
+        modifier = Modifier
+            .padding(24.dp)
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(28.dp)
+            ),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            MaterialTheme.colorScheme.errorContainer,
+                            RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+                Text(
+                    text = "Uninstall $appName",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Text(
+                text = "Configure how you want to remove the application deployment options from your pool:",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            // Toggles Layout List
+            DeleteOptionToggle(
+                title = "Remove Docker/Container Images",
+                description = "Wipes cached containers from the system storage pool if no other apps rely on them.",
+                checked = removeImages,
+                onCheckedChange = { removeImages = it }
+            )
+
+            DeleteOptionToggle(
+                title = "Delete ixVolumes Data",
+                description = "Permanently deletes application persistent datasets provisioned internally by ix-volumes.",
+                checked = removeIxVolumes,
+                onCheckedChange = { removeIxVolumes = it }
+            )
+
+            DeleteOptionToggle(
+                title = "Force Remove ixVolumes Data",
+                description = "Forces data dataset unmounting/destruction even if active locking files are busy.",
+                checked = forceRemoveIxVolumes,
+                onCheckedChange = { forceRemoveIxVolumes = it }
+            )
+
+            DeleteOptionToggle(
+                title = "Force Remove Custom App Context",
+                description = "Overrides safety validations to force uninstallation of unmanaged custom charts.",
+                checked = forceRemoveCustomApp,
+                onCheckedChange = { forceRemoveCustomApp = it }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Lower Action Layout Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel", fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                androidx.compose.material3.Button(
+                    onClick = {
+                        onConfirm(
+                            Apps.DeleteAppOptions(
+                                remove_images = removeImages,
+                                remove_ix_volumes = removeIxVolumes,
+                                force_remove_ix_volumes = forceRemoveIxVolumes,
+                                force_remove_custom_app = forceRemoveCustomApp
+                            )
+                        )
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Confirm Uninstall", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeleteOptionToggle(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        androidx.compose.material3.Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = androidx.compose.material3.SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.onError,
+                checkedTrackColor = MaterialTheme.colorScheme.error
+            )
+        )
     }
 }

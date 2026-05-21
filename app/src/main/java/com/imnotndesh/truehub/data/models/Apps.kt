@@ -213,7 +213,7 @@ object Apps {
         val remove_images : Boolean ? = true,
         val remove_ix_volumes : Boolean ?= false,
         val force_remove_ix_volumes :Boolean ?= false,
-        val force_remove_custom_ap : Boolean ?= false
+        val force_remove_custom_app : Boolean ?= false
     )
 
     @JsonClass(generateAdapter = true)

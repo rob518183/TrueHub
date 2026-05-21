@@ -295,6 +295,9 @@ private fun TrueHubNavGraph(
                     } else {
                         navController.navigate("marketplace?category=")
                     }
+                },
+                onDeleteSuccess = {
+                    navController.navigate(Screen.Apps.route)
                 }
             )
         }
