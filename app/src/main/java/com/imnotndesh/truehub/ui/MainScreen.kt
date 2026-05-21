@@ -58,6 +58,7 @@ import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.homepage.HomeScreen
 import com.imnotndesh.truehub.ui.homepage.dataset.DatasetExplorerScreen
+import com.imnotndesh.truehub.ui.homepage.details.DiskInfoScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
@@ -234,6 +235,9 @@ private fun TrueHubNavGraph(
                 onPoolClick = { pool: System.Pool ->
                     PoolDataHolder.currentPool = pool
                     navController.navigate(Screen.PoolDetails.route)
+                },
+                onDisksClick = {
+                    navController.navigate(Screen.DiskInfo.route)
                 }
             )
         }
@@ -264,6 +268,14 @@ private fun TrueHubNavGraph(
                 onNavigateToFiles = { poolName: String ->
                     navController.navigate("${Screen.Files.route}/$poolName")
                 }
+            )
+        }
+        composable(Screen.DiskInfo.route) {
+            val disks = AppDataHolder.disks
+            DiskInfoScreen(
+                disks = disks,
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable("app_details") {
@@ -346,7 +358,7 @@ private fun TrueHubNavGraph(
             val context = LocalContext.current
             val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val uiState by viewModel.uiState.collectAsState()
-            androidx.compose.runtime.LaunchedEffect(appName) {
+            LaunchedEffect(appName) {
                 viewModel.clearUpgradeSummary()
                 viewModel.loadUpgradeSummary(appName)
             }
@@ -365,7 +377,7 @@ private fun TrueHubNavGraph(
                     onNavigateBack = { navController.popBackStack() }
                 )
             } else if (uiState.error != null) {
-                androidx.compose.runtime.LaunchedEffect(Unit) {
+                LaunchedEffect(Unit) {
                     navController.popBackStack()
                 }
             }

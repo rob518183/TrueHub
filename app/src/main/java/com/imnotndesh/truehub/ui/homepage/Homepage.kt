@@ -77,13 +77,12 @@ import com.imnotndesh.truehub.data.models.Shares
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.background.WavyGradientBackground
 import com.imnotndesh.truehub.ui.components.LoadingScreen
-import com.imnotndesh.truehub.ui.components.ToastManager
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
-import com.imnotndesh.truehub.ui.homepage.details.DiskInfoBottomSheet
 import com.imnotndesh.truehub.ui.homepage.details.MetricType
 import com.imnotndesh.truehub.ui.homepage.details.PerformanceBottomSheet
 import com.imnotndesh.truehub.ui.homepage.details.ShareInfoBottomSheet
 import com.imnotndesh.truehub.ui.homepage.details.ShareType
+import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
 import com.imnotndesh.truehub.ui.utils.AdaptiveLayoutHelper
 import java.text.DecimalFormat
 
@@ -92,7 +91,8 @@ import java.text.DecimalFormat
 fun HomeScreen(
     manager: TrueNASApiManager,
     onNavigateToSettings: () -> Unit = {},
-    onPoolClick: (System.Pool) -> Unit
+    onPoolClick: (System.Pool) -> Unit,
+    onDisksClick: () -> Unit
 ) {
     val viewModel: HomeViewModel = viewModel(
         factory = HomeViewModel.HomeViewModelFactory(manager, LocalContext.current.applicationContext)
@@ -139,7 +139,8 @@ fun HomeScreen(
                     onRefreshGraph = { viewModel.loadPerformanceData() },
                     isConnectedStatus = isConnected,
                     loadAveragesState = loadAveragesState,
-                    onPoolClick = onPoolClick
+                    onPoolClick = onPoolClick,
+                    onDiskClick = { onDisksClick() }
                 )
             }
         }
@@ -241,8 +242,8 @@ private fun HomeContent(
     onPoolClick: (System.Pool) -> Unit,
     onRefreshGraph: () -> Unit,
     onShutdown: (String) -> Unit,
+    onDiskClick: () -> Unit
 ) {
-    var showMemoryDialog by remember { mutableStateOf(false) }
     var showPerformanceDialog by remember { mutableStateOf(false) }
     var currentMetricType by remember { mutableStateOf(MetricType.ALL) }
     var selectedShare by remember { mutableStateOf<ShareType?>(null) }
@@ -286,7 +287,10 @@ private fun HomeContent(
                     currentMetricType = MetricType.TEMPERATURE
                     showPerformanceDialog = true
                 },
-                onDiskClick = { showMemoryDialog = true },
+                onDiskClick = {
+                    AppDataHolder.disks = state.diskDetails
+                    onDiskClick()
+                  },
                 onPoolClick = onPoolClick,
                 onSmbShareClick = { share -> selectedShare = ShareType.Smb(share) },
                 onNfsShareClick = { share -> selectedShare = ShareType.Nfs(share) }
@@ -319,7 +323,10 @@ private fun HomeContent(
                 poolDetails = state.poolDetails.firstOrNull(),
                 diskCount = state.diskDetails.size,
                 modifier = Modifier.padding(bottom = 16.dp),
-                onDiskClick = { showMemoryDialog = true }
+                onDiskClick = {
+                    AppDataHolder.disks = state.diskDetails
+                    onDiskClick()
+                }
             )
 
             if (state.poolDetails.isNotEmpty()) {
@@ -340,18 +347,6 @@ private fun HomeContent(
                 onSmbShareClick = { share -> selectedShare = ShareType.Smb(share) },
                 onNfsShareClick = { share -> selectedShare = ShareType.Nfs(share) }
             )
-        }
-    }
-
-    // Dialogs
-    if (showMemoryDialog) {
-        if (state.diskDetails.isNotEmpty()) {
-            DiskInfoBottomSheet(
-                disks = state.diskDetails,
-                onDismiss = { showMemoryDialog = false },
-            )
-        } else {
-            ToastManager.showInfo("No disk Information Found")
         }
     }
     if (showPerformanceDialog) {
@@ -733,7 +728,9 @@ private fun SystemStatsSection(
             value = "${systemInfo.cores.toInt()} Total (${systemInfo.physical_cores ?: 0} Physical)",
             icon = Icons.Default.Memory,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
             subtitle = "Processing units"
         )
 
@@ -743,7 +740,9 @@ private fun SystemStatsSection(
             subtitle = "Total system memory",
             icon = Icons.Default.Storage,
             color = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
         )
 
         StatCard(
@@ -972,10 +971,14 @@ private fun NoStorageCard(modifier: Modifier = Modifier) {
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(32.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
@@ -1013,9 +1016,13 @@ private fun SharesCard(
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp)) {
             // SMB Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1125,7 +1132,9 @@ private fun SharesCard(
 @Composable
 private fun EmptyShareState(text: String) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(

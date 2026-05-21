@@ -18,6 +18,5 @@ sealed class Screen(val route:String, val title:String) {
     object MarketplaceAppDetails : Screen("marketplace_app_details", "Marketplace App Details")
     object ContainerInfo : Screen("container_info", "Container Info")
     object VmDetails : Screen("vm_details", "VM Details")
-
-
+    object DiskInfo : Screen("disk_info", "Disk information")
 }
