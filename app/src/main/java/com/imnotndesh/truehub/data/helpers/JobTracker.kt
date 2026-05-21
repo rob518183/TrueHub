@@ -35,10 +35,10 @@ object JobTracker {
         jobsStateFlow: MutableStateFlow<Map<String, JobState>>,
         trackingKey: String,
         pollIntervalMillis: Long = 2000L,
-        maxPollAttempts: Int = 150, // 5 minutes default timeout
+        maxPollAttempts: Int = 150,
         onComplete: ((finalState: String) -> Unit)? = null
     ) {
-        // Initial state
+
         jobsStateFlow.update { it + (trackingKey to JobState(state = "WAITING", progress = 0)) }
 
         var pollAttempts = 0
@@ -58,7 +58,7 @@ object JobTracker {
 
                         if (newState.state in listOf("SUCCESS", "FAILED", "ABORTED")) {
                             onComplete?.invoke(newState.state)
-                            // Remove from tracking after a delay
+
                             delay(5000)
                             jobsStateFlow.update { it - trackingKey }
                             return
@@ -82,7 +82,7 @@ object JobTracker {
             delay(pollIntervalMillis)
         }
 
-        // Handle timeout
+
         Log.w("JobTracker", "Polling timed out for job $jobId.")
         jobsStateFlow.update { it - trackingKey }
         onComplete?.invoke("TIMED_OUT")
