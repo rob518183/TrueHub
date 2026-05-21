@@ -26,6 +26,10 @@ enum class AppCategory(val label: String) {
     STOPPED("Stopped"),
     UPDATES("Has Updates")
 }
+private val _isInstalling = MutableStateFlow(false)
+private val _installError = MutableStateFlow<String?>(null)
+private val _installJobId = MutableStateFlow<Int?>(null)
+
 
 data class AppsScreenUiState(
     val isLoading: Boolean = false,
@@ -44,7 +48,10 @@ data class AppsScreenUiState(
     val catalogAppDetails: Apps.CatalogAppDetails? = null,
     val isLoadingCatalogDetails: Boolean = false,
     val catalogDetailsError: String? = null,
-    val preloadedDetailsCache: Map<String, Apps.CatalogAppDetails> = emptyMap()
+    val preloadedDetailsCache: Map<String, Apps.CatalogAppDetails> = emptyMap(),
+    val isInstalling: StateFlow<Boolean> = _isInstalling.asStateFlow(),
+    val installError: StateFlow<String?> = _installError.asStateFlow(),
+    val installJobId: StateFlow<Int?> = _installJobId.asStateFlow()
 )
 
 class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() {
@@ -68,6 +75,54 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
 
     fun onSearchQueryChange(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
+    }
+    fun clearInstallState() {
+        _isInstalling.value = false
+        _installError.value = null
+        _installJobId.value = null
+    }
+
+    fun installMarketplaceApp(
+        context: Context,
+        appName: String,
+        catalogApp: String,
+        train: String,
+        version: String,
+        flatValues: Map<String, Any?>,
+        unflattenMapFunc: (Map<String, Any?>) -> Map<String, Any?>
+    ) {
+        viewModelScope.launch {
+            _isInstalling.value = true
+            _installError.value = null
+
+            val structuralValues = unflattenMapFunc(flatValues)
+
+            when (val result = manager.apps.createAppWithResult(
+                appName = appName,
+                catalogApp = catalogApp,
+                train = train,
+                version = version,
+                values = structuralValues
+            )) {
+                is ApiResult.Success -> {
+                    _installJobId.value = result.data
+                    GlobalJobTracker.startTracking(
+                        context = context,
+                        manager = manager,
+                        jobId = result.data,
+                        appName = appName,
+                        showNotif = true
+                    )
+                }
+                is ApiResult.Error -> {
+                    _isInstalling.value = false
+                    _installError.value = result.message
+                }
+                else -> {
+                    _isInstalling.value = false
+                }
+            }
+        }
     }
 
 

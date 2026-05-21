@@ -4,17 +4,62 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,13 +72,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.imnotndesh.truehub.data.ApiResult
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
-import com.imnotndesh.truehub.data.helpers.GlobalJobTracker
 import com.imnotndesh.truehub.data.helpers.JobRepository
 import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,27 +85,27 @@ fun MarketplaceAppInstallScreen(
     viewModel: AppsScreenViewModel,
     onBack: () -> Unit,
     onInstallSuccess: () -> Unit,
-    manager : TrueNASApiManager
+    manager: TrueNASApiManager
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var isInstalling by remember { mutableStateOf(false) }
-    var installJobId by remember { mutableStateOf<Int?>(null) }
-    var installError by remember { mutableStateOf<String?>(null) }
+
+    val isInstalling by uiState.isInstalling.collectAsStateWithLifecycle()
+    val installError by uiState.installError.collectAsStateWithLifecycle()
+    val installJobId by uiState.installJobId.collectAsStateWithLifecycle()
 
     val activeJobsMap by JobRepository.activeJobs.collectAsStateWithLifecycle()
     val trackedJob = installJobId?.let { gid -> activeJobsMap[gid] }
+
     LaunchedEffect(trackedJob) {
         if (trackedJob != null) {
             when (trackedJob.state.uppercase()) {
                 "SUCCESS" -> {
-                    isInstalling = false
+                    viewModel.clearInstallState()
                     onInstallSuccess()
                 }
                 "FAILED", "ABORTED" -> {
-                    isInstalling = false
-                    installError = trackedJob.description ?: "Application installation failed."
                 }
             }
         }
@@ -94,7 +136,7 @@ fun MarketplaceAppInstallScreen(
                     ) {
                         CircularProgressIndicator()
                         Text(
-                            "Loading configurations\u2026",
+                            "Loading configurations…",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -137,37 +179,15 @@ fun MarketplaceAppInstallScreen(
                         onVersionSelected = { selectedVersionKey = it },
                         onBack = onBack,
                         onInstallAction = { targetedInstanceName, flatMapValues ->
-                            scope.launch {
-                                isInstalling = true
-                                installError = null
-
-                                val structuralValues = unflattenMap(flatMapValues)
-
-                                when (val result = manager.apps.createAppWithResult(
-                                    appName = targetedInstanceName,
-                                    catalogApp = details.name,
-                                    train = train,
-                                    version = selectedVersionKey,
-                                    values = structuralValues
-                                )) {
-                                    is ApiResult.Success -> {
-                                        installJobId = result.data
-                                        // Pass the required parameters down into GlobalJobTracker
-                                        GlobalJobTracker.startTracking(
-                                            context = context,
-                                            manager = manager,
-                                            jobId = result.data,
-                                            appName = targetedInstanceName,
-                                            showNotif = true
-                                        )
-                                    }
-                                    is ApiResult.Error -> {
-                                        isInstalling = false
-                                        installError = result.message
-                                    }
-                                    else -> { isInstalling = false }
-                                }
-                            }
+                            viewModel.installMarketplaceApp(
+                                context = context,
+                                appName = targetedInstanceName,
+                                catalogApp = details.name,
+                                train = train,
+                                version = selectedVersionKey,
+                                flatValues = flatMapValues,
+                                unflattenMapFunc = ::unflattenMap
+                            )
                         }
                     )
                 }
@@ -207,7 +227,7 @@ fun MarketplaceAppInstallScreen(
                             )
                             Spacer(modifier = Modifier.height(24.dp))
                             Button(
-                                onClick = { installError = null },
+                                onClick = { viewModel.clearInstallState() },
                                 shape = RoundedCornerShape(14.dp)
                             ) {
                                 Text("Dismiss Layout")
@@ -300,7 +320,7 @@ private fun InstallOptionsContent(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
                     singleLine = true,
-                    leadingIcon = { Icon(Icons.Default.Label, null, modifier = Modifier.size(18.dp)) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, null, modifier = Modifier.size(18.dp)) },
                     placeholder = { Text("e.g. wireguard") }
                 )
 
@@ -352,7 +372,7 @@ private fun InstallOptionsContent(
                             readOnly = true,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = versionDropdownExpanded) },
                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                             shape = RoundedCornerShape(14.dp),
@@ -404,7 +424,7 @@ private fun InstallOptionsContent(
                 val groupQuestions = schema.questions.filter { it.group == group.name }
                 if (groupQuestions.isNotEmpty()) {
                     item(key = group.name) {
-                        SchemaGroupCard(
+                        SchemaGroupSection(
                             group = group,
                             questions = groupQuestions,
                             formState = formState,
@@ -473,8 +493,9 @@ private fun InstallHeroHeader(title: String, onBack: () -> Unit) {
     }
 }
 
+// Replaces the previous SchemaGroupCard - no Card composable, just a styled Surface
 @Composable
-private fun SchemaGroupCard(
+private fun SchemaGroupSection(
     group: Apps.SchemaGroup,
     questions: List<Apps.SchemaQuestion>,
     formState: MutableMap<String, Any?>,
@@ -482,9 +503,9 @@ private fun SchemaGroupCard(
 ) {
     var expanded by remember { mutableStateOf(true) }
 
-    ElevatedCard(
+    Surface(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -608,7 +629,7 @@ private fun StringField(schema: Apps.SchemaDefinition, path: String, formState: 
                 value = displayText,
                 onValueChange = {},
                 readOnly = true,
-                modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                 singleLine = true,
@@ -665,7 +686,7 @@ private fun StringField(schema: Apps.SchemaDefinition, path: String, formState: 
 private fun IntField(schema: Apps.SchemaDefinition, path: String, formState: MutableMap<String, Any?>) {
     var text by remember { mutableStateOf((formState[path] ?: schema.default)?.toString()?.takeIf { it != "null" } ?: "") }
     val supportText = when {
-        schema.min != null && schema.max != null -> "Bounds: ${schema.min} \u2013 ${schema.max}"
+        schema.min != null && schema.max != null -> "Bounds: ${schema.min} – ${schema.max}"
         schema.min != null -> "Minimum required: ${schema.min}"
         schema.max != null -> "Maximum allocation: ${schema.max}"
         else -> null
@@ -791,6 +812,7 @@ private fun InstallBottomAction(title: String, onInstall: () -> Unit) {
         }
     }
 }
+
 private fun flattenDefaults(source: Map<String, Any?>, target: MutableMap<String, Any?>, prefix: String = "") {
     source.forEach { (key, value) ->
         val path = if (prefix.isBlank()) key else "$prefix.$key"
