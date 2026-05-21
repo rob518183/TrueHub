@@ -326,7 +326,7 @@ private fun TrueHubNavGraph(
             )
         }
         composable(
-            route = "marketplace",
+            Screen.Marketplace.route
         ){
             MarketplaceScreen(
                 manager = manager,
@@ -371,7 +371,7 @@ private fun TrueHubNavGraph(
             }
         }
 
-        composable(route = "marketplace_app_details") {
+        composable(Screen.MarketplaceAppDetails.route) {
             val appsViewModel: AppsScreenViewModel = viewModel(
                 factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
             )
@@ -457,7 +457,7 @@ private fun TrueHubNavGraph(
             )
         }
 
-        composable("container_info"){
+        composable(Screen.ContainerInfo.route){
             val container = ContainerDataHolder.selectedContainer
             ContainerInfoScreen(
                 manager= manager,
@@ -480,7 +480,7 @@ private fun TrueHubNavGraph(
             )
         }
 
-        composable("vm_details") {
+        composable(Screen.VmDetails.route) {
             val vm = VmDataHolder.selectedVm
             VmInfoScreen(
                 vm = vm!!,

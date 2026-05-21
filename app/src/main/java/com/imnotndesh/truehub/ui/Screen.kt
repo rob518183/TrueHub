@@ -14,4 +14,10 @@ sealed class Screen(val route:String, val title:String) {
     object AccountSwitcher : Screen("account_switcher","account_switcher")
     object PoolDetails : Screen("pool_details", "Pool Details")
     object Files : Screen("file_explorer","file_explorer")
+    object Marketplace : Screen("marketplace", "Marketplace")
+    object MarketplaceAppDetails : Screen("marketplace_app_details", "Marketplace App Details")
+    object ContainerInfo : Screen("container_info", "Container Info")
+    object VmDetails : Screen("vm_details", "VM Details")
+
+
 }
