@@ -48,7 +48,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -62,6 +61,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -194,9 +194,10 @@ fun MarketplaceAppInstallScreen(
             }
 
             if (isInstalling || installError != null) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-                    modifier = Modifier.fillMaxSize()
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
                 ) {
                     Column(
                         modifier = Modifier
@@ -448,52 +449,48 @@ private fun InstallOptionsContent(
 
 @Composable
 private fun InstallHeroHeader(title: String, onBack: () -> Unit) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.fillMaxWidth()
+    // No card — just a plain column with a bottom divider
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 24.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
             ) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "Deployment Wizard",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "Deployment Wizard",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }
 }
 
-// Replaces the previous SchemaGroupCard - no Card composable, just a styled Surface
 @Composable
 private fun SchemaGroupSection(
     group: Apps.SchemaGroup,
@@ -503,58 +500,59 @@ private fun SchemaGroupSection(
 ) {
     var expanded by remember { mutableStateOf(true) }
 
-    Surface(
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier.fillMaxWidth()
+    // No card — plain column with background and rounded corners for visual grouping
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(16.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    group.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                group.description?.let {
                     Text(
-                        group.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    group.description?.let {
-                        Text(
-                            it,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(
-                        if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Toggle"
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
+            IconButton(onClick = { expanded = !expanded }) {
+                Icon(
+                    if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Toggle"
+                )
+            }
+        }
 
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                Column(modifier = Modifier.padding(top = 12.dp)) {
-                    questions.forEachIndexed { idx, question ->
-                        QuestionRow(
-                            question = question,
-                            formState = formState,
-                            pathPrefix = question.variable
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column(modifier = Modifier.padding(top = 12.dp)) {
+                questions.forEachIndexed { idx, question ->
+                    QuestionRow(
+                        question = question,
+                        formState = formState,
+                        pathPrefix = question.variable
+                    )
+                    if (idx < questions.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
                         )
-                        if (idx < questions.lastIndex) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 8.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                            )
-                        }
                     }
                 }
             }
@@ -719,30 +717,21 @@ private fun BooleanField(schema: Apps.SchemaDefinition, path: String, formState:
 @Composable
 private fun DictField(schema: Apps.SchemaDefinition, pathPrefix: String, formState: MutableMap<String, Any?>) {
     if (schema.attrs.isNullOrEmpty()) return
-    Row(
+    // Subtle background to indicate nested fields, but no card shape
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), shape = RoundedCornerShape(16.dp))
-            .padding(end = 12.dp, top = 8.dp, bottom = 8.dp)
+            .background(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), shape = RoundedCornerShape(12.dp))
+            .padding(12.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .height(IntrinsicSize.Max)
-                .align(Alignment.CenterVertically)
-                .background(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), shape = RoundedCornerShape(2.dp))
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            schema.attrs.forEachIndexed { idx, attr ->
-                if (attr.schema?.hidden != true) {
-                    QuestionRow(question = attr, formState = formState, pathPrefix = "$pathPrefix.${attr.variable}")
-                    if (idx < schema.attrs.lastIndex) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 4.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                        )
-                    }
+        schema.attrs.forEachIndexed { idx, attr ->
+            if (attr.schema?.hidden != true) {
+                QuestionRow(question = attr, formState = formState, pathPrefix = "$pathPrefix.${attr.variable}")
+                if (idx < schema.attrs.lastIndex) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                    )
                 }
             }
         }
@@ -796,20 +785,17 @@ private fun DefaultField(type: String?, path: String, formState: MutableMap<Stri
 
 @Composable
 private fun InstallBottomAction(title: String, onInstall: () -> Unit) {
-    Surface(
-        tonalElevation = 0.dp,
-        color = Color.Transparent,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
+    Button(
+        onClick = onInstall,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .height(52.dp)
     ) {
-        Button(
-            onClick = onInstall,
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().height(52.dp)
-        ) {
-            Icon(Icons.Default.Download, null)
-            Spacer(Modifier.width(8.dp))
-            Text("Deploy instance: $title", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
-        }
+        Icon(Icons.Default.Download, null)
+        Spacer(Modifier.width(8.dp))
+        Text("Deploy instance: $title", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
     }
 }
 
