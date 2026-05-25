@@ -203,5 +203,29 @@ class AppsService(val manager: TrueNASApiManager) {
             resultType = Int::class.java
         )
     }
+    /**
+     * Retrieve certificate choices that applications can use during setup
+     * @return List of id and name of certificate choices
+     */
+    suspend fun getCertificateChoices(): ApiResult<Apps.CertificateChoiceResponse>{
+        val result = Types.newParameterizedType(List::class.java,Apps.CertificateChoiceResponse::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.Apps.CERTIFICATE_CHOICES,
+            params = listOf(),
+            resultType = result
+        )
+    }
+    /**
+     * Retrieve ports used by applications
+     * @return List of ports used by the applications installed
+     */
+    suspend fun getAppPorts(): ApiResult<List<Int>>{
+        val result = Types.newParameterizedType(List::class.java, Int::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.Apps.USED_APP_PORTS,
+            params = listOf(),
+            resultType = result
+        )
+    }
 
 }

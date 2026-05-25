@@ -66,7 +66,9 @@ object ApiMethods {
         const val QUERY_MARKETPLACE_APPS = "app.available"
         const val GET_CATALOG_APP_DETAILS = "catalog.get_app_details"
         const val APP_CREATE = "app.create"
-
+        const val CERTIFICATE_CHOICES = "app.certificate_choices"
+        const val USED_APP_PORTS = "app.used_ports"
+        const val APP_INSTANCE = "app.get_instance"
         /**
          * App rollback Method
          * @see com.imnotndesh.truehub.data.models.Apps.RollbackOptions
