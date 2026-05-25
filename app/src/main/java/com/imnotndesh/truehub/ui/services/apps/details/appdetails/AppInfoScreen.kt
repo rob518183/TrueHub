@@ -2,6 +2,8 @@ package com.imnotndesh.truehub.ui.services.apps.details.appdetails
 
 import android.text.method.LinkMovementMethod
 import android.widget.TextView
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
@@ -21,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -34,23 +37,33 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.Update
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -70,11 +83,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.text.HtmlCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -85,6 +100,10 @@ import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import com.imnotndesh.truehub.R
+import com.imnotndesh.truehub.data.TrueNASClient
+import com.imnotndesh.truehub.data.helpers.JobRepository
+import com.imnotndesh.truehub.data.models.Config
+import com.imnotndesh.truehub.ui.theme.TrueHubAppTheme
 
 @Composable
 fun AppInfoScreen(
@@ -102,7 +121,7 @@ fun AppInfoScreen(
     )
     var showDeleteConfigDialog by remember { mutableStateOf(false) }
     val deletionJobId by viewModel.deletionJobId.collectAsState()
-    val activeJobs by com.imnotndesh.truehub.data.helpers.JobRepository.activeJobs.collectAsState()
+    val activeJobs by JobRepository.activeJobs.collectAsState()
     val currentDeletionJob = deletionJobId?.let { activeJobs[it] }
     LaunchedEffect(currentDeletionJob?.state) {
         if (currentDeletionJob?.state == "SUCCESS") {
@@ -153,8 +172,6 @@ fun AppInfoScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-
-            // Hero Header Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(28.dp),
@@ -217,6 +234,30 @@ fun AppInfoScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (app.customApp) {
+                                AppBadge(
+                                    label = "Custom",
+                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                            if (app.migrated) {
+                                AppBadge(
+                                    label = "Migrated",
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                            if (app.migratedFromKubernetes) {
+                                AppBadge(
+                                    label = "From K8s",
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -232,12 +273,10 @@ fun AppInfoScreen(
                     InfoRow(label = "Status", value = app.state.replaceFirstChar { it.uppercase() })
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     InfoRow(label = "Catalog", value = app.metadata?.train ?: "Unknown")
-
                     if (app.upgrade_available) {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         InfoRow(label = "Latest Version", value = app.latestVersion ?: "Update Available")
                     }
-
                     app.metadata?.dateAdded?.let {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         InfoRow(label = "Date Added", value = it)
@@ -245,6 +284,67 @@ fun AppInfoScreen(
                     app.metadata?.lastUpdate?.let {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         InfoRow(label = "Last Updated", value = it)
+                    }
+                    app.metadata?.libVersion?.let {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        InfoRow(label = "Lib Version", value = it)
+                    }
+                }
+            }
+
+            app.versionInfo?.let { versionInfo ->
+                val hasContent = !versionInfo.changelog.isNullOrBlank() || !versionInfo.upgradeNotes.isNullOrBlank()
+                if (hasContent) {
+                    ExpressiveSection(title = "Version Info", icon = Icons.Default.Update) {
+                        versionInfo.changelog?.let { changelog ->
+                            if (changelog.isNotBlank()) {
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                                    shape = RoundedCornerShape(20.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Text(
+                                            text = "Changelog",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(bottom = 8.dp)
+                                        )
+                                        MarkdownText(
+                                            markdown = changelog,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        versionInfo.upgradeNotes?.let { notes ->
+                            if (notes.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)),
+                                    shape = RoundedCornerShape(20.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Text(
+                                            text = "Upgrade Notes",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.tertiary,
+                                            modifier = Modifier.padding(bottom = 8.dp)
+                                        )
+                                        MarkdownText(
+                                            markdown = notes,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -258,7 +358,6 @@ fun AppInfoScreen(
                     ) {
                         val textColor = MaterialTheme.colorScheme.onSurfaceVariant
                         val linkColor = MaterialTheme.colorScheme.primary
-
                         AndroidView(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -275,6 +374,34 @@ fun AppInfoScreen(
                                 textView.text = HtmlCompat.fromHtml(description, HtmlCompat.FROM_HTML_MODE_LEGACY)
                             }
                         )
+                    }
+                }
+            }
+
+            app.metadata?.screenshots?.let { screenshots ->
+                if (screenshots.isNotEmpty()) {
+                    ExpressiveSection(title = "Screenshots", icon = Icons.Default.Photo) {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(screenshots) { screenshotUrl ->
+                                Card(
+                                    shape = RoundedCornerShape(16.dp),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                                    modifier = Modifier
+                                        .width(240.dp)
+                                        .height(140.dp)
+                                ) {
+                                    AsyncImage(
+                                        model = screenshotUrl,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -299,7 +426,6 @@ fun AppInfoScreen(
                             onChipClick = { onNavigateToMarketplaceCategory(it) }
                         )
                     }
-
                     app.metadata.keywords?.let { keywords ->
                         if (keywords.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(16.dp))
@@ -326,12 +452,35 @@ fun AppInfoScreen(
                 }
             }
 
-            app.activeWorkloads?.usedPorts?.let { ports ->
-                if (ports.isNotEmpty()) {
+            app.activeWorkloads?.let { workloads ->
+                val hasPorts = !workloads.usedPorts.isNullOrEmpty()
+                val hasNetworks = !workloads.networks.isNullOrEmpty()
+                if (hasPorts || hasNetworks) {
                     ExpressiveSection(title = "Network & Ports", icon = Icons.Default.NetworkCheck) {
-                        ports.forEach { port ->
-                            ServicePortCard(port = port)
-                            Spacer(modifier = Modifier.height(8.dp))
+                        if (hasPorts) {
+                            Text(
+                                text = "Exposed Ports",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+                            )
+                            workloads.usedPorts.forEach { port ->
+                                ServicePortCard(port = port)
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        }
+                        if (hasNetworks) {
+                            if (hasPorts) Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Docker Networks",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+                            )
+                            workloads.networks.forEach { network ->
+                                ServiceNetworkCard(network = network)
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
                         }
                     }
                 }
@@ -348,9 +497,16 @@ fun AppInfoScreen(
                 }
             }
 
+            app.activeWorkloads?.images?.let { images ->
+                if (images.isNotEmpty()) {
+                    ExpressiveSection(title = "Container Images", icon = Icons.Default.Image) {
+                        ServiceImagesCard(images = images)
+                    }
+                }
+            }
+
             val volumes = app.activeWorkloads?.volumes
             val hostMounts = app.metadata?.hostMounts
-
             if (!volumes.isNullOrEmpty() || !hostMounts.isNullOrEmpty()) {
                 ExpressiveSection(title = "Storage & Mounts", icon = Icons.Default.Storage) {
                     volumes?.forEach { volume ->
@@ -367,8 +523,8 @@ fun AppInfoScreen(
             app.metadata?.runAsContext?.let { contexts ->
                 if (contexts.isNotEmpty()) {
                     ExpressiveSection(title = "Security Context", icon = Icons.Default.AccountBox) {
-                        contexts.forEach { context ->
-                            ServiceRunAsContextCard(context = context)
+                        contexts.forEach { ctx ->
+                            ServiceRunAsContextCard(context = ctx)
                             Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
@@ -397,7 +553,7 @@ fun AppInfoScreen(
                 }
             }
 
-            if (app.metadata?.home != null || !app.metadata?.sources.isNullOrEmpty()) {
+            if (app.metadata?.home != null || !app.metadata?.sources.isNullOrEmpty() || app.metadata?.changelogUrl != null) {
                 ExpressiveSection(title = "Resources", icon = Icons.Default.Link) {
                     app.metadata.home?.let { home ->
                         LinkButton(name = "Homepage", url = home, icon = Icons.Default.Home)
@@ -435,6 +591,7 @@ fun AppInfoScreen(
                     }
                 }
             }
+
             ExpressiveSection(title = "Danger Zone", icon = Icons.Default.Build) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -442,7 +599,7 @@ fun AppInfoScreen(
                     ),
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier.fillMaxWidth(),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
@@ -455,8 +612,7 @@ fun AppInfoScreen(
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             textAlign = TextAlign.Center
                         )
-
-                        androidx.compose.material3.Button(
+                        Button(
                             onClick = { showDeleteConfigDialog = true },
                             enabled = currentDeletionJob == null,
                             colors = ButtonDefaults.buttonColors(
@@ -471,13 +627,12 @@ fun AppInfoScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 if (currentDeletionJob != null) {
-                                    androidx.compose.material3.CircularProgressIndicator(
+                                    CircularProgressIndicator(
                                         color = MaterialTheme.colorScheme.onError,
                                         modifier = Modifier.size(18.dp),
                                         strokeWidth = 2.dp
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
-
                                     val statusText = when (currentDeletionJob.state) {
                                         "RUNNING" -> "Deleting... ${currentDeletionJob.progress}%"
                                         "WAITING" -> "Queueing Uninstallation..."
@@ -486,7 +641,7 @@ fun AppInfoScreen(
                                     Text(text = statusText, fontWeight = FontWeight.Bold)
                                 } else {
                                     Icon(
-                                        imageVector = androidx.compose.material.icons.Icons.Default.Delete,
+                                        imageVector = Icons.Default.Delete,
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -500,6 +655,181 @@ fun AppInfoScreen(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun AppBadge(
+    label: String,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Surface(
+        color = containerColor,
+        shape = RoundedCornerShape(100.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+        )
+    }
+}
+
+@Composable
+fun ServiceNetworkCard(network: Apps.Network) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Hub,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = network.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    network.driver?.let {
+                        Text(
+                            text = "Driver: $it",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                network.scope?.let { scope ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = scope,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            network.ipam?.config?.let { configs ->
+                if (configs.isNotEmpty()) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    configs.forEach { config ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            config.subnet?.let {
+                                NetworkInfoChip(label = "Subnet", value = it)
+                            }
+                            config.gateway?.let {
+                                NetworkInfoChip(label = "Gateway", value = it)
+                            }
+                        }
+                    }
+                }
+            }
+
+            network.enableIPv6?.let { ipv6 ->
+                if (ipv6) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "IPv6 Enabled",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NetworkInfoChip(label: String, value: String) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+fun ServiceImagesCard(images: List<String>) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            images.forEachIndexed { index, image ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                    Text(
+                        text = image,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (index < images.lastIndex) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                }
+            }
         }
     }
 }
@@ -708,10 +1038,85 @@ private fun ServiceContainerCard(container: Apps.ContainerDetail) {
         shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = container.serviceName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = "Image: ${container.image}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = container.serviceName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Surface(
+                    color = when (container.state.lowercase()) {
+                        "running" -> Color(0xFF2E7D32).copy(alpha = 0.12f)
+                        "stopped", "exited" -> MaterialTheme.colorScheme.surfaceContainerHighest
+                        else -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                    },
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = container.state.replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = when (container.state.lowercase()) {
+                            "running" -> Color(0xFF2E7D32)
+                            "stopped", "exited" -> MaterialTheme.colorScheme.onSurfaceVariant
+                            else -> MaterialTheme.colorScheme.error
+                        },
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+            Text(
+                text = container.image,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            container.portConfig?.let { ports ->
+                if (ports.isNotEmpty()) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    Text(
+                        text = "Port Mappings",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                    ports.forEach { port ->
+                        Text(
+                            text = "${port.containerPort}/${port.protocol.uppercase()} → ${port.hostPorts.firstOrNull()?.let { "${it.hostIp}:${it.hostPort}" } ?: "unbound"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            container.volumeMounts?.let { mounts ->
+                if (mounts.isNotEmpty()) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    Text(
+                        text = "Volume Mounts",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                    mounts.forEach { mount ->
+                        Text(
+                            text = "${mount.source} → ${mount.destination}${mount.mode?.let { " ($it)" } ?: ""}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -723,9 +1128,46 @@ private fun ServiceVolumeCard(volume: Apps.Volume) {
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Source: ${volume.source}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Text(text = "Destination: ${volume.destination}", style = MaterialTheme.typography.bodySmall)
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = volume.source,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                volume.type?.let { type ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = type,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+            }
+            Text(
+                text = "→ ${volume.destination}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            volume.mode?.let { mode ->
+                Text(
+                    text = "Mode: $mode",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
         }
     }
 }
@@ -737,9 +1179,28 @@ private fun ServiceHostMountCard(mount: Apps.HostMount) {
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Host Mount", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            Text(text = "Host Path: ${mount.hostPath}", style = MaterialTheme.typography.bodySmall)
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = "Host Mount",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            mount.hostPath?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            mount.description?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -751,10 +1212,62 @@ private fun ServiceRunAsContextCard(context: Apps.RunAsContext) {
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.AccountBox, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(text = "UID: ${context.uid} | GID: ${context.gid}", style = MaterialTheme.typography.bodyMedium)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccountBox,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    context.uid?.let {
+                        Text(
+                            text = "UID: $it",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    context.gid?.let {
+                        Text(
+                            text = "GID: $it",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+                val identity = listOfNotNull(context.userName, context.groupName).joinToString(" / ")
+                if (identity.isNotEmpty()) {
+                    Text(
+                        text = identity,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                context.description?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            }
         }
     }
 }
@@ -763,23 +1276,90 @@ private fun ServiceRunAsContextCard(context: Apps.RunAsContext) {
 private fun ServiceCapabilityCard(capability: Apps.Capability) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(text = capability.name, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = capability.name,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (capability.description.isNotBlank()) {
+                Text(
+                    text = capability.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
 @Composable
 private fun ServiceMaintainerCard(maintainer: Apps.Maintainer) {
+    val uriHandler = LocalUriHandler.current
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = maintainer.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Text(text = "Email: ${maintainer.email}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = maintainer.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = maintainer.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                maintainer.email?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                maintainer.url?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            maintainer.url?.let { url ->
+                IconButton(onClick = { uriHandler.openUri(url) }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = "Open URL",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
@@ -804,7 +1384,7 @@ private fun LinkButton(name: String, url: String, icon: ImageVector) {
         }
     }
 }
-// TODO: Update this section to fix icons not loading
+
 @Composable
 fun SimilarAppsSection(
     apps: List<Apps.AppSimilarResponse>,
@@ -841,9 +1421,7 @@ fun SimilarAppsSection(
                         .clickable { onAppClick(appItem.name) },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    val context = LocalContext.current
                     val cornerRadius = (60 * 0.22f).dp
-
                     if (!appItem.iconUrl.isNullOrBlank()) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
@@ -875,7 +1453,6 @@ fun SimilarAppsSection(
                             )
                         }
                     }
-
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = appItem.title ?: appItem.name,
@@ -891,7 +1468,8 @@ fun SimilarAppsSection(
         }
     }
 }
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeleteAppConfigDialog(
     appName: String,
@@ -903,11 +1481,8 @@ fun DeleteAppConfigDialog(
     var forceRemoveIxVolumes by remember { mutableStateOf(false) }
     var forceRemoveCustomApp by remember { mutableStateOf(false) }
 
-    androidx.compose.material3.AlertDialog(
+    BasicAlertDialog(
         onDismissRequest = onDismiss,
-        properties = androidx.compose.ui.window.DialogProperties(
-            usePlatformDefaultWidth = false
-        ),
         modifier = Modifier
             .padding(24.dp)
             .fillMaxWidth()
@@ -915,111 +1490,104 @@ fun DeleteAppConfigDialog(
                 color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(28.dp)
             ),
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false
+        ),
+        content = {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            MaterialTheme.colorScheme.errorContainer,
-                            RoundedCornerShape(12.dp)
-                        ),
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(
+                                MaterialTheme.colorScheme.errorContainer,
+                                RoundedCornerShape(12.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    Text(
+                        text = "Uninstall $appName",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Text(
-                    text = "Uninstall $appName",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = "Configure how you want to remove the application deployment options from your pool:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-
-            Text(
-                text = "Configure how you want to remove the application deployment options from your pool:",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-            // Toggles Layout List
-            DeleteOptionToggle(
-                title = "Remove Docker/Container Images",
-                description = "Wipes cached containers from the system storage pool if no other apps rely on them.",
-                checked = removeImages,
-                onCheckedChange = { removeImages = it }
-            )
-
-            DeleteOptionToggle(
-                title = "Delete ixVolumes Data",
-                description = "Permanently deletes application persistent datasets provisioned internally by ix-volumes.",
-                checked = removeIxVolumes,
-                onCheckedChange = { removeIxVolumes = it }
-            )
-
-            DeleteOptionToggle(
-                title = "Force Remove ixVolumes Data",
-                description = "Forces data dataset unmounting/destruction even if active locking files are busy.",
-                checked = forceRemoveIxVolumes,
-                onCheckedChange = { forceRemoveIxVolumes = it }
-            )
-
-            DeleteOptionToggle(
-                title = "Force Remove Custom App Context",
-                description = "Overrides safety validations to force uninstallation of unmanaged custom charts.",
-                checked = forceRemoveCustomApp,
-                onCheckedChange = { forceRemoveCustomApp = it }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Lower Action Layout Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel", fontWeight = FontWeight.SemiBold)
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                androidx.compose.material3.Button(
-                    onClick = {
-                        onConfirm(
-                            Apps.DeleteAppOptions(
-                                remove_images = removeImages,
-                                remove_ix_volumes = removeIxVolumes,
-                                force_remove_ix_volumes = forceRemoveIxVolumes,
-                                force_remove_custom_app = forceRemoveCustomApp
-                            )
-                        )
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
-                    ),
-                    shape = RoundedCornerShape(12.dp)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                DeleteOptionToggle(
+                    title = "Remove Docker/Container Images",
+                    description = "Wipes cached containers from the system storage pool if no other apps rely on them.",
+                    checked = removeImages,
+                    onCheckedChange = { removeImages = it }
+                )
+                DeleteOptionToggle(
+                    title = "Delete ixVolumes Data",
+                    description = "Permanently deletes application persistent datasets provisioned internally by ix-volumes.",
+                    checked = removeIxVolumes,
+                    onCheckedChange = { removeIxVolumes = it }
+                )
+                DeleteOptionToggle(
+                    title = "Force Remove ixVolumes Data",
+                    description = "Forces data dataset unmounting/destruction even if active locking files are busy.",
+                    checked = forceRemoveIxVolumes,
+                    onCheckedChange = { forceRemoveIxVolumes = it }
+                )
+                DeleteOptionToggle(
+                    title = "Force Remove Custom App Context",
+                    description = "Overrides safety validations to force uninstallation of unmanaged custom charts.",
+                    checked = forceRemoveCustomApp,
+                    onCheckedChange = { forceRemoveCustomApp = it }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Confirm Uninstall", fontWeight = FontWeight.Bold)
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel", fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            onConfirm(
+                                Apps.DeleteAppOptions(
+                                    remove_images = removeImages,
+                                    remove_ix_volumes = removeIxVolumes,
+                                    force_remove_ix_volumes = forceRemoveIxVolumes,
+                                    force_remove_custom_app = forceRemoveCustomApp
+                                )
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Confirm Uninstall", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
-        }
-    }
+        })
 }
 
 @Composable
@@ -1050,10 +1618,10 @@ private fun DeleteOptionToggle(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        androidx.compose.material3.Switch(
+        Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = androidx.compose.material3.SwitchDefaults.colors(
+            colors = SwitchDefaults.colors(
                 checkedThumbColor = MaterialTheme.colorScheme.onError,
                 checkedTrackColor = MaterialTheme.colorScheme.error
             )

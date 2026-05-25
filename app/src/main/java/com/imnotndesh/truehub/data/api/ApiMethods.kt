@@ -9,6 +9,12 @@ object ApiMethods {
         const val AUTH_ME = "auth.me"
         const val GEN_AUTH_TOKEN = "auth.generate_token"
 
+        const val GEN_ONETIME_PASSWORD = "auth.generate_onetime_password"
+        const val GET_MECHANISM_CHOICES ="auth.mechanism_choices"
+        const val LOGIN_EX = "auth.login_ex"
+        const val GET_AUTH_SESSIONS = "auth.sessions"
+        const val TERMINATE_OTHER_SESSION = "auth.terminate_other_session"
+        const val TERMINATE_SESSION = "auth.terminate_session"
     }
     object User{
         const val CHANGE_PASSWORD = "user.set_password"
