@@ -25,13 +25,12 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -51,13 +49,14 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.ui.background.WavyGradientBackground
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChangePasswordBottomSheet(
+fun ChangePasswordScreen(
     onDismiss: () -> Unit,
-    onSubmit: (oldPassword: String, newPassword: String) -> Unit
+    onSubmit: (oldPassword: String, newPassword: String) -> Unit,
+    onNavigateBack: () -> Unit,
 ) {
     var oldPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
@@ -76,11 +75,9 @@ fun ChangePasswordBottomSheet(
             passwordsMatch &&
             newPassword.length >= 8
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        dragHandle = null
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -88,8 +85,9 @@ fun ChangePasswordBottomSheet(
             // Header Section
             PasswordChangeHeader(onDismiss = onDismiss)
 
-            // Form Content
+            // Form Content - We apply weight(1f) here to constrain the infinite scroll height
             PasswordChangeForm(
+                modifier = Modifier.weight(1f),
                 oldPassword = oldPassword,
                 newPassword = newPassword,
                 confirmPassword = confirmPassword,
@@ -113,7 +111,7 @@ fun ChangePasswordBottomSheet(
         }
     }
 
-    // Auto-focus first field when sheet opens
+    // Auto-focus first field when screen opens
     LaunchedEffect(Unit) {
         oldPasswordFocusRequester.requestFocus()
     }
@@ -127,10 +125,9 @@ private fun PasswordChangeHeader(
         modifier = Modifier
             .fillMaxWidth()
             .height(180.dp)
-            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
     ) {
         WavyGradientBackground {
-            // Close button
+            // Close button (Acts as back button now)
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier
@@ -183,6 +180,7 @@ private fun PasswordChangeHeader(
 
 @Composable
 private fun PasswordChangeForm(
+    modifier: Modifier = Modifier, // Added modifier parameter
     oldPassword: String,
     newPassword: String,
     confirmPassword: String,
@@ -198,8 +196,8 @@ private fun PasswordChangeForm(
     onCancel: () -> Unit
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
+            .fillMaxWidth() // Changed from fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -301,11 +299,11 @@ private fun PasswordChangeForm(
             }
         }
 
-        // Action Buttons - Using Column with fixed height to ensure visibility above keyboard
+        // Action Buttons
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp), // Fixed height to ensure buttons stay above keyboard
+                .height(120.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Submit Button

@@ -1,5 +1,6 @@
 package com.imnotndesh.truehub.ui
 
+import android.app.Application
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -73,6 +74,10 @@ import com.imnotndesh.truehub.ui.services.containers.details.ContainerInfoScreen
 import com.imnotndesh.truehub.ui.services.vm.VmsScreen
 import com.imnotndesh.truehub.ui.services.vm.details.VmDataHolder
 import com.imnotndesh.truehub.ui.services.vm.details.VmInfoScreen
+import com.imnotndesh.truehub.ui.settings.SettingsEvent
+import com.imnotndesh.truehub.ui.settings.SettingsScreen
+import com.imnotndesh.truehub.ui.settings.SettingsScreenViewModel
+import com.imnotndesh.truehub.ui.settings.sheets.ChangePasswordScreen
 
 private data class NavItem(
     val screen: Screen,
@@ -230,11 +235,61 @@ private fun TrueHubNavGraph(
         composable(Screen.Home.route) {
             HomeScreen(
                 manager,
-                onNavigateToSettings = { rootNavController.navigate(Screen.Settings.route) },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route)
+                },
                 onPoolClick = { pool: System.Pool ->
                     PoolDataHolder.currentPool = pool
                     navController.navigate(Screen.PoolDetails.route)
                 }
+            )
+        }
+        composable(Screen.ChangePassword.route) {
+            // 1. Get the application context here
+            val context = LocalContext.current
+            val application = context.applicationContext as Application
+
+            // 2. Initialize the ViewModel using your factory
+            val settingsViewModel: SettingsScreenViewModel = viewModel(
+                factory = SettingsScreenViewModel.SettingsViewModelFactory(
+                    manager = manager,
+                    application = application
+                )
+            )
+
+            // 3. Pass the ViewModel and callbacks
+            ChangePasswordScreen(
+                onDismiss = {
+                    navController.popBackStack()
+                },
+                onSubmit = { oldPassword, newPassword ->
+
+                    settingsViewModel.handleEvent(
+                        SettingsEvent.ChangePassword(oldPassword, newPassword)
+                    )
+                    navController.popBackStack()
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable (Screen.Settings.route){
+            SettingsScreen(manager,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+                ,
+                onNavigateToLicenses = {
+                    navController.navigate(Screen.Licenses.route)
+                },
+                onNavigateToAbout = {
+                    navController.navigate(Screen.About.route)
+                },
+                onNavigateToChangePassword = {
+                    navController.navigate(Screen.ChangePassword.route)
+                }
+
             )
         }
 
