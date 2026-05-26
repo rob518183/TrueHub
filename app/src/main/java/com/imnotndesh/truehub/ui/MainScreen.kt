@@ -287,6 +287,7 @@ private fun TrueHubNavGraph(
 
         composable (Screen.Licenses.route) {
             LicensesScreen(
+                manager = manager,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

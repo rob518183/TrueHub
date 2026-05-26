@@ -39,7 +39,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.imnotndesh.truehub.R
+import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.ui.background.WavyGradientBackground
+import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -49,6 +51,7 @@ import java.io.InputStreamReader
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LicensesScreen(
+    manager: TrueNASApiManager,
     onNavigateBack: () -> Unit = {},
 ) {
     var licenseText by remember { mutableStateOf("Loading...") }
@@ -69,19 +72,15 @@ fun LicensesScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Licenses") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+            UnifiedScreenHeader(
+                title = "Licenses",
+                subtitle = "Licenses",
+                isLoading = false,
+                isRefreshing = false,
+                error = null,
+                onDismissError = {},
+                manager = manager,
+                onBackPressed = onNavigateBack
             )
         }
     ) { paddingValues ->
