@@ -1,10 +1,9 @@
-// MarketplaceAppDetailsScreen.kt (corrected with proper job tracking)
-
 package com.imnotndesh.truehub.ui.services.apps.details.marketplace
 
 import android.text.method.LinkMovementMethod
 import android.widget.TextView
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -23,11 +22,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,12 +37,15 @@ import androidx.core.text.HtmlCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.JobRepository
 import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDetailsViewModel
 import kotlinx.coroutines.delay
+import com.imnotndesh.truehub.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +54,7 @@ fun MarketplaceAppDetailsScreen(
     app: Apps.AppAvailableItem,
     onNavigateBack: () -> Unit,
     onInstallClick: (String, String) -> Unit,
-    onUninstallSuccess: () -> Unit = {}  // callback to refresh parent screen after uninstall
+    onUninstallSuccess: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -324,6 +328,9 @@ private fun HeroHeaderSection(
     app: Apps.AppAvailableItem,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val cornerRadius = (44 * 0.22f).dp
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -403,8 +410,43 @@ private fun HeroHeaderSection(
                 shadowElevation = 3.dp,
                 modifier = Modifier.size(84.dp)
             ) {
-                Box(modifier = Modifier.padding(6.dp)) {
-                    // Placeholder for app icon
+
+                Box(
+                    modifier = Modifier.padding(6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!app.icon_url.isNullOrBlank()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(app.icon_url)
+                                .decoderFactory(SvgDecoder.Factory())
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "${app.title} icon",
+                            contentScale = ContentScale.Fit,
+                            alignment = Alignment.Center,
+                            placeholder = painterResource(id = R.drawable.missing_app_icon),
+                            error = painterResource(id = R.drawable.missing_app_icon),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(cornerRadius))
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(cornerRadius))
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.missing_app_icon),
+                                contentDescription = "${app.title} default icon",
+                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onPrimaryContainer),
+                                modifier = Modifier.size((44 * 0.7f).dp)
+                            )
+                        }
+                    }
                 }
             }
 
