@@ -1,7 +1,5 @@
 package com.imnotndesh.truehub.ui
 
-import android.app.Application
-import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.Crossfade
@@ -59,13 +57,17 @@ import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.homepage.HomeScreen
 import com.imnotndesh.truehub.ui.homepage.dataset.DatasetExplorerScreen
+import com.imnotndesh.truehub.ui.homepage.details.DiskInfoScreen
+import com.imnotndesh.truehub.ui.homepage.details.PerformanceScreen
+import com.imnotndesh.truehub.ui.homepage.details.ShareInfoScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
-import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
+import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
+import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppInfoScreen
-import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceAppInstallScreen
 import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceAppDetailsScreen
+import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceAppInstallScreen
 import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceScreen
 import com.imnotndesh.truehub.ui.services.apps.details.upgrade.UpgradeSummaryScreen
 import com.imnotndesh.truehub.ui.services.containers.ContainersScreen
@@ -74,12 +76,7 @@ import com.imnotndesh.truehub.ui.services.containers.details.ContainerInfoScreen
 import com.imnotndesh.truehub.ui.services.vm.VmsScreen
 import com.imnotndesh.truehub.ui.services.vm.details.VmDataHolder
 import com.imnotndesh.truehub.ui.services.vm.details.VmInfoScreen
-import com.imnotndesh.truehub.ui.settings.SettingsEvent
-import com.imnotndesh.truehub.ui.settings.SettingsScreen
-import com.imnotndesh.truehub.ui.settings.SettingsScreenViewModel
-import com.imnotndesh.truehub.ui.settings.screens.AboutScreen
-import com.imnotndesh.truehub.ui.settings.screens.LicensesScreen
-import com.imnotndesh.truehub.ui.settings.sheets.ChangePasswordScreen
+
 
 private data class NavItem(
     val screen: Screen,
@@ -94,7 +91,6 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    // Define navigation items with selected/unselected icon states
     val navItems = remember {
         listOf(
             NavItem(Screen.Home, "Home", Icons.Filled.Home, Icons.Outlined.Home),
@@ -112,27 +108,17 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
             NavigationRail(
                 containerColor = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.fillMaxHeight(),
-                header = {
-                    // Placeholder for Logo
-                }
+                header = {}
             ) {
                 navItems.forEach { item ->
                     val selected = currentRoute == item.screen.route
                     NavigationRailItem(
                         selected = selected,
                         onClick = { onNavClick(navController, item.screen.route) },
-                        label = {
-                            Text(
-                                text = item.title,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
+                        label = { Text(item.title, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
                         icon = {
                             Crossfade(targetState = selected, label = "iconFade") { isSelected ->
-                                Icon(
-                                    imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                    contentDescription = item.title
-                                )
+                                Icon(if (isSelected) item.selectedIcon else item.unselectedIcon, item.title)
                             }
                         },
                         colors = NavigationRailItemDefaults.colors(
@@ -143,39 +129,21 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
                     )
                 }
             }
-
-            // Shared Navigation Host
-            TrueHubNavGraph(
-                navController = navController,
-                manager = manager,
-                rootNavController = rootNavController,
-                modifier = Modifier.weight(1f)
-            )
+            TrueHubNavGraph(navController = navController, manager = manager, rootNavController = rootNavController, modifier = Modifier.weight(1f))
         }
     } else {
         Scaffold(
             bottomBar = {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 8.dp
-                ) {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 8.dp) {
                     navItems.forEach { item ->
                         val selected = currentRoute == item.screen.route
                         NavigationBarItem(
                             selected = selected,
                             onClick = { onNavClick(navController, item.screen.route) },
-                            label = {
-                                Text(
-                                    text = item.title,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
+                            label = { Text(item.title, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
                             icon = {
                                 Crossfade(targetState = selected, label = "iconFade") { isSelected ->
-                                  Icon(
-                                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                        contentDescription = item.title
-                                    )
+                                    Icon(if (isSelected) item.selectedIcon else item.unselectedIcon, item.title)
                                 }
                             },
                             colors = NavigationBarItemDefaults.colors(
@@ -188,12 +156,7 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
                 }
             }
         ) { innerPadding ->
-            TrueHubNavGraph(
-                navController = navController,
-                manager = manager,
-                rootNavController = rootNavController,
-                modifier = Modifier.padding(innerPadding)
-            )
+            TrueHubNavGraph(navController = navController, manager = manager, rootNavController = rootNavController, modifier = Modifier.padding(innerPadding))
         }
     }
 }
@@ -210,36 +173,22 @@ private fun TrueHubNavGraph(
         startDestination = Screen.Home.route,
         modifier = modifier.background(MaterialTheme.colorScheme.background),
         enterTransition = {
-            fadeIn(animationSpec = tween(300)) + slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.Start,
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-            )
+            fadeIn(animationSpec = tween(300)) + slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
         },
         exitTransition = {
-            fadeOut(animationSpec = tween(300)) + slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Start,
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-            )
+            fadeOut(animationSpec = tween(300)) + slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
         },
         popEnterTransition = {
-            fadeIn(animationSpec = tween(300)) + slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-            )
+            fadeIn(animationSpec = tween(300)) + slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
         },
         popExitTransition = {
-            fadeOut(animationSpec = tween(300)) + slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-            )
+            fadeOut(animationSpec = tween(300)) + slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
         }
     ) {
         composable(Screen.Home.route) {
             HomeScreen(
                 manager,
-                onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route)
-                },
+                onNavigateToSettings = { rootNavController.navigate(Screen.Settings.route) },
                 onPoolClick = { pool: System.Pool ->
                     PoolDataHolder.currentPool = pool
                     navController.navigate(Screen.PoolDetails.route)
@@ -250,76 +199,44 @@ private fun TrueHubNavGraph(
                 },
                 onDisksClick = {
                     navController.navigate(Screen.DiskInfo.route)
+                },
+                onNavigateToPerformance = {metricType ->
+                    AppDataHolder.initialMetricType = metricType
+                    navController.navigate(Screen.Performance.route)
                 }
-
             )
         }
-        composable(Screen.ChangePassword.route) {
-            // 1. Get the application context here
-            val context = LocalContext.current
-            val application = context.applicationContext as Application
+        composable(Screen.DiskInfo.route){
+            val disks = AppDataHolder.disks
+            DiskInfoScreen(
+                disks,
+                manager,
+                {
+                    navController.popBackStack()
+                }
+            )
+        }
 
-            // 2. Initialize the ViewModel using your factory
-            val settingsViewModel: SettingsScreenViewModel = viewModel(
-                factory = SettingsScreenViewModel.SettingsViewModelFactory(
+        composable("share_info") {
+            val shareType = AppDataHolder.selectedShareType
+            if (shareType != null) {
+                ShareInfoScreen(
+                    shareType = shareType,
                     manager = manager,
-                    application = application
+                    onNavigateBack = { navController.popBackStack() }
                 )
-            )
-
-            // 3. Pass the ViewModel and callbacks
-            ChangePasswordScreen(
-                manager = manager,
-                /*onDismiss = {
-                    navController.popBackStack()
-                },*/
-                onSubmit = { oldPassword, newPassword ->
-
-                    settingsViewModel.handleEvent(
-                        SettingsEvent.ChangePassword(oldPassword, newPassword)
-                    )
-                    navController.popBackStack()
-                },
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
+            }
         }
-
-        composable (Screen.Licenses.route) {
-            LicensesScreen(
+        composable(Screen.Performance.route) {
+            PerformanceScreen(
+                cpuData = AppDataHolder.cpuData,
+                memoryData = AppDataHolder.memoryData,
+                temperatureData = AppDataHolder.temperatureData,
+                initialMetricType = AppDataHolder.initialMetricType,
+                isLoading = false,
                 manager = manager,
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-
-            )
-        }
-        composable (Screen.About.route){
-            AboutScreen(
-                manager = manager,
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-
-            )
-        }
-        composable (Screen.Settings.route){
-            SettingsScreen(manager,
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-                ,
-                onNavigateToLicenses = {
-                    navController.navigate(Screen.Licenses.route)
-                },
-                onNavigateToAbout = {
-                    navController.navigate(Screen.About.route)
-                },
-                onNavigateToChangePassword = {
-                    navController.navigate(Screen.ChangePassword.route)
-                }
-
+                onNavigateBack = { navController.popBackStack() },
+                onRefresh = {}
             )
         }
 
@@ -330,15 +247,9 @@ private fun TrueHubNavGraph(
                     AppDataHolder.selectedApp = app
                     navController.navigate("app_details")
                 },
-                onNavigateToUpgrade = { appName ->
-                    navController.navigate("app_upgrade/$appName")
-                },
-                onNavigateToRollback = { appName ->
-                    navController.navigate("app_rollback/$appName")
-                },
-                onNavigateToMarketplace = {
-                    navController.navigate("marketplace")
-                }
+                onNavigateToUpgrade = { appName -> navController.navigate("app_upgrade/$appName") },
+                onNavigateToRollback = { appName -> navController.navigate("app_rollback/$appName") },
+                onNavigateToMarketplace = { navController.navigate("marketplace") }
             )
         }
 
@@ -346,34 +257,23 @@ private fun TrueHubNavGraph(
             PoolDetailsScreen(
                 manager = manager,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToFiles = { poolName: String ->
-                    navController.navigate("${Screen.Files.route}/$poolName")
-                }
+                onNavigateToFiles = { poolName: String -> navController.navigate("${Screen.Files.route}/$poolName") }
             )
         }
+
         composable("app_details") {
             val app = AppDataHolder.selectedApp
-
-            val appsViewModel: AppsScreenViewModel = viewModel(
-                factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
-            )
+            val appsViewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             LaunchedEffect(Unit) {
-                if (appsViewModel.uiState.value.marketplaceApps.isEmpty()) {
-                    appsViewModel.loadMarketplaceApps()
-                }
+                if (appsViewModel.uiState.value.marketplaceApps.isEmpty()) appsViewModel.loadMarketplaceApps()
             }
-
             AppInfoScreen(
                 app = app!!,
                 manager = manager,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToMarketplaceCategory = { categoryName ->
-                    navController.navigate("marketplace?category=${categoryName}")
-                },
+                onNavigateToMarketplaceCategory = { categoryName -> navController.navigate("marketplace?category=${categoryName}") },
                 onNavigateToMarketplaceAppDetails = { appName ->
-                    val matchedAvailableItem = appsViewModel.uiState.value.marketplaceApps
-                        .find { it.name == appName }
-
+                    val matchedAvailableItem = appsViewModel.uiState.value.marketplaceApps.find { it.name == appName }
                     if (matchedAvailableItem != null) {
                         AppDataHolder.selectedMarketplaceApp = matchedAvailableItem
                         navController.navigate("marketplace_app_details")
@@ -381,222 +281,82 @@ private fun TrueHubNavGraph(
                         navController.navigate("marketplace?category=")
                     }
                 },
-                onDeleteSuccess = {
-                    navController.navigate(Screen.Apps.route)
-                }
+                onDeleteSuccess = { navController.navigate(Screen.Apps.route) }
             )
         }
 
         composable(
             route = "marketplace?category={category}",
-            arguments = listOf(
-                navArgument("category") {
-                    type = NavType.StringType
-                    defaultValue = ""
-                    nullable = true
-                }
-            )
+            arguments = listOf(navArgument("category") { type = NavType.StringType; defaultValue = ""; nullable = true })
         ) { backStackEntry ->
-            val category = backStackEntry.arguments?.getString("category")
-                ?.takeIf { it.isNotBlank() }
-
-            MarketplaceScreen(
-                manager = manager,
-                initialCategory = category,
-                onNavigateBack = { navController.popBackStack() },
-                onMarketplaceApplicationClicked = { app ->
-                    AppDataHolder.selectedMarketplaceApp = app
-                    navController.navigate("marketplace_app_details")
-                }
-            )
-        }
-        composable(
-            Screen.Marketplace.route
-        ){
-            MarketplaceScreen(
-                manager = manager,
-                onNavigateBack = {navController.popBackStack()},
-                onMarketplaceApplicationClicked = {app ->
-                    AppDataHolder.selectedMarketplaceApp = app
-                    navController.navigate("marketplace_app_details")
-                }
-            )
+            val category = backStackEntry.arguments?.getString("category")?.takeIf { it.isNotBlank() }
+            MarketplaceScreen(manager = manager, initialCategory = category, onNavigateBack = { navController.popBackStack() }, onMarketplaceApplicationClicked = { app -> AppDataHolder.selectedMarketplaceApp = app; navController.navigate("marketplace_app_details") })
         }
 
-        composable(
-            route = "app_upgrade/{appName}",
-            arguments = listOf(navArgument("appName") { type = NavType.StringType })
-        ) { backStackEntry ->
+        composable(Screen.Marketplace.route) {
+            MarketplaceScreen(manager = manager, onNavigateBack = { navController.popBackStack() }, onMarketplaceApplicationClicked = { app -> AppDataHolder.selectedMarketplaceApp = app; navController.navigate("marketplace_app_details") })
+        }
+
+        composable(route = "app_upgrade/{appName}", arguments = listOf(navArgument("appName") { type = NavType.StringType })) { backStackEntry ->
             val appName = backStackEntry.arguments?.getString("appName") ?: ""
             val context = LocalContext.current
             val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val uiState by viewModel.uiState.collectAsState()
-            androidx.compose.runtime.LaunchedEffect(appName) {
-                viewModel.clearUpgradeSummary()
-                viewModel.loadUpgradeSummary(appName)
-            }
-
+            LaunchedEffect(appName) { viewModel.clearUpgradeSummary(); viewModel.loadUpgradeSummary(appName) }
             val summary = uiState.upgradeSummaryResult
             val isLoading = (uiState.isLoadingUpgradeSummaryForApp == appName) && (summary == null)
-
             if (isLoading) {
                 LoadingScreen("Checking upgrades...")
             } else if (summary != null) {
-                UpgradeSummaryScreen(
-                    appName = appName,
-                    summary = summary,
-                    manager = manager,
-                    onConfirmUpgrade = { viewModel.upgradeApp(appName, context)},
-                    onNavigateBack = { navController.popBackStack() }
-                )
+                UpgradeSummaryScreen(appName = appName, summary = summary, manager = manager, onConfirmUpgrade = { viewModel.upgradeApp(appName, context) }, onNavigateBack = { navController.popBackStack() })
             } else if (uiState.error != null) {
-                androidx.compose.runtime.LaunchedEffect(Unit) {
-                    navController.popBackStack()
-                }
+                LaunchedEffect(Unit) { navController.popBackStack() }
             }
         }
 
         composable(Screen.MarketplaceAppDetails.route) {
-            val appsViewModel: AppsScreenViewModel = viewModel(
-                factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
-            )
+            val appsViewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val app = AppDataHolder.selectedMarketplaceApp
             if (app != null) {
-                MarketplaceAppDetailsScreen(
-                    app = app,
-                    onNavigateBack = { navController.popBackStack() },
-                    manager = manager,
-                    onInstallClick = { appName, train ->
-                        appsViewModel.loadCatalogAppDetails(appName, train)
-                        navController.navigate("catalog_install/$appName/$train")
-                    }
-                )
+                MarketplaceAppDetailsScreen(app = app, onNavigateBack = { navController.popBackStack() }, manager = manager, onInstallClick = { appName, train -> appsViewModel.loadCatalogAppDetails(appName, train); navController.navigate("catalog_install/$appName/$train") })
             }
         }
-        composable(
-            route = "catalog_install/{appName}/{train}",
-            arguments = listOf(
-                navArgument("appName") { type = NavType.StringType },
-                navArgument("train") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val appsViewModel: AppsScreenViewModel = viewModel(
-                factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
-            )
+
+        composable(route = "catalog_install/{appName}/{train}", arguments = listOf(navArgument("appName") { type = NavType.StringType }, navArgument("train") { type = NavType.StringType })) { backStackEntry ->
+            val appsViewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val appName = backStackEntry.arguments?.getString("appName") ?: ""
             val train = backStackEntry.arguments?.getString("train") ?: ""
-
-            MarketplaceAppInstallScreen(
-                appName = appName,
-                train = train,
-                viewModel = appsViewModel,
-                manager = manager,
-                onBack = { navController.popBackStack() },
-                onInstallSuccess = {navController.popBackStack()}
-            )
-        }
-
-        composable(
-            route = "app_upgrade/{appName}",
-            arguments = listOf(navArgument("appName") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val appName = backStackEntry.arguments?.getString("appName") ?: ""
-            val context = LocalContext.current
-
-            val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
-            val uiState by viewModel.uiState.collectAsState()
-
-            // Trigger load once
-            LaunchedEffect(appName) {
-                viewModel.clearUpgradeSummary()
-                viewModel.loadUpgradeSummary(appName)
-            }
-
-            val summary = uiState.upgradeSummaryResult
-            val isLoading = (uiState.isLoadingUpgradeSummaryForApp == appName) && (summary == null)
-
-            if (isLoading) {
-                LoadingScreen("Checking upgrades...")
-            } else if (summary != null) {
-                UpgradeSummaryScreen(
-                    appName = appName,
-                    summary = summary,
-                    manager = manager,
-                    onConfirmUpgrade = { viewModel.upgradeApp(appName,context) },
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            } else if (uiState.error != null) {
-                LaunchedEffect(Unit) {
-                    navController.popBackStack()
-                }
-            }
+            MarketplaceAppInstallScreen(appName = appName, train = train, viewModel = appsViewModel, manager = manager, onBack = { navController.popBackStack() }, onInstallSuccess = { navController.popBackStack() })
         }
 
         composable(Screen.Containers.route) {
-            ContainersScreen(
-                manager= manager,
-                onNavigateToContainerInfo = { container ->
-                    ContainerDataHolder.selectedContainer = container
-                    navController.navigate("container_info")
-                }
-            )
+            ContainersScreen(manager = manager, onNavigateToContainerInfo = { container -> ContainerDataHolder.selectedContainer = container; navController.navigate("container_info") })
         }
 
-        composable(Screen.ContainerInfo.route){
+        composable(Screen.ContainerInfo.route) {
             val container = ContainerDataHolder.selectedContainer
-            ContainerInfoScreen(
-                manager= manager,
-                container = container!!,
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-
+            ContainerInfoScreen(manager = manager, container = container!!, onNavigateBack = { navController.popBackStack() })
         }
 
         composable(Screen.Vms.route) {
-            VmsScreen(
-                manager = manager,
-                onNavigateToVmInfo = { vmInfo ->
-                    VmDataHolder.selectedVm = vmInfo
-                    navController.navigate("vm_details")
-                }
-
-            )
+            VmsScreen(manager = manager, onNavigateToVmInfo = { vmInfo -> VmDataHolder.selectedVm = vmInfo; navController.navigate("vm_details") })
         }
 
         composable(Screen.VmDetails.route) {
             val vm = VmDataHolder.selectedVm
-            VmInfoScreen(
-                vm = vm!!,
-                manager = manager,
-                onNavigateBack ={
-                     navController.popBackStack()
-                }
-            )
+            VmInfoScreen(vm = vm!!, manager = manager, onNavigateBack = { navController.popBackStack() })
         }
 
-        composable(
-            route = "${Screen.Files.route}/{poolName}",
-            arguments = listOf(
-                navArgument("poolName") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
+        composable(route = "${Screen.Files.route}/{poolName}", arguments = listOf(navArgument("poolName") { type = NavType.StringType })) { backStackEntry ->
             val poolName = backStackEntry.arguments?.getString("poolName") ?: ""
-            DatasetExplorerScreen(
-                manager = manager,
-                onNavigateBack = { navController.popBackStack() },
-                poolName = poolName
-            )
+            DatasetExplorerScreen(manager = manager, onNavigateBack = { navController.popBackStack() }, poolName = poolName)
         }
     }
 }
 
 private fun onNavClick(navController: NavController, route: String) {
     navController.navigate(route) {
-        popUpTo(navController.graph.findStartDestination().id) {
-            saveState = true
-        }
+        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true
         restoreState = true
     }
