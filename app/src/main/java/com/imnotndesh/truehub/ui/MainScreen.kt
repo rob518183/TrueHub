@@ -77,6 +77,8 @@ import com.imnotndesh.truehub.ui.services.vm.details.VmInfoScreen
 import com.imnotndesh.truehub.ui.settings.SettingsEvent
 import com.imnotndesh.truehub.ui.settings.SettingsScreen
 import com.imnotndesh.truehub.ui.settings.SettingsScreenViewModel
+import com.imnotndesh.truehub.ui.settings.screens.AboutScreen
+import com.imnotndesh.truehub.ui.settings.screens.LicensesScreen
 import com.imnotndesh.truehub.ui.settings.sheets.ChangePasswordScreen
 
 private data class NavItem(
@@ -272,6 +274,23 @@ private fun TrueHubNavGraph(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
+            )
+        }
+
+        composable (Screen.Licenses.route) {
+            LicensesScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+
+            )
+        }
+        composable (Screen.About.route){
+            AboutScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+
             )
         }
         composable (Screen.Settings.route){
