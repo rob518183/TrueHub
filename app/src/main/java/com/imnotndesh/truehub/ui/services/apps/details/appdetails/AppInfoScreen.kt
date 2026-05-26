@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Image
@@ -103,6 +104,7 @@ import com.imnotndesh.truehub.R
 import com.imnotndesh.truehub.data.TrueNASClient
 import com.imnotndesh.truehub.data.helpers.JobRepository
 import com.imnotndesh.truehub.data.models.Config
+import com.imnotndesh.truehub.ui.components.ExpressiveIconButton
 import com.imnotndesh.truehub.ui.theme.TrueHubAppTheme
 
 @Composable
@@ -111,6 +113,7 @@ fun AppInfoScreen(
     manager: TrueNASApiManager,
     onNavigateBack: () -> Unit,
     onDeleteSuccess: () -> Unit,
+    onEditClick: (String) -> Unit,
     onNavigateToMarketplaceCategory: (String) -> Unit = {},
     onNavigateToMarketplaceAppDetails: (String) -> Unit = {}
 ) {
@@ -259,6 +262,17 @@ fun AppInfoScreen(
                             }
                         }
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    ExpressiveIconButton(
+                        onClick = {
+                            onEditClick(app.name)
+                        },
+                        icon = Icons.Default.Edit,
+                        contentDescription = "Edit ${app.metadata?.title ?: app.name} Configuration",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    )
                 }
             }
 

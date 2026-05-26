@@ -227,5 +227,20 @@ class AppsService(val manager: TrueNASApiManager) {
             resultType = result
         )
     }
+    suspend fun getAppConfig(appName: String): ApiResult<Map<String,Any>>{
+        val result = Types.newParameterizedType(Map::class.java, String::class.java, Any::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.Apps.GET_APP_CONFIG,
+            params = listOf(appName),
+            resultType = result
+        )
+    }
+    suspend fun updateAppConfig(appName: String,configOptions: Apps.UpdateAppConfigOptions = Apps.UpdateAppConfigOptions()): ApiResult<Apps.AppQueryResponse>{
+        return manager.callWithResult(
+            method = ApiMethods.Apps.UPDATE_APP_CONFIG,
+            params = listOf(appName,configOptions),
+            resultType = Apps.AppQueryResponse::class.java
+        )
+    }
 
 }

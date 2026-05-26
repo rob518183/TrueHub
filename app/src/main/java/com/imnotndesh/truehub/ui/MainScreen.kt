@@ -64,6 +64,7 @@ import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
+import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppConfigScreen
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppInfoScreen
 import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceAppDetailsScreen
@@ -216,6 +217,16 @@ private fun TrueHubNavGraph(
                 }
             )
         }
+        composable(Screen.AppConfigScreen.route){
+            val currAppName = AppDataHolder.selectedAppName
+            AppConfigScreen(
+                manager,
+                currAppName,
+                {
+                    navController.popBackStack()
+                }
+            )
+        }
 
         composable("share_info") {
             val shareType = AppDataHolder.selectedShareType
@@ -281,7 +292,11 @@ private fun TrueHubNavGraph(
                         navController.navigate("marketplace?category=")
                     }
                 },
-                onDeleteSuccess = { navController.navigate(Screen.Apps.route) }
+                onDeleteSuccess = { navController.navigate(Screen.Apps.route) },
+                onEditClick = {appName ->
+                    AppDataHolder.selectedAppName = appName
+                    navController.navigate(Screen.AppConfigScreen.route)
+                }
             )
         }
 

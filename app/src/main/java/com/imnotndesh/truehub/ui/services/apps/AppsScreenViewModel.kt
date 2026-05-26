@@ -53,11 +53,21 @@ data class AppsScreenUiState(
     val installError: StateFlow<String?> = _installError.asStateFlow(),
     val installJobId: StateFlow<Int?> = _installJobId.asStateFlow()
 )
+data class AppConfigUiState(
+    val isLoading: Boolean = false,
+    val isSaving: Boolean = false,
+    val config: Map<String, Any>? = null,
+    val error: String? = null,
+    val saveJobId: Int? = null,
+    val saveSuccess: Boolean = false
+)
 
 class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AppsScreenUiState())
     val uiState: StateFlow<AppsScreenUiState> = _uiState.asStateFlow()
+    private val _appConfigState = MutableStateFlow(AppConfigUiState())
+    val appConfigState: StateFlow<AppConfigUiState> = _appConfigState.asStateFlow()
 
     init {
         val cachedData = AppCache.cachedApps.value
@@ -81,7 +91,53 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
         _installError.value = null
         _installJobId.value = null
     }
+    fun loadAppConfig(appName: String) {
+        viewModelScope.launch {
+            _appConfigState.update { it.copy(isLoading = true, error = null) }
+            when (val result = manager.apps.getAppConfig(appName)) {
+                is ApiResult.Success -> {
+                    val safeConfig = result.data?.filterValues { it != null } as? Map<String, Any>
+                    _appConfigState.update {
+                        it.copy(isLoading = false, config = safeConfig, error = null)
+                    }
+                }
+                is ApiResult.Error -> {
+                    _appConfigState.update {
+                        it.copy(isLoading = false, config = null, error = result.message)
+                    }
+                }
+                is ApiResult.Loading -> { /* Handled by above */}
+            }
+        }
+    }
+    fun updateAppConfig(appName: String, updatedValues: Map<String, Any?>) {
+        viewModelScope.launch {
+            _appConfigState.update { it.copy(isSaving = true, saveSuccess = false, saveJobId = null, error = null) }
+            val cleanValues = updatedValues.filterValues { it != null }.mapValues { (_, v) -> v as Any }
+            val options = Apps.UpdateAppConfigOptions(values = cleanValues)
+            when (val result = manager.apps.updateAppConfig(appName, options)) {
+                is ApiResult.Success -> {
+                    val jobId = result.data as? Int
+                    _appConfigState.update {
+                        it.copy(isSaving = false, saveJobId = jobId, saveSuccess = true)
+                    }
+                    loadAppConfig(appName)
+                    delay(3000)
+                    _appConfigState.update { it.copy(saveSuccess = false) }
+                }
+                is ApiResult.Error -> {
+                    _appConfigState.update {
+                        it.copy(isSaving = false, saveSuccess = false, error = result.message)
+                    }
+                }
+                is ApiResult.Loading -> { /* ignore */ }
+            }
+        }
+    }
 
+    fun clearAppConfigError() {
+        _appConfigState.update { it.copy(error = null) }
+    }
     fun installMarketplaceApp(
         context: Context,
         appName: String,

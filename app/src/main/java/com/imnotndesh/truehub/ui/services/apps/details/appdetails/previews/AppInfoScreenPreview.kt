@@ -32,7 +32,8 @@ fun PreviewAppInfoScreen() {
             onNavigateBack = {},
             onDeleteSuccess = {},
             onNavigateToMarketplaceCategory = {},
-            onNavigateToMarketplaceAppDetails = {}
+            onNavigateToMarketplaceAppDetails = {},
+            onEditClick = {}
         )
     }
 }

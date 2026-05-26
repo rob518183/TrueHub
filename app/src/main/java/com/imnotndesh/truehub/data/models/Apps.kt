@@ -406,4 +406,10 @@ object Apps {
         val version_details : Map<String,Any>? = null,
         val config : Map<String,Any>?= null
     )
+    @Suppress("PropertyName")
+    data class UpdateAppConfigOptions(
+        val values : Map<String, Any>?= emptyMap(),
+        val custom_compose_config : Map<String,Any> ?= emptyMap(),
+        val custom_compose_config_String : String = ""
+    )
 }

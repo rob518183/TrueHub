@@ -14,4 +14,5 @@ object AppDataHolder {
     var memoryData: List<System.ReportingGraphResponse>? = null
     var temperatureData: List<System.ReportingGraphResponse>? = null
     var initialMetricType: MetricType = MetricType.ALL
+    var selectedAppName : String = ""
 }

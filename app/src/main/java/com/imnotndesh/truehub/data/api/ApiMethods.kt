@@ -68,6 +68,8 @@ object ApiMethods {
         const val START_APP = "app.start"
         const val STOP_APP = "app.stop"
         const val UPGRADE_APP = "app.upgrade"
+        const val UPDATE_APP_CONFIG = "app.update"
+        const val GET_APP_CONFIG = "app.config"
         const val GET_UPGRADE_SUMMARY = "app.upgrade_summary"
         const val QUERY_MARKETPLACE_APPS = "app.available"
         const val GET_CATALOG_APP_DETAILS = "catalog.get_app_details"
