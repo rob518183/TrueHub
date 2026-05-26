@@ -243,11 +243,19 @@ private fun AppNavigation(
         }
 
         composable(Screen.About.route) {
-            AboutScreen(
-                onNavigateBack = {
+            manager?.let { validManager ->
+                AboutScreen(
+                    manager = validManager,
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            } ?: run {
+                LoadingScreen("Redirecting...")
+                LaunchedEffect(Unit) {
                     navController.popBackStack()
                 }
-            )
+            }
         }
 
         composable(Screen.Licenses.route) {

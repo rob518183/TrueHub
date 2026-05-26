@@ -65,11 +65,14 @@ import com.imnotndesh.truehub.R
 import com.imnotndesh.truehub.ui.background.AnimatedWavyGradientBackground
 import kotlinx.coroutines.delay
 import androidx.core.net.toUri
+import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 
 @SuppressLint("UseKtx")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
+    manager: TrueNASApiManager,
     onNavigateBack: () -> Unit = {}
 ) {
     var tapCount by remember { mutableIntStateOf(0) }
@@ -86,19 +89,15 @@ fun AboutScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("About") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+            UnifiedScreenHeader(
+                title = "About",
+                subtitle = "About",
+                isLoading = false,
+                isRefreshing = false,
+                error = null,
+                onDismissError = {},
+                manager = manager,
+                onBackPressed = onNavigateBack
             )
         }
     ) { paddingValues ->

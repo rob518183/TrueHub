@@ -243,7 +243,15 @@ private fun TrueHubNavGraph(
                 onPoolClick = { pool: System.Pool ->
                     PoolDataHolder.currentPool = pool
                     navController.navigate(Screen.PoolDetails.route)
+                },
+                onNavigateToShareInfo = { shareType ->
+                    AppDataHolder.selectedShareType = shareType
+                    navController.navigate("share_info")
+                },
+                onDisksClick = {
+                    navController.navigate(Screen.DiskInfo.route)
                 }
+
             )
         }
         composable(Screen.ChangePassword.route) {
@@ -287,6 +295,7 @@ private fun TrueHubNavGraph(
         }
         composable (Screen.About.route){
             AboutScreen(
+                manager = manager,
                 onNavigateBack = {
                     navController.popBackStack()
                 }
