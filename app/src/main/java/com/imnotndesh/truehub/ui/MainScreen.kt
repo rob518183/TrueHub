@@ -58,6 +58,7 @@ import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.homepage.HomeScreen
 import com.imnotndesh.truehub.ui.homepage.dataset.DatasetExplorerScreen
 import com.imnotndesh.truehub.ui.homepage.details.DiskInfoScreen
+import com.imnotndesh.truehub.ui.homepage.details.PerformanceScreen
 import com.imnotndesh.truehub.ui.homepage.details.ShareInfoScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
@@ -198,6 +199,10 @@ private fun TrueHubNavGraph(
                 },
                 onDisksClick = {
                     navController.navigate(Screen.DiskInfo.route)
+                },
+                onNavigateToPerformance = {metricType ->
+                    AppDataHolder.initialMetricType = metricType
+                    navController.navigate(Screen.Performance.route)
                 }
             )
         }
@@ -221,6 +226,18 @@ private fun TrueHubNavGraph(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
+        }
+        composable(Screen.Performance.route) {
+            PerformanceScreen(
+                cpuData = AppDataHolder.cpuData,
+                memoryData = AppDataHolder.memoryData,
+                temperatureData = AppDataHolder.temperatureData,
+                initialMetricType = AppDataHolder.initialMetricType,
+                isLoading = false,
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onRefresh = {}
+            )
         }
 
         composable(Screen.Apps.route) {

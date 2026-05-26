@@ -76,7 +76,6 @@ import com.imnotndesh.truehub.ui.background.WavyGradientBackground
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.homepage.details.MetricType
-import com.imnotndesh.truehub.ui.homepage.details.PerformanceBottomSheet
 import com.imnotndesh.truehub.ui.homepage.details.ShareType
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
 import com.imnotndesh.truehub.ui.utils.AdaptiveLayoutHelper
@@ -89,6 +88,7 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit = {},
     onPoolClick: (System.Pool) -> Unit,
     onDisksClick: () -> Unit,
+    onNavigateToPerformance: (MetricType) -> Unit,
     onNavigateToShareInfo: (ShareType) -> Unit = {}
 ) {
     val viewModel: HomeViewModel = viewModel(
@@ -132,12 +132,14 @@ fun HomeScreen(
                     state = state,
                     onRefresh = { viewModel.refresh() },
                     onShutdown = { reason -> viewModel.shutdownSystem(reason) },
-                    onRefreshGraph = { viewModel.loadPerformanceData() },
                     isConnectedStatus = isConnected,
                     loadAveragesState = loadAveragesState,
                     onPoolClick = onPoolClick,
                     onDiskClick = { onDisksClick() },
-                    onNavigateToShareInfo = onNavigateToShareInfo
+                    onNavigateToShareInfo = onNavigateToShareInfo,
+                    onNavigateToPerformance = {metricType ->
+                        onNavigateToPerformance(metricType)
+                    }
                 )
             }
         }
@@ -224,12 +226,11 @@ private fun HomeContent(
     loadAveragesState: LoadAveragesState,
     onRefresh: () -> Unit,
     onPoolClick: (System.Pool) -> Unit,
-    onRefreshGraph: () -> Unit,
     onShutdown: (String) -> Unit,
     onDiskClick: () -> Unit,
-    onNavigateToShareInfo: (ShareType) -> Unit
+    onNavigateToShareInfo: (ShareType) -> Unit,
+    onNavigateToPerformance: (MetricType) -> Unit
 ) {
-    var showPerformanceDialog by remember { mutableStateOf(false) }
     var currentMetricType by remember { mutableStateOf(MetricType.ALL) }
 
     val isAdaptiveLayout = AdaptiveLayoutHelper.isExpandedLayout()
@@ -253,10 +254,10 @@ private fun HomeContent(
                 columnCount = columnCount,
                 state = state,
                 loadAveragesState = loadAveragesState,
-                onCpuClick = { currentMetricType = MetricType.CPU; showPerformanceDialog = true },
-                onMemoryClick = { currentMetricType = MetricType.MEMORY; showPerformanceDialog = true },
-                onLoadClick = { currentMetricType = MetricType.ALL; showPerformanceDialog = true },
-                onTempClick = { currentMetricType = MetricType.TEMPERATURE; showPerformanceDialog = true },
+                onCpuClick = { AppDataHolder.cpuData = state.cpuData; onNavigateToPerformance(MetricType.CPU) },
+                onMemoryClick = { AppDataHolder.memoryData = state.memoryData;onNavigateToPerformance(MetricType.MEMORY) },
+                onLoadClick = { onNavigateToPerformance(MetricType.ALL)},
+                onTempClick = {AppDataHolder.temperatureData = state.temperatureData; onNavigateToPerformance(MetricType.TEMPERATURE)},
                 onDiskClick = { AppDataHolder.disks = state.diskDetails; onDiskClick() },
                 onPoolClick = onPoolClick,
                 onSmbShareClick = { share -> onNavigateToShareInfo(ShareType.Smb(share)) },
@@ -266,10 +267,9 @@ private fun HomeContent(
             LoadAveragesGrid(
                 loadAveragesState = loadAveragesState,
                 modifier = Modifier.padding(bottom = 16.dp),
-                onCpuClick = { currentMetricType = MetricType.CPU; showPerformanceDialog = true },
-                onMemoryClick = { currentMetricType = MetricType.MEMORY; showPerformanceDialog = true },
-                onLoadClick = { currentMetricType = MetricType.ALL; showPerformanceDialog = true },
-                onTempClick = { currentMetricType = MetricType.TEMPERATURE; showPerformanceDialog = true }
+                onCpuClick = { AppDataHolder.cpuData = state.cpuData;onNavigateToPerformance(MetricType.CPU) },
+                onMemoryClick = {AppDataHolder.memoryData = state.memoryData; onNavigateToPerformance(MetricType.MEMORY) },
+                onTempClick = { AppDataHolder.temperatureData = state.temperatureData;onNavigateToPerformance(MetricType.TEMPERATURE) }
             )
 
             SystemStatsSection(
@@ -295,18 +295,6 @@ private fun HomeContent(
                 onNfsShareClick = { share -> onNavigateToShareInfo(ShareType.Nfs(share)) }
             )
         }
-    }
-
-    if (showPerformanceDialog) {
-        PerformanceBottomSheet(
-            cpuData = state.cpuData,
-            memoryData = state.memoryData,
-            temperatureData = state.temperatureData,
-            metricType = currentMetricType,
-            isLoading = state.isRefreshing,
-            onDismiss = { showPerformanceDialog = false; currentMetricType = MetricType.ALL },
-            onRefresh = onRefresh
-        )
     }
 }
 
@@ -350,7 +338,6 @@ private fun AdaptiveGridLayout(
                         loadAveragesState = section.state,
                         onCpuClick = section.onCpuClick,
                         onMemoryClick = section.onMemoryClick,
-                        onLoadClick = section.onLoadClick,
                         onTempClick = section.onTempClick
                     )
                     is SectionItem.SystemStats -> SystemStatsSection(
@@ -436,39 +423,77 @@ private fun LoadAveragesGrid(
     modifier: Modifier = Modifier,
     onCpuClick: () -> Unit,
     onMemoryClick: () -> Unit,
-    onLoadClick: () -> Unit,
     onTempClick: () -> Unit
 ) {
     Column(modifier = modifier) {
-        Text("Load Averages", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp))
+        Text(
+            text = "System Metrics",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp)
+        )
+
         when (loadAveragesState) {
             is LoadAveragesState.Loading -> {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     LoadingStatCard("CPU", Icons.Default.Memory, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
                     LoadingStatCard("Memory", Icons.Default.Storage, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    LoadingStatCard("Load", Icons.Default.Timeline, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
-                    LoadingStatCard("Temperature", Icons.Default.Thermostat, Color(0xFF2E7D32), Modifier.weight(1f))
-                }
+                Spacer(modifier = Modifier.height(8.dp))
+                LoadingStatCard("Temperature", Icons.Default.Thermostat, Color(0xFF2E7D32), Modifier.fillMaxWidth())
             }
             is LoadAveragesState.Success -> {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard(title = "CPU", value = loadAveragesState.cpuAverage?.let { DecimalFormat("#.##").format(it) + "%" } ?: "N/A", subtitle = "Average usage", icon = Icons.Default.Memory, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f), onClick = onCpuClick)
-                    StatCard(title = "Memory", value = loadAveragesState.memoryAverage?.let { DecimalFormat("#.##").format(it) + "%" } ?: "N/A", subtitle = "Average usage", icon = Icons.Default.Storage, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.weight(1f), onClick = onMemoryClick)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    StatCard(
+                        title = "CPU",
+                        value = loadAveragesState.cpuAverage?.let { DecimalFormat("#.##").format(it) + "%" } ?: "N/A",
+                        subtitle = "Usage",
+                        icon = Icons.Default.Memory,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                        onClick = onCpuClick
+                    )
+                    StatCard(
+                        title = "Memory",
+                        value = loadAveragesState.memoryAverage?.let { DecimalFormat("#.##").format(it) + "%" } ?: "N/A",
+                        subtitle = "Usage",
+                        icon = Icons.Default.Storage,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.weight(1f),
+                        onClick = onMemoryClick
+                    )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard(title = "Load", value = loadAveragesState.loadAverage?.let { DecimalFormat("#.##").format(it) } ?: "N/A", subtitle = "System load", icon = Icons.Default.Timeline, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.weight(1f), onClick = onLoadClick)
-                    StatCard(title = "Temperature", value = loadAveragesState.tempAverage?.let { DecimalFormat("#.#").format(it) + "°C" } ?: "N/A", subtitle = "CPU temp", icon = Icons.Default.Thermostat, color = Color(0xFF2E7D32), modifier = Modifier.weight(1f), onClick = onTempClick)
-                }
+                Spacer(modifier = Modifier.height(8.dp))
+                StatCard(
+                    title = "Temperature",
+                    value = loadAveragesState.tempAverage?.let { DecimalFormat("#.#").format(it) + "°C" } ?: "N/A",
+                    subtitle = "CPU thermal",
+                    icon = Icons.Default.Thermostat,
+                    color = Color(0xFF2E7D32),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onTempClick
+                )
             }
             is LoadAveragesState.Error -> {
-                Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer), modifier = Modifier.fillMaxWidth()) {
-                    Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                        Text("Failed to load averages", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
+                        Text("Failed to load metrics", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
                     }
                 }
             }
