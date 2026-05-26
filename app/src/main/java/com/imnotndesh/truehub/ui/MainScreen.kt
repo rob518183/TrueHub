@@ -269,9 +269,10 @@ private fun TrueHubNavGraph(
 
             // 3. Pass the ViewModel and callbacks
             ChangePasswordScreen(
-                onDismiss = {
+                manager = manager,
+                /*onDismiss = {
                     navController.popBackStack()
-                },
+                },*/
                 onSubmit = { oldPassword, newPassword ->
 
                     settingsViewModel.handleEvent(

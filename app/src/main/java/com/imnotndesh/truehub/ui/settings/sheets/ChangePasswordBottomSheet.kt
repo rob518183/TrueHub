@@ -1,5 +1,6 @@
 package com.imnotndesh.truehub.ui.settings.sheets
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,11 +26,12 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,21 +42,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.ui.background.WavyGradientBackground
+import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChangePasswordScreen(
-    onDismiss: () -> Unit,
+    manager: TrueNASApiManager, // Exact non-null type as LicenseScreen
+    //onDismiss: () -> Unit,
     onSubmit: (oldPassword: String, newPassword: String) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
@@ -75,39 +79,87 @@ fun ChangePasswordScreen(
             passwordsMatch &&
             newPassword.length >= 8
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Header Section
-            PasswordChangeHeader(onDismiss = onDismiss)
-
-            // Form Content - We apply weight(1f) here to constrain the infinite scroll height
-            PasswordChangeForm(
-                modifier = Modifier.weight(1f),
-                oldPassword = oldPassword,
-                newPassword = newPassword,
-                confirmPassword = confirmPassword,
-                passwordsMatch = passwordsMatch,
-                isFormValid = isFormValid,
-                onOldPasswordChange = { oldPassword = it },
-                onNewPasswordChange = { newPassword = it },
-                onConfirmPasswordChange = { confirmPassword = it },
-                oldPasswordFocusRequester = oldPasswordFocusRequester,
-                newPasswordFocusRequester = newPasswordFocusRequester,
-                confirmPasswordFocusRequester = confirmPasswordFocusRequester,
-                onSubmit = {
-                    keyboardController?.hide()
-                    onSubmit(oldPassword, newPassword)
-                },
-                onCancel = {
-                    keyboardController?.hide()
-                    onDismiss()
-                }
+    Scaffold(
+        topBar = {
+            UnifiedScreenHeader(
+                title = "Security",
+                subtitle = "Change Password",
+                isLoading = false,
+                isRefreshing = false,
+                error = null,
+                onDismissError = {},
+                manager = manager,
+                onBackPressed = onNavigateBack
             )
+        }
+    ) { paddingValues ->
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Compact Header Section matching Licenses style
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                ) {
+                    WavyGradientBackground {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(48.dp)
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "Update Credentials",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+
+                // Form Content
+                PasswordChangeForm(
+                    modifier = Modifier.weight(1f),
+                    oldPassword = oldPassword,
+                    newPassword = newPassword,
+                    confirmPassword = confirmPassword,
+                    passwordsMatch = passwordsMatch,
+                    isFormValid = isFormValid,
+                    onOldPasswordChange = { oldPassword = it },
+                    onNewPasswordChange = { newPassword = it },
+                    onConfirmPasswordChange = { confirmPassword = it },
+                    oldPasswordFocusRequester = oldPasswordFocusRequester,
+                    newPasswordFocusRequester = newPasswordFocusRequester,
+                    confirmPasswordFocusRequester = confirmPasswordFocusRequester,
+                    onSubmit = {
+                        keyboardController?.hide()
+                        onSubmit(oldPassword, newPassword)
+                    },
+                    onCancel = {
+                        keyboardController?.hide()
+                      //  onDismiss()
+                    }
+                )
+            }
         }
     }
 
@@ -118,69 +170,8 @@ fun ChangePasswordScreen(
 }
 
 @Composable
-private fun PasswordChangeHeader(
-    onDismiss: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp)
-    ) {
-        WavyGradientBackground {
-            // Close button (Acts as back button now)
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-
-            // Password change info
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Security icon
-                Icon(
-                    imageVector = Icons.Default.Security,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(48.dp)
-                )
-
-                // Title
-                Text(
-                    text = "Change Password",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                // Subtitle
-                Text(
-                    text = "Update your account password",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                    fontSize = 14.sp
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun PasswordChangeForm(
-    modifier: Modifier = Modifier, // Added modifier parameter
+    modifier: Modifier = Modifier,
     oldPassword: String,
     newPassword: String,
     confirmPassword: String,
@@ -197,7 +188,7 @@ private fun PasswordChangeForm(
 ) {
     Column(
         modifier = modifier
-            .fillMaxWidth() // Changed from fillMaxSize()
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
