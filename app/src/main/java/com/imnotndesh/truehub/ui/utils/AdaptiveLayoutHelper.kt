@@ -72,10 +72,10 @@ object AdaptiveLayoutHelper {
     @Composable
     fun getContentPadding(): Int {
         return when (getWidthSizeClass()) {
-            WindowWidthSizeClass.Compact -> 16
-            WindowWidthSizeClass.Medium -> 24
-            WindowWidthSizeClass.Expanded -> 32
-            else -> 16
+            WindowWidthSizeClass.Compact -> 12
+            WindowWidthSizeClass.Medium -> 20
+            WindowWidthSizeClass.Expanded -> 28
+            else -> 12
         }
     }
 

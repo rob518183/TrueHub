@@ -241,7 +241,7 @@ private fun HomeContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(contentPadding.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         SystemOverviewCard(
             isConnectedStatus = isConnectedStatus,
