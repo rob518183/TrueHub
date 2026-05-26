@@ -222,6 +222,11 @@ object Apps {
         @field:Json(name = "include_app_schema") val includeAppSchema: Boolean = false,
         @field:Json(name = "retrieve_config") val retrieveConfig: Boolean = false
     )
+    @JsonClass(generateAdapter = true)
+    data class CertificateChoiceResponse(
+        val id : Int,
+        val name : String
+    )
 
     @JsonClass(generateAdapter = true)
     data class AppQueryOptions(
@@ -372,5 +377,33 @@ object Apps {
     data class SchemaEnum(
         val value: Any?,
         val description: String? = null
+    )
+    enum class AppInstanceState{
+        CRASHED,
+        DEPLOYING,
+        RUNNING,
+        STOPPED,
+        STOPPING
+    }
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class AppInstanceResponse(
+        val name : String,
+        val id : Int,
+        val state : AppInstanceState,
+        val upgrade_available: Boolean,
+        val latest_version: String? = null,
+        val image_Updates_available : Boolean,
+        val custom_app : Boolean,
+        val migrated : Boolean,
+        val human_version: String,
+        val version : String,
+        val metadata : Map<String?,Any?> ?= emptyMap(),
+        val activeWorkloads: ActiveWorkloads ? = null,
+        val notes :String ?= null,
+        val portals: Map<String, String>? = emptyMap(),
+        val version_details : Map<String,Any>? = null,
+        val config : Map<String,Any>?= null
     )
 }

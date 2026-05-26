@@ -9,6 +9,12 @@ object ApiMethods {
         const val AUTH_ME = "auth.me"
         const val GEN_AUTH_TOKEN = "auth.generate_token"
 
+        const val GEN_ONETIME_PASSWORD = "auth.generate_onetime_password"
+        const val GET_MECHANISM_CHOICES ="auth.mechanism_choices"
+        const val LOGIN_EX = "auth.login_ex"
+        const val GET_AUTH_SESSIONS = "auth.sessions"
+        const val TERMINATE_OTHER_SESSION = "auth.terminate_other_session"
+        const val TERMINATE_SESSION = "auth.terminate_session"
     }
     object User{
         const val CHANGE_PASSWORD = "user.set_password"
@@ -66,7 +72,9 @@ object ApiMethods {
         const val QUERY_MARKETPLACE_APPS = "app.available"
         const val GET_CATALOG_APP_DETAILS = "catalog.get_app_details"
         const val APP_CREATE = "app.create"
-
+        const val CERTIFICATE_CHOICES = "app.certificate_choices"
+        const val USED_APP_PORTS = "app.used_ports"
+        const val APP_INSTANCE = "app.get_instance"
         /**
          * App rollback Method
          * @see com.imnotndesh.truehub.data.models.Apps.RollbackOptions
