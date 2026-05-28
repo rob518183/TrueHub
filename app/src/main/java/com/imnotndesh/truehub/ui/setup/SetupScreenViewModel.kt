@@ -87,7 +87,7 @@ class SetupScreenViewModel : ViewModel() {
                         insecure = currentState.insecure,
                         connectionTimeoutMs = 8000,
                         enablePing = true,
-                        enableDebugLogging = false
+                        enableDebugLogging = true
                     )
 
                     val client = TrueNASClient(config)

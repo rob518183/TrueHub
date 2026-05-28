@@ -17,7 +17,7 @@ fun PreviewAppInfoScreen() {
         val dummyConfig = Config.ClientConfig(
             serverUrl = "ws://dummy:8080/websocket",
             insecure = true,
-            enableDebugLogging = false,
+            enableDebugLogging = true,
             enablePing = false
         )
         val dummyClient = TrueNASClient(dummyConfig)
@@ -33,7 +33,7 @@ fun PreviewAppInfoScreen() {
             onDeleteSuccess = {},
             onNavigateToMarketplaceCategory = {},
             onNavigateToMarketplaceAppDetails = {},
-            onEditClick = {}
+            onEditClick = {appName, appTrain ->}
         )
     }
 }

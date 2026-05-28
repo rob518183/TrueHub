@@ -64,6 +64,7 @@ import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
+import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppConfigPageValues
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppConfigScreen
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppInfoScreen
@@ -91,6 +92,12 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
     val navController = rememberNavController()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val routesWithoutBottomBar = remember {
+        setOf(
+            Screen.AppConfigScreen.route,
+            Screen.Settings.route
+        )
+    }
 
     val navItems = remember {
         listOf(
@@ -134,27 +141,44 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
         }
     } else {
         Scaffold(
-            bottomBar = {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 8.dp) {
-                    navItems.forEach { item ->
-                        val selected = currentRoute == item.screen.route
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = { onNavClick(navController, item.screen.route) },
-                            label = { Text(item.title, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
-                            icon = {
-                                Crossfade(targetState = selected, label = "iconFade") { isSelected ->
-                                    Icon(if (isSelected) item.selectedIcon else item.unselectedIcon, item.title)
-                                }
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+            bottomBar = {if (currentRoute !in routesWithoutBottomBar){
+                run {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 8.dp
+                    ) {
+                        navItems.forEach { item ->
+                            val selected = currentRoute == item.screen.route
+                            NavigationBarItem(
+                                selected = selected,
+                                onClick = { onNavClick(navController, item.screen.route) },
+                                label = {
+                                    Text(
+                                        item.title,
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
+                                icon = {
+                                    Crossfade(
+                                        targetState = selected,
+                                        label = "iconFade"
+                                    ) { isSelected ->
+                                        Icon(
+                                            if (isSelected) item.selectedIcon else item.unselectedIcon,
+                                            item.title
+                                        )
+                                    }
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             )
-                        )
+                        }
                     }
                 }
+            }
             }
         ) { innerPadding ->
             TrueHubNavGraph(navController = navController, manager = manager, rootNavController = rootNavController, modifier = Modifier.padding(innerPadding))
@@ -218,10 +242,10 @@ private fun TrueHubNavGraph(
             )
         }
         composable(Screen.AppConfigScreen.route){
-            val currAppName = AppDataHolder.selectedAppName
+            val currAppValues = AppDataHolder.selectedAppValues
             AppConfigScreen(
                 manager,
-                currAppName,
+                currAppValues,
                 {
                     navController.popBackStack()
                 }
@@ -293,8 +317,11 @@ private fun TrueHubNavGraph(
                     }
                 },
                 onDeleteSuccess = { navController.navigate(Screen.Apps.route) },
-                onEditClick = {appName ->
-                    AppDataHolder.selectedAppName = appName
+                onEditClick = {appName , appTrain->
+                    AppDataHolder.selectedAppValues = AppConfigPageValues(
+                        appName,
+                        appTrain
+                    )
                     navController.navigate(Screen.AppConfigScreen.route)
                 }
             )

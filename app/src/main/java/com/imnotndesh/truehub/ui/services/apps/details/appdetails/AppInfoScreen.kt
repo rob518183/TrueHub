@@ -113,7 +113,7 @@ fun AppInfoScreen(
     manager: TrueNASApiManager,
     onNavigateBack: () -> Unit,
     onDeleteSuccess: () -> Unit,
-    onEditClick: (String) -> Unit,
+    onEditClick: (String,String) -> Unit,
     onNavigateToMarketplaceCategory: (String) -> Unit = {},
     onNavigateToMarketplaceAppDetails: (String) -> Unit = {}
 ) {
@@ -266,7 +266,7 @@ fun AppInfoScreen(
 
                     ExpressiveIconButton(
                         onClick = {
-                            onEditClick(app.name)
+                            onEditClick(app.name,app.metadata!!.train ?: "stable")
                         },
                         icon = Icons.Default.Edit,
                         contentDescription = "Edit ${app.metadata?.title ?: app.name} Configuration",

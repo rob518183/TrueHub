@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,11 +27,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
@@ -43,8 +47,11 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
@@ -492,7 +499,7 @@ private fun InstallHeroHeader(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun SchemaGroupSection(
+internal fun SchemaGroupSection(
     group: Apps.SchemaGroup,
     questions: List<Apps.SchemaQuestion>,
     formState: MutableMap<String, Any?>,
@@ -521,11 +528,10 @@ private fun SchemaGroupSection(
                     color = MaterialTheme.colorScheme.primary
                 )
                 group.description?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    val stripped = it.replace(Regex("<[^>]+>"), " ").trim()
+                    if (stripped.isNotBlank()) {
+                        Text(stripped, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
             IconButton(onClick = { expanded = !expanded }) {
@@ -593,7 +599,10 @@ private fun QuestionRow(
         }
 
         question.description?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val stripped = it.replace(Regex("<[^>]+>"), " ").replace("  ", " ").trim()
+            if (stripped.isNotBlank()) {
+                Text(stripped, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
 
         when (schema.type) {
@@ -615,45 +624,7 @@ private fun StringField(schema: Apps.SchemaDefinition, path: String, formState: 
     val isPrivate = schema.private == true
 
     if (!schema.enum.isNullOrEmpty()) {
-        var dropdownExpanded by remember { mutableStateOf(false) }
-        val currentVal = (formState[path] ?: schema.default)?.toString() ?: schema.enum.firstOrNull()?.value?.toString() ?: ""
-        val displayText = schema.enum.find { it.value?.toString() == currentVal }?.description ?: currentVal
-
-        ExposedDropdownMenuBox(
-            expanded = dropdownExpanded,
-            onExpandedChange = { dropdownExpanded = !dropdownExpanded }
-        ) {
-            OutlinedTextField(
-                value = displayText,
-                onValueChange = {},
-                readOnly = true,
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
-                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp)
-            )
-            ExposedDropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {
-                schema.enum.forEach { option ->
-                    val optionValue = option.value?.toString() ?: ""
-                    val optionLabel = option.description ?: optionValue
-                    DropdownMenuItem(
-                        text = {
-                            Column {
-                                Text(optionLabel, style = MaterialTheme.typography.bodyMedium)
-                                if (optionLabel != optionValue && optionValue.isNotBlank()) {
-                                    Text(optionValue, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                        },
-                        onClick = {
-                            formState[path] = optionValue
-                            dropdownExpanded = false
-                        }
-                    )
-                }
-            }
-        }
+        EnumPickerField(schema = schema, path = path, formState = formState)
     } else {
         var text by remember { mutableStateOf((formState[path] ?: schema.default)?.toString() ?: "") }
         var passwordVisible by remember { mutableStateOf(false) }
@@ -679,7 +650,90 @@ private fun StringField(schema: Apps.SchemaDefinition, path: String, formState: 
         )
     }
 }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EnumPickerField(
+    schema: Apps.SchemaDefinition,
+    path: String,
+    formState: MutableMap<String, Any?>
+) {
+    var showSheet by remember { mutableStateOf(false) }
+    var search by remember { mutableStateOf("") }
+    val currentVal = (formState[path] ?: schema.default)?.toString()
+        ?: schema.enum?.firstOrNull()?.value?.toString() ?: ""
+    val displayText = schema.enum?.find { it.value?.toString() == currentVal }?.description ?: currentVal
 
+    OutlinedTextField(
+        value = displayText,
+        onValueChange = {},
+        readOnly = true,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showSheet = true },
+        trailingIcon = { Icon(Icons.Default.KeyboardArrowDown, null) },
+        shape = RoundedCornerShape(12.dp),
+        enabled = false,
+        colors = OutlinedTextFieldDefaults.colors(
+            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+            disabledBorderColor = MaterialTheme.colorScheme.outline,
+            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    )
+
+    if (showSheet) {
+        val filtered = remember(search) {
+            schema.enum?.filter {
+                search.isBlank() ||
+                        it.description?.contains(search, ignoreCase = true) == true ||
+                        it.value?.toString()?.contains(search, ignoreCase = true) == true
+            } ?: emptyList()
+        }
+
+        ModalBottomSheet(onDismissRequest = { showSheet = false; search = "" }) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(
+                    "Select Option",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                OutlinedTextField(
+                    value = search,
+                    onValueChange = { search = it },
+                    placeholder = { Text("Search...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Default.Search, null) }
+                )
+                Spacer(Modifier.height(8.dp))
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    itemsIndexed(filtered) { _, option ->
+                        val optionValue = option.value?.toString() ?: ""
+                        val optionLabel = option.description ?: optionValue
+                        val isSelected = optionValue == currentVal
+                        ListItem(
+                            headlineContent = { Text(optionLabel) },
+                            supportingContent = if (optionLabel != optionValue) {
+                                { Text(optionValue, style = MaterialTheme.typography.labelSmall) }
+                            } else null,
+                            trailingContent = if (isSelected) {
+                                { Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary) }
+                            } else null,
+                            modifier = Modifier.clickable {
+                                formState[path] = optionValue
+                                showSheet = false
+                                search = ""
+                            }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    }
+                }
+                Spacer(Modifier.height(32.dp))
+            }
+        }
+    }
+}
 @Composable
 private fun IntField(schema: Apps.SchemaDefinition, path: String, formState: MutableMap<String, Any?>) {
     var text by remember { mutableStateOf((formState[path] ?: schema.default)?.toString()?.takeIf { it != "null" } ?: "") }

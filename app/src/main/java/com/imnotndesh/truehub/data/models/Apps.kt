@@ -410,6 +410,6 @@ object Apps {
     data class UpdateAppConfigOptions(
         val values : Map<String, Any>?= emptyMap(),
         val custom_compose_config : Map<String,Any> ?= emptyMap(),
-        val custom_compose_config_String : String = ""
+        val custom_compose_config_string : String = ""
     )
 }

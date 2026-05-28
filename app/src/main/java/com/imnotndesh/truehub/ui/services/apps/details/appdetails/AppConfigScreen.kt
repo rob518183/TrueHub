@@ -1,5 +1,6 @@
 package com.imnotndesh.truehub.ui.services.apps.details.appdetails
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,28 +10,33 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,152 +45,338 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.imnotndesh.truehub.data.ApiResult
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.data.helpers.JobRepository
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
-import kotlinx.coroutines.launch
+import com.imnotndesh.truehub.ui.services.apps.details.marketplace.SchemaGroupSection
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.launch
 
+data class AppConfigPageValues (
+    val appName: String = "",
+    val appTrain : String = ""
+)
+object AppConfigEditCache {
+    private val cache = mutableMapOf<String, Map<String, Any?>>()
+    fun save(appName: String, state: Map<String, Any?>) {
+        cache[appName] = state.toMap()
+    }
+    fun load(appName: String): Map<String, Any?>? = cache[appName]
+
+    fun clear(appName: String) { cache.remove(appName) }
+}
 @Composable
 fun AppConfigScreen(
     manager: TrueNASApiManager,
-    appName: String,
+    appValues: AppConfigPageValues,
     onNavigateBack: () -> Unit
 ) {
     val viewModel: AppsScreenViewModel = viewModel(
         factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
     )
     val configState by viewModel.appConfigState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
-    val editedConfig = remember { mutableStateMapOf<String, Any?>() }
+    val formState = remember { mutableStateMapOf<String, Any?>() }
+    var formReady by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val activeJobsMap by JobRepository.activeJobs.collectAsState()
+    val trackedJob = configState.saveJobId?.let { gid -> activeJobsMap[gid] }
 
-    LaunchedEffect(configState.config) {
-        configState.config?.let { original ->
-            editedConfig.clear()
-            original.forEach { (key, value) ->
-                editedConfig[key] = deepCopy(value)
+    LaunchedEffect(appValues.appName) {
+        formReady = false
+        viewModel.clearAppConfigError()
+        viewModel.loadAppConfig(appValues.appName)
+        viewModel.loadCatalogAppDetails(appValues.appName, appValues.appTrain)
+    }
+    LaunchedEffect(formReady) {
+        if (!formReady) return@LaunchedEffect
+        snapshotFlow { formState.toMap() }
+            .debounce(500)
+            .collect { snapshot ->
+                AppConfigEditCache.save(appValues.appName, snapshot)
+            }
+    }
+    LaunchedEffect(trackedJob) {
+        if (trackedJob != null) {
+            when (trackedJob.state.uppercase()) {
+                "SUCCESS" -> {
+                    AppConfigEditCache.clear(appValues.appName)
+                    viewModel.clearAppConfigError()
+                    onNavigateBack()
+                }
+                "FAILED", "ABORTED" -> {
+
+                }
             }
         }
     }
 
-    LaunchedEffect(appName) {
-        viewModel.loadAppConfig(appName)
+    LaunchedEffect(uiState.catalogAppDetails, configState.config) {
+        val details = uiState.catalogAppDetails ?: return@LaunchedEffect
+        val liveConfig = configState.config ?: return@LaunchedEffect
+        val versionKey = details.versions?.keys?.firstOrNull() ?: return@LaunchedEffect
+        val versionData = details.versions[versionKey]
+
+        formState.clear()
+        flattenDefaults(versionData?.values ?: emptyMap(), formState)
+        flattenDefaults(liveConfig, formState)
+        AppConfigEditCache.load(appValues.appName)?.forEach { (k, v) ->
+            formState[k] = v
+        }
+        formReady = true
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        UnifiedScreenHeader(
-            title = "App Configuration",
-            subtitle = appName,
-            isLoading = configState.isLoading,
-            isRefreshing = false,
-            error = configState.error,
-            onDismissError = { viewModel.clearAppConfigError() },
-            manager = manager,
-            onBackPressed = onNavigateBack
-        )
-
-        when {
-            configState.isLoading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            configState.config == null && configState.error == null -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No configuration available")
-                }
-            }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+    DisposableEffect(Unit) {
+        onDispose { viewModel.clearCatalogAppDetails() }
+    }
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        modifier = Modifier.fillMaxSize(),
+        bottomBar = {
+            if (formReady) {
+                Surface(
+                    shadowElevation = 8.dp,
+                    color = MaterialTheme.colorScheme.surface
                 ) {
-                    items(editedConfig.keys.toList()) { key ->
-                        ConfigEditorRow(
-                            key = key,
-                            value = editedConfig[key],
-                            onValueChange = { newValue ->
-                                editedConfig[key] = newValue
-                            }
-                        )
-                    }
-
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                            .navigationBarsPadding(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                AppConfigEditCache.clear(appValues.appName)
+                                val details = uiState.catalogAppDetails
+                                val versionKey = details?.versions?.keys?.firstOrNull()
+                                val versionData = details?.versions?.get(versionKey)
+                                formState.clear()
+                                flattenDefaults(versionData?.values ?: emptyMap(), formState)
+                                flattenDefaults(configState.config ?: emptyMap(), formState)
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            enabled = !configState.isSaving
                         ) {
-                            TextButton(
-                                onClick = {
-                                    configState.config?.let { orig ->
-                                        editedConfig.clear()
-                                        orig.forEach { (k, v) -> editedConfig[k] = deepCopy(v) }
-                                    }
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Icon(Icons.Default.Cancel, contentDescription = "Cancel")
-                                Spacer(modifier = Modifier.size(4.dp))
-                                Text("Cancel changes")
-                            }
-
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        viewModel.updateAppConfig(appName, editedConfig.toMap())
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                enabled = !configState.isSaving
-                            ) {
-                                if (configState.isSaving) {
-                                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                                } else {
-                                    Icon(Icons.Default.Save, contentDescription = "Save")
-                                    Spacer(modifier = Modifier.size(4.dp))
-                                    Text("Save changes")
-                                }
-                            }
+                            Icon(
+                                Icons.Default.Cancel,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Discard", fontWeight = FontWeight.SemiBold)
                         }
-                    }
 
-                    if (configState.saveSuccess) {
-                        item {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                    Text(
-                                        text = if (configState.saveJobId != null) "Update started (Job ID: ${configState.saveJobId})" else "Update submitted",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    viewModel.updateAppConfig(context, appValues.appName, unflattenMap(formState))
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            enabled = !configState.isSaving,
+                            colors = when {
+                                configState.saveSuccess -> ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                )
+
+                                configState.saveFailed -> ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                                else -> ButtonDefaults.buttonColors()
+                            }
+                        ) {
+                            when {
+                                configState.isSaving -> CircularProgressIndicator(
+                                    modifier = Modifier.size(
+                                        20.dp
+                                    ),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+
+                                configState.saveSuccess -> {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
                                     )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Saved!", fontWeight = FontWeight.Bold)
+                                }
+
+                                configState.saveFailed -> {
+                                    Icon(
+                                        Icons.Default.Error,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Failed — Retry", fontWeight = FontWeight.Bold)
+                                }
+
+                                else -> {
+                                    Icon(
+                                        Icons.Default.Save,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Save Changes", fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
                     }
+                }
+            }
+        }
+    ) { innerPadding ->
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            UnifiedScreenHeader(
+                title = "App Configuration",
+                subtitle = appValues.appName,
+                isLoading = configState.isLoading,
+                isRefreshing = false,
+                error = configState.error,
+                onDismissError = { viewModel.clearAppConfigError() },
+                manager = manager,
+                onBackPressed = onNavigateBack
+            )
+            when {
+                configState.isLoading || uiState.isLoadingCatalogDetails || !formReady -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
 
-                    item { Spacer(modifier = Modifier.height(24.dp)) }
+                configState.config == null && configState.error == null -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No configuration available")
+                    }
+                }
+
+                else -> {
+                    val schema = uiState.catalogAppDetails?.versions
+                        ?.get(uiState.catalogAppDetails?.versions?.keys?.firstOrNull())?.schema
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        if (schema?.groups != null && schema.questions != null) {
+                            schema.groups.forEach { group ->
+                                val groupQuestions =
+                                    schema.questions.filter { it.group == group.name }
+                                if (groupQuestions.isNotEmpty()) {
+                                    item(key = group.name) {
+                                        SchemaGroupSection(
+                                            group = group,
+                                            questions = groupQuestions,
+                                            formState = formState,
+                                            modifier = Modifier.padding(horizontal = 0.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (configState.isSaving || configState.saveFailed || configState.saveJobId != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        if (configState.saveFailed) {
+                            Icon(
+                                imageVector = Icons.Default.Error,
+                                contentDescription = "Error",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Update Failed",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = configState.saveError ?: "Unknown error occurred.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(
+                                onClick = { viewModel.clearAppConfigError() },
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text("Dismiss")
+                            }
+                        } else {
+                            val progressValue = (trackedJob?.progress ?: 0) / 100f
+                            val progressPercent = trackedJob?.progress ?: 0
+                            val stepDescription =
+                                trackedJob?.description ?: "Applying configuration changes..."
+
+                            CircularProgressIndicator(
+                                progress = { progressValue },
+                                modifier = Modifier.size(84.dp),
+                                strokeWidth = 8.dp,
+                                trackColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Text(
+                                text = "Updating Application",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            Text(
+                                text = "$progressPercent%",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Black
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stepDescription,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
-// TODO: Figure out where else to obtain the values for config but possible areas might be from catalog
 /**
  * Recursive composable that displays an editable field for any JSON-like value.
  */
@@ -243,7 +435,6 @@ private fun ConfigEditorRow(
                                 key = subKey.toString(),
                                 value = subValue,
                                 onValueChange = { newSubValue ->
-                                    // Update the nested map
                                     val updatedMap = (value as Map<String, Any?>).toMutableMap()
                                     updatedMap[subKey.toString()] = newSubValue
                                     onValueChange(updatedMap)
@@ -334,16 +525,29 @@ private fun ConfigEditorRow(
     }
 }
 
-@Suppress("UNCHECKED_CAST")
-private fun deepCopy(original: Any?): Any? {
-    return when (original) {
-        null -> null
-        is Map<*, *> -> {
-            original.mapValues { (_, v) -> deepCopy(v) }
-        }
-        is List<*> -> {
-            original.map { deepCopy(it) }
-        }
-        else -> original
+private fun flattenDefaults(source: Map<String, Any?>, target: MutableMap<String, Any?>, prefix: String = "") {
+    source.forEach { (key, value) ->
+        val path = if (prefix.isBlank()) key else "$prefix.$key"
+        @Suppress("UNCHECKED_CAST")
+        if (value is Map<*, *>) flattenDefaults(value as Map<String, Any?>, target, path)
+        else target[path] = value
     }
+}
+
+private fun unflattenMap(flatMap: Map<String, Any?>): Map<String, Any?> {
+    val result = mutableMapOf<String, Any?>()
+    for ((key, value) in flatMap) {
+        if (value == null) continue
+        val parts = key.split(".")
+        var currentMap = result
+        for (i in 0 until parts.lastIndex) {
+            val part = parts[i]
+            @Suppress("UNCHECKED_CAST")
+            val nextMap = currentMap[part] as? MutableMap<String, Any?>
+                ?: mutableMapOf<String, Any?>().also { currentMap[part] = it }
+            currentMap = nextMap
+        }
+        currentMap[parts.last()] = value
+    }
+    return result
 }

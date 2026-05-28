@@ -59,7 +59,9 @@ data class AppConfigUiState(
     val config: Map<String, Any>? = null,
     val error: String? = null,
     val saveJobId: Int? = null,
-    val saveSuccess: Boolean = false
+    val saveSuccess: Boolean = false,
+    val saveFailed: Boolean = false,
+    val saveError: String? = null
 )
 
 class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() {
@@ -110,24 +112,31 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
             }
         }
     }
-    fun updateAppConfig(appName: String, updatedValues: Map<String, Any?>) {
+    fun updateAppConfig(context: Context,appName: String, updatedValues: Map<String, Any?>) {
         viewModelScope.launch {
-            _appConfigState.update { it.copy(isSaving = true, saveSuccess = false, saveJobId = null, error = null) }
+            _appConfigState.update {
+                it.copy(isSaving = true, saveSuccess = false, saveError = null, saveFailed = false, error = null)
+            }
             val cleanValues = updatedValues.filterValues { it != null }.mapValues { (_, v) -> v as Any }
             val options = Apps.UpdateAppConfigOptions(values = cleanValues)
             when (val result = manager.apps.updateAppConfig(appName, options)) {
                 is ApiResult.Success -> {
-                    val jobId = result.data as? Int
                     _appConfigState.update {
-                        it.copy(isSaving = false, saveJobId = jobId, saveSuccess = true)
+                        it.copy(isSaving = false, saveJobId = result.data, saveSuccess = true, saveFailed = false)
                     }
-                    loadAppConfig(appName)
-                    delay(3000)
+                    GlobalJobTracker.startTracking(
+                        context = context,
+                        manager = manager,
+                        jobId = result.data,
+                        appName = appName,
+                        showNotif = true
+                    )
+                    delay(1500)
                     _appConfigState.update { it.copy(saveSuccess = false) }
                 }
                 is ApiResult.Error -> {
                     _appConfigState.update {
-                        it.copy(isSaving = false, saveSuccess = false, error = result.message)
+                        it.copy(isSaving = false, saveSuccess = false, saveFailed = true, saveError = result.message)
                     }
                 }
                 is ApiResult.Loading -> { /* ignore */ }
@@ -136,7 +145,9 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
     }
 
     fun clearAppConfigError() {
-        _appConfigState.update { it.copy(error = null) }
+        _appConfigState.update {
+            it.copy(error = null, saveFailed = false, saveError = null, saveJobId = null, saveSuccess = false)
+        }
     }
     fun installMarketplaceApp(
         context: Context,
