@@ -253,6 +253,11 @@ class TrueNASClient(private val config: ClientConfig) {
             .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
             .hostnameVerifier { _, _ -> true }
             .connectTimeout(config.connectionTimeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+            .apply {
+                if (config.serverUrl.startsWith("ws://")) {
+                    protocols(listOf(okhttp3.Protocol.HTTP_1_1))
+                }
+            }
             .build()
     }
 
