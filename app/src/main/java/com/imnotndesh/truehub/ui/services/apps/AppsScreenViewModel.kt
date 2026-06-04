@@ -460,22 +460,22 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
         }
     }
     fun preloadCatalogDetails(appName: String, train: String) {
-
         if (_uiState.value.preloadedDetailsCache.containsKey(appName)) return
         viewModelScope.launch {
             when (val result = manager.apps.getCatalogAppDetails(appName, train)) {
                 is ApiResult.Success -> {
-                    Log.d("CatalogDetails", "Success: ${result.data}")
-                    _uiState.update { it.copy(catalogAppDetails = result.data, isLoadingCatalogDetails = false) }
+                    _uiState.update {
+                        it.copy(
+                            catalogAppDetails = result.data,
+                            isLoadingCatalogDetails = false,
+                            preloadedDetailsCache = it.preloadedDetailsCache + (appName to result.data)
+                        )
+                    }
                 }
                 is ApiResult.Error -> {
-                    Log.e("CatalogDetails", "Error: ${result.message}", result.throwable)
                     _uiState.update { it.copy(catalogDetailsError = result.message, isLoadingCatalogDetails = false) }
                 }
-
-                else -> {
-                    Log.e("CatalogDetails","Error: Unknown error")
-                }
+                else -> {}
             }
         }
     }

@@ -102,7 +102,8 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
             Screen.AppDetailsScreen.route,
             Screen.Marketplace.route,
             Screen.MarketplaceAppDetails.route,
-            Screen.MarketplaceCategory.route
+            Screen.MarketplaceCategory.route,
+            Screen.CatalogInstall.route
         )
     }
 
