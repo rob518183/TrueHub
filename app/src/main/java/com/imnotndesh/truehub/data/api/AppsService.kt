@@ -21,7 +21,7 @@ class AppsService(val manager: TrueNASApiManager) {
 
     // Start an app
     suspend fun startAppWithResult(appName: String): ApiResult<Any> {
-        return manager.callWithResult<Any>(
+        return manager.callWithResult(
             method = ApiMethods.Apps.START_APP,
             params = listOf(appName),
             resultType = Any::class.java
@@ -30,7 +30,7 @@ class AppsService(val manager: TrueNASApiManager) {
 
     // Stop App
     suspend fun stopAppWithResult(appName: String): ApiResult<Any> {
-        return manager.callWithResult<Any>(
+        return manager.callWithResult(
             method = ApiMethods.Apps.STOP_APP,
             params = listOf(appName),
             resultType = Any::class.java
@@ -95,8 +95,8 @@ class AppsService(val manager: TrueNASApiManager) {
      * Rollback an app.
      *
      * @param appName The name of the app.
-     * @param version The version of the app to rollback to.
-     * @param rollbackSnapshot Whether to rollback the app's snapshot.
+     * @param version The version of the app to roll back to.
+     * @param rollbackSnapshot Whether to roll back the app's snapshot.
      * @return The ID of the rollback job.
      */
     suspend fun rollbackAppWithResult(appName: String, version: String = "latest", rollbackSnapshot:Boolean = true): ApiResult<Int> {
@@ -125,6 +125,15 @@ class AppsService(val manager: TrueNASApiManager) {
         )
     }
 
+    suspend fun queryMarketplaceAvailableItems(): ApiResult<List<Apps.AppAvailableItem>>{
+        val type = Types.newParameterizedType(List::class.java,Apps.AppAvailableItem::class.java)
+        return  manager.callWithResult(
+            method = ApiMethods.Apps.QUERY_MARKETPLACE_APPS,
+            params = listOf(),
+            resultType = type
+        )
+    }
+
     suspend fun getAppByName(name: String): ApiResult<Apps.AppQueryResponse?> {
         val filters = listOf(listOf("name", "=", name))
         val options = Apps.AppQueryOptions(get = true)
@@ -136,6 +145,16 @@ class AppsService(val manager: TrueNASApiManager) {
             }
         }
     }
+    suspend fun getCatalogAppDetails(
+        appName: String,
+        train: String = ApiMethods.Apps.STABLE_APPS_TRAIN
+    ): ApiResult<Apps.CatalogAppDetails> {
+        return manager.callWithResult(
+            method = ApiMethods.Apps.GET_CATALOG_APP_DETAILS,
+            params = listOf(appName, mapOf("train" to train)),
+            resultType = Apps.CatalogAppDetails::class.java
+        )
+    }
 
     /**
      * Retrieve applications similar to the given app name.
@@ -145,13 +164,82 @@ class AppsService(val manager: TrueNASApiManager) {
      */
     suspend fun getSimilarApps(
         appName: String,
-        train: String = ApiMethods.Apps.LATEST_APPS_TRAIN
+        train: String = ApiMethods.Apps.STABLE_APPS_TRAIN
     ): ApiResult<List<Apps.AppSimilarResponse>> {
         val type = Types.newParameterizedType(List::class.java, Apps.AppSimilarResponse::class.java)
         return manager.callWithResult(
             method = ApiMethods.Apps.SIMILAR_APPS,
             params = listOf(appName, train),
             resultType = type
+        )
+    }
+    suspend fun removeAppWithResult(
+        appName: String,
+        options: Apps.DeleteAppOptions = Apps.DeleteAppOptions()
+    ): ApiResult<Int>{
+      return manager.callWithResult(
+          method = ApiMethods.Apps.DELETE_APP,
+          params = listOf(appName, options),
+          resultType = Int::class.java
+      )
+    }
+    suspend fun createAppWithResult(
+        appName: String,
+        catalogApp: String,
+        train: String,
+        version: String,
+        values: Map<String, Any?>
+    ): ApiResult<Int> {
+        val payload = mapOf(
+            "app_name" to appName,
+            "catalog_app" to catalogApp,
+            "train" to train,
+            "version" to version,
+            "values" to values
+        )
+        return manager.callWithResult(
+            method = ApiMethods.Apps.APP_CREATE,
+            params = listOf(payload),
+            resultType = Int::class.java
+        )
+    }
+    /**
+     * Retrieve certificate choices that applications can use during setup
+     * @return List of id and name of certificate choices
+     */
+    suspend fun getCertificateChoices(): ApiResult<Apps.CertificateChoiceResponse>{
+        val result = Types.newParameterizedType(List::class.java,Apps.CertificateChoiceResponse::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.Apps.CERTIFICATE_CHOICES,
+            params = listOf(),
+            resultType = result
+        )
+    }
+    /**
+     * Retrieve ports used by applications
+     * @return List of ports used by the applications installed
+     */
+    suspend fun getAppPorts(): ApiResult<List<Int>>{
+        val result = Types.newParameterizedType(List::class.java, Int::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.Apps.USED_APP_PORTS,
+            params = listOf(),
+            resultType = result
+        )
+    }
+    suspend fun getAppConfig(appName: String): ApiResult<Map<String,Any>>{
+        val result = Types.newParameterizedType(Map::class.java, String::class.java, Any::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.Apps.GET_APP_CONFIG,
+            params = listOf(appName),
+            resultType = result
+        )
+    }
+    suspend fun updateAppConfig(appName: String, configOptions: Apps.UpdateAppConfigOptions): ApiResult<Int> {
+        return manager.callWithResult(
+            method = ApiMethods.Apps.UPDATE_APP_CONFIG,
+            params = listOf(appName, configOptions),
+            resultType = Int::class.java
         )
     }
 

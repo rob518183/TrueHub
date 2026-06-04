@@ -95,7 +95,6 @@ class AlertsViewModel(private val manager: TrueNASApiManager) : ViewModel() {
 
             when (result) {
                 is ApiResult.Success -> {
-                    ToastManager.showSuccess("Alert dismissed")
                     loadAlerts(isRefresh = true)
                 }
                 is ApiResult.Error -> {
@@ -113,7 +112,6 @@ class AlertsViewModel(private val manager: TrueNASApiManager) : ViewModel() {
         viewModelScope.launch {
             val result = try {
                 manager.system.restoreAlertWithResult(uuid)
-                // If we get here without exception, it succeeded (null response is success)
                 ApiResult.Success(Unit)
             } catch (e: Exception) {
                 ApiResult.Error(e.message ?: "Failed to restore alert")
@@ -122,7 +120,6 @@ class AlertsViewModel(private val manager: TrueNASApiManager) : ViewModel() {
             when (result) {
                 is ApiResult.Success -> {
                     ToastManager.showSuccess("Alert restored")
-                    // Refresh to get updated list
                     loadAlerts(isRefresh = true)
                 }
                 is ApiResult.Error -> {

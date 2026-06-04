@@ -1,6 +1,7 @@
 package com.imnotndesh.truehub.data.models
 
 import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 
 object Auth {
     enum class LoginMode {
@@ -40,15 +41,12 @@ object Auth {
         @field:Json("local")
         val local: Boolean,
 
-        // CHANGE HERE: Remove @Contextual
         @field:Json("attributes")
         val attributes: Map<String, Any>? = null,
 
-        // CHANGE HERE: Remove @Contextual
         @field:Json("two_factor_config")
         val twoFactorConfig: Map<String, Any>? = null,
 
-        // CHANGE HERE: Remove @Contextual
         @field:Json("privilege")
         val privilege: Map<String, Any>? = null,
 
@@ -60,5 +58,32 @@ object Auth {
         val attrs: Map<String, Any> = emptyMap(),
         val matchOrigin: Boolean = true,
         val singleUse: Boolean = false
+    )
+
+    object AdminMethods{
+        @JsonClass(generateAdapter = true)
+        data class GenerateOneTimePasswordRequest(
+            val username : String
+        )
+    }
+    enum class Credentials {
+        UNIX_SOCKET,
+        LOGIN_PASSWORD,
+        LOGIN_TWOFACTOR,
+        LOGIN_ONETIME_PASSWORD,
+        API_KEY,
+        TOKEN,
+        TRUENAS_NODE
+    }
+    @Suppress("PropertyName")
+    data class AuthSessionResultItem(
+        val id : String ? = null,
+        val current : Boolean,
+        val internal : Boolean,
+        val origin : String,
+        val credentials : Credentials,
+        val credentials_data : Map<String,Any> ?= emptyMap(),
+        val created_at : Apps.TruenasDate,
+        val secure_transport : Boolean
     )
 }

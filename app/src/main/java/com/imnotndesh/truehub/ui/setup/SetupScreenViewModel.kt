@@ -81,8 +81,7 @@ class SetupScreenViewModel : ViewModel() {
             try {
                 val formattedUrl = formatUrl(currentState.serverUrl)
 
-                // Test the connection with a temporary manager
-                withTimeout(10000L) { // 10 second timeout
+                withTimeout(10000L) {
                     val config = ClientConfig(
                         serverUrl = formattedUrl,
                         insecure = currentState.insecure,

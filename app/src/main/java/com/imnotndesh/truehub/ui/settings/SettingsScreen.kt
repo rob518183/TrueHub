@@ -62,7 +62,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
-import com.imnotndesh.truehub.ui.settings.sheets.ChangePasswordBottomSheet
 import kotlinx.coroutines.launch
 
 @Composable
@@ -72,7 +71,9 @@ fun SettingsScreen(
     onNavigateToAbout: () -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
     onDummyAction: (String) -> Unit = {},
-    onNavigateToTheme : () -> Unit = {}
+    onNavigateToTheme : () -> Unit = {},
+    onNavigateToChangePassword : () -> Unit = {},
+    onNavigateBack: () -> Unit = {}
 ) {
     val viewModel : SettingsScreenViewModel = viewModel(
         factory = SettingsScreenViewModel.SettingsViewModelFactory(manager, LocalContext.current.applicationContext as Application)
@@ -148,7 +149,9 @@ fun SettingsScreen(
                         icon = Icons.Default.Security,
                         name = "Password",
                         description = "Change your password",
-                        onClick = { showPassChangeDialog = true}
+                        onClick = {
+                            onNavigateToChangePassword()
+                        }
                     )
                 )
             )
@@ -230,22 +233,6 @@ fun SettingsScreen(
                     )
                 )
             )
-
-            Spacer(modifier = Modifier.height(24.dp))
-            if (showPassChangeDialog){
-                ChangePasswordBottomSheet(
-                    onDismiss = { showPassChangeDialog = false },
-                    onSubmit = {oldPassword, newPassword ->
-                        viewModel.handleEvent(
-                            SettingsEvent.ChangePassword(
-                                oldPassword,
-                                newPassword
-                            )
-                        )
-                        showPassChangeDialog = false
-                    }
-                )
-            }
             if (uiState.showAutoLoginDialog) {
                 AutoLoginConfigDialog(
                     dialogType = uiState.autoLoginDialogType,

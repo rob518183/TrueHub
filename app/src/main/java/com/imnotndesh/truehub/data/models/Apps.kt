@@ -51,6 +51,41 @@ object Apps {
         @field:Json("run_as_context") val runAsContext: List<RunAsContext>? = null,
         @field:Json("host_mounts") val hostMounts: List<HostMount>? = null
     )
+    @JsonClass(generateAdapter = true)
+    data class TruenasDate(
+        @Json(name = "\$date") val `$date`: Long? = null
+    )
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class AppAvailableItem(
+        val app_readme : String ?= null,
+        val categories: List<String>?,
+        val description: String,
+        val healthy: Boolean?,
+        val healthy_error: String? = null,
+        val home : String,
+        val location : String,
+        val latest_version: String ?= null,
+        val latest_app_version : String ?= null,
+        val latest_human_version : String ?= null,
+        val last_update : TruenasDate ?= null,
+        val name : String,
+        val recommended: Boolean,
+        val title: String,
+        val maintainers: List<Maintainer>,
+        val tags : List<String> ?= emptyList(),
+        val screenshots: List<String>?,
+        val sources: List<String>?,
+        val icon_url : String ?=null,
+        val catalog: String?,
+        val installed: Boolean,
+        val train: String,
+    ){
+        val lastUpdateString: String
+            get() = last_update?.`$date`?.toString() ?: "Unknown"
+        val tagsString: String
+            get() = tags?.joinToString(", ") ?: ""
+    }
 
     data class Capability(
         val name: String,
@@ -172,13 +207,25 @@ object Apps {
         val app_version: String? = "latest",
         val rollback_snapshot: Boolean = true
     )
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class DeleteAppOptions(
+        val remove_images : Boolean ? = true,
+        val remove_ix_volumes : Boolean ?= false,
+        val force_remove_ix_volumes :Boolean ?= false,
+        val force_remove_custom_app : Boolean ?= false
+    )
 
-    // App query stuff
     @JsonClass(generateAdapter = true)
     data class AppQueryExtra(
         @field:Json(name = "host_ip") val hostIp: String? = null,
         @field:Json(name = "include_app_schema") val includeAppSchema: Boolean = false,
         @field:Json(name = "retrieve_config") val retrieveConfig: Boolean = false
+    )
+    @JsonClass(generateAdapter = true)
+    data class CertificateChoiceResponse(
+        val id : Int,
+        val name : String
     )
 
     @JsonClass(generateAdapter = true)
@@ -221,5 +268,148 @@ object Apps {
         val train: String? = null,
         val popularity: Int? = null,
         @field:Json(ignore = true) val additionalProperties: Map<String, Any?> = emptyMap()
+    )
+    @JsonClass(generateAdapter = true)
+    data class CatalogAppDetails(
+        @field:Json(name = "app_readme") val appReadme: String? = null,
+        val categories: List<String>? = null,
+        val description: String? = null,
+        val healthy: Boolean? = null,
+        @field:Json(name = "healthy_error") val healthyError: String? = null,
+        val home: String? = null,
+        val location: String? = null,
+        @field:Json(name = "latest_version") val latestVersion: String? = null,
+        @field:Json(name = "latest_app_version") val latestAppVersion: String? = null,
+        @field:Json(name = "latest_human_version") val latestHumanVersion: String? = null,
+        @field:Json(name = "last_update") val lastUpdate: TruenasDate? = null,
+        val name: String,
+        val recommended: Boolean = false,
+        val title: String? = null,
+        val maintainers: List<Maintainer>? = null,
+        val tags: List<String>? = null,
+        val screenshots: List<String>? = null,
+        val sources: List<String>? = null,
+        @field:Json(name = "icon_url") val iconUrl: String? = null,
+        val capabilities: List<Capability>? = null,
+        @field:Json(name = "run_as_context") val runAsContext: List<RunAsContext>? = null,
+        val versions: Map<String, CatalogAppVersion>? = null
+    )
+
+    @JsonClass(generateAdapter = true)
+    data class CatalogAppVersion(
+        val healthy: Boolean? = null,
+        val supported: Boolean? = null,
+        @field:Json(name = "healthy_error") val healthyError: String? = null,
+        val location: String? = null,
+        @field:Json(name = "last_update") val lastUpdate: String? = null,
+        @field:Json(name = "human_version") val humanVersion: String? = null,
+        val version: String? = null,
+        @field:Json(name = "app_metadata") val appMetadata: CatalogAppMetadata? = null,
+        val schema: CatalogAppSchema? = null,
+        val readme: String? = null,
+        val changelog: String? = null,
+        val values: Map<String, Any?>? = null
+    )
+
+    @JsonClass(generateAdapter = true)
+    data class CatalogAppMetadata(
+        @field:Json(name = "app_version") val appVersion: String? = null,
+        val categories: List<String>? = null,
+        val description: String? = null,
+        val home: String? = null,
+        val icon: String? = null,
+        val keywords: List<String>? = null,
+        val title: String? = null,
+        val train: String? = null,
+        val name: String? = null,
+        val version: String? = null,
+        val maintainers: List<Maintainer>? = null,
+        val capabilities: List<Capability>? = null,
+        @field:Json(name = "run_as_context") val runAsContext: List<RunAsContext>? = null,
+        @field:Json(name = "date_added") val dateAdded: String? = null,
+        @field:Json(name = "changelog_url") val changelogUrl: String? = null,
+        @field:Json(name = "lib_version") val libVersion: String? = null,
+        @field:Json(name = "lib_version_hash") val libVersionHash: String? = null,
+        @field:Json(name = "host_mounts") val hostMounts: List<HostMount>? = null,
+        val screenshots: List<String>? = null,
+        val sources: List<String>? = null
+    )
+
+    @JsonClass(generateAdapter = true)
+    data class CatalogAppSchema(
+        val groups: List<SchemaGroup>? = null,
+        val questions: List<SchemaQuestion>? = null
+    )
+
+    @JsonClass(generateAdapter = true)
+    data class SchemaGroup(
+        val name: String,
+        val description: String? = null
+    )
+
+    @JsonClass(generateAdapter = true)
+    data class SchemaQuestion(
+        val variable: String,
+        val label: String? = null,
+        val group: String? = null,
+        val description: String? = null,
+        val schema: SchemaDefinition? = null
+    )
+
+    @JsonClass(generateAdapter = true)
+    data class SchemaDefinition(
+        val type: String? = null,
+        val default: Any? = null,
+        val required: Boolean? = null,
+        val hidden: Boolean? = null,
+        val `null`: Boolean? = null,
+        val min: Int? = null,
+        val max: Int? = null,
+        val private: Boolean? = null,
+        @field:Json(name = "show_if") val showIf: List<List<Any?>>? = null,
+        @field:Json(name = "\$ref") val ref: List<String>? = null,
+        val enum: List<SchemaEnum>? = null,
+        val attrs: List<SchemaQuestion>? = null,
+        val items: List<SchemaQuestion>? = null
+    )
+
+    @JsonClass(generateAdapter = true)
+    data class SchemaEnum(
+        val value: Any?,
+        val description: String? = null
+    )
+    enum class AppInstanceState{
+        CRASHED,
+        DEPLOYING,
+        RUNNING,
+        STOPPED,
+        STOPPING
+    }
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class AppInstanceResponse(
+        val name : String,
+        val id : Int,
+        val state : AppInstanceState,
+        val upgrade_available: Boolean,
+        val latest_version: String? = null,
+        val image_Updates_available : Boolean,
+        val custom_app : Boolean,
+        val migrated : Boolean,
+        val human_version: String,
+        val version : String,
+        val metadata : Map<String?,Any?> ?= emptyMap(),
+        val activeWorkloads: ActiveWorkloads ? = null,
+        val notes :String ?= null,
+        val portals: Map<String, String>? = emptyMap(),
+        val version_details : Map<String,Any>? = null,
+        val config : Map<String,Any>?= null
+    )
+    @Suppress("PropertyName")
+    data class UpdateAppConfigOptions(
+        val values : Map<String, Any>?= emptyMap(),
+        val custom_compose_config : Map<String,Any> ?= emptyMap(),
+        val custom_compose_config_string : String = ""
     )
 }

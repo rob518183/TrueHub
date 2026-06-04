@@ -27,12 +27,12 @@ val versionInfo = grgit.let { git ->
 
 android {
     namespace = "com.imnotndesh.truehub"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.imnotndesh.truehub"
         minSdk = 33
-        targetSdk = 36
+        targetSdk = 37
         versionCode = versionInfo.first
         versionName = versionInfo.second
 
@@ -61,6 +61,9 @@ dependencies {
     implementation(libs.androidx.compose.material3.window.size.class1)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
+    implementation(libs.coil.svg)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.graphics.shapes)
     implementation(libs.accompanist.permissions)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.appcompat)

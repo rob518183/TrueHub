@@ -30,16 +30,17 @@ object GlobalJobTracker {
                     val state = data.state
                     val isDone = state in listOf("SUCCESS", "FAILED", "ABORTED")
 
-                    // 1. Update UI Repository
                     JobRepository.updateJob(TrackedJob(jobId, appName, state, progress, data.progress?.description))
 
-                    // 2. Update Notification Service
                     if (showNotif) {
                         val intent = Intent(context, JobNotificationService::class.java).apply {
+                            // Use the specific jobId as the operation routing token
+                            action = "ACTION_UPDATE_JOB_$jobId"
                             putExtra("id", jobId)
                             putExtra("name", appName)
                             putExtra("progress", progress)
                             putExtra("done", isDone)
+                            putExtra("status_text", data.progress?.description ?: "Processing...")
                         }
                         context.startForegroundService(intent)
                     }
