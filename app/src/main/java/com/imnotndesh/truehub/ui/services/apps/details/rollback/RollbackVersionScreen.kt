@@ -20,23 +20,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.graphics.shapes.CornerRounding
-import androidx.graphics.shapes.Morph
-import androidx.graphics.shapes.RoundedPolygon
-import androidx.graphics.shapes.circle
-import androidx.graphics.shapes.star
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.JobRepository
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
+import kotlin.math.cos
+import kotlin.math.sin
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -317,28 +314,22 @@ private fun RollingBackView(
         label = "smoothProgress"
     )
 
-    val secondaryColor = MaterialTheme.colorScheme.secondary
-    val containerColor = MaterialTheme.colorScheme.primaryContainer
-
     Column(
         modifier = modifier.padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Box(
-            modifier = Modifier.size(160.dp),
+            modifier = Modifier.size(220.dp),
             contentAlignment = Alignment.Center
         ) {
-            MorphingM3Background(
-                color = containerColor.copy(alpha = 0.6f),
-                modifier = Modifier.size(140.dp),
-                isClockwise = false
+            PixelShapesOrbit(
+                primaryColor = MaterialTheme.colorScheme.primary,
+                secondaryColor = MaterialTheme.colorScheme.secondary,
+                isDone = isDone || isFailed,
+                modifier = Modifier.fillMaxSize()
             )
-            MorphingM3Background(
-                color = secondaryColor.copy(alpha = 0.3f),
-                modifier = Modifier.size(100.dp),
-                isClockwise = true
-            )
+
             AnimatedContent(
                 targetState = when {
                     isDone -> "done"
@@ -464,62 +455,138 @@ private fun RollingBackView(
     }
 }
 
-private fun Morph.toComposePath(progress: Float, path: Path = Path()): Path {
-    var first = true
-    path.rewind()
-    forEachCubic(progress) { bezier ->
-        if (first) {
-            path.moveTo(bezier.anchor0X, bezier.anchor0Y)
-            first = false
+@Composable
+private fun PixelShapesOrbit(
+    primaryColor: Color,
+    secondaryColor: Color,
+    isDone: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val speedScale by animateFloatAsState(
+        targetValue = if (isDone) 0f else 1f,
+        animationSpec = tween(durationMillis = 1800, easing = FastOutSlowInEasing),
+        label = "speed_scale"
+    )
+
+    val ring1Angle = remember { Animatable(0f) }
+    val ring2Angle = remember { Animatable(0f) }
+    val ring3Angle = remember { Animatable(0f) }
+
+    LaunchedEffect(speedScale) {
+
+    }
+
+    // Use withFrameMillis for smooth per-frame updates
+    val ring1AngleState = remember { mutableFloatStateOf(0f) }
+    val ring2AngleState = remember { mutableFloatStateOf(0f) }
+    val ring3AngleState = remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(Unit) {
+        var lastTime = withFrameMillis { it }
+        while (true) {
+            val now = withFrameMillis { it }
+            val dt = (now - lastTime) / 1000f
+            lastTime = now
+            val s = speedScale
+            ring1AngleState.floatValue += dt * 45f * s
+            ring2AngleState.floatValue -= dt * 28f * s
+            ring3AngleState.floatValue += dt * 18f * s
         }
-        path.cubicTo(
-            bezier.control0X, bezier.control0Y,
-            bezier.control1X, bezier.control1Y,
-            bezier.anchor1X, bezier.anchor1Y
+    }
+
+    val r1 = ring1AngleState.floatValue
+    val r2 = ring2AngleState.floatValue
+    val r3 = ring3AngleState.floatValue
+
+    Canvas(modifier = modifier) {
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val unit = size.minDimension / 2f
+
+        drawOrbitRing(
+            cx = cx, cy = cy,
+            orbitRadius = unit * 0.42f,
+            baseAngleDeg = r1,
+            shapeCount = 3,
+            shapeSize = unit * 0.18f,
+            cornerFraction = 0.35f,
+            color = primaryColor.copy(alpha = 0.85f)
+        )
+
+        drawOrbitRingPills(
+            cx = cx, cy = cy,
+            orbitRadius = unit * 0.68f,
+            baseAngleDeg = r2,
+            shapeCount = 4,
+            pillWidth = unit * 0.22f,
+            pillHeight = unit * 0.09f,
+            color = secondaryColor.copy(alpha = 0.55f)
+        )
+
+        drawOrbitRing(
+            cx = cx, cy = cy,
+            orbitRadius = unit * 0.88f,
+            baseAngleDeg = r3,
+            shapeCount = 5,
+            shapeSize = unit * 0.11f,
+            cornerFraction = 0.4f,
+            color = primaryColor.copy(alpha = 0.35f)
         )
     }
-    path.close()
-    return path
 }
 
-@Composable
-private fun MorphingM3Background(
-    color: Color,
-    modifier: Modifier = Modifier,
-    isClockwise: Boolean = true
+private fun DrawScope.drawOrbitRing(
+    cx: Float, cy: Float,
+    orbitRadius: Float,
+    baseAngleDeg: Float,
+    shapeCount: Int,
+    shapeSize: Float,
+    cornerFraction: Float,
+    color: Color
 ) {
-    val starPolygon = remember {
-        RoundedPolygon.star(
-            numVerticesPerRadius = 8,
-            radius = 1f,
-            innerRadius = 0.5f,
-            rounding = CornerRounding(radius = 0.15f)
-        )
+    val stepDeg = 360f / shapeCount
+    repeat(shapeCount) { i ->
+        val angleDeg = baseAngleDeg + stepDeg * i
+        val angleRad = Math.toRadians(angleDeg.toDouble())
+        val x = cx + orbitRadius * cos(angleRad).toFloat()
+        val y = cy + orbitRadius * sin(angleRad).toFloat()
+        withTransform({
+            translate(x - shapeSize / 2f, y - shapeSize / 2f)
+            rotate(angleDeg, pivot = Offset(shapeSize / 2f, shapeSize / 2f))
+        }) {
+            drawRoundRect(
+                color = color,
+                size = Size(shapeSize, shapeSize),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(shapeSize * cornerFraction)
+            )
+        }
     }
-    val circlePolygon = remember { RoundedPolygon.circle(numVertices = 8) }
-    val morph = remember { Morph(starPolygon, circlePolygon) }
-    val path = remember { Path() }
+}
 
-    val infiniteTransition = rememberInfiniteTransition(label = "morph_transition")
-    val morphProgress by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(2500, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "morph_progress"
-    )
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = if (isClockwise) 360f else -360f,
-        animationSpec = infiniteRepeatable(tween(15000, easing = LinearEasing), RepeatMode.Restart),
-        label = "slow_rotation"
-    )
-
-    Canvas(modifier = modifier) {                        // no graphicsLayer here
-        val scaleFactor = size.minDimension / 2f         // was size.width/2f — wrong for non-square
-        translate(left = size.width / 2f, top = size.height / 2f) {
-            rotate(degrees = rotation) {                  // rotation inside draw scope only
-                scale(scaleX = scaleFactor, scaleY = scaleFactor) {
-                    drawPath(path = morph.toComposePath(morphProgress, path), color = color)
-                }
-            }
+private fun DrawScope.drawOrbitRingPills(
+    cx: Float, cy: Float,
+    orbitRadius: Float,
+    baseAngleDeg: Float,
+    shapeCount: Int,
+    pillWidth: Float,
+    pillHeight: Float,
+    color: Color
+) {
+    val stepDeg = 360f / shapeCount
+    repeat(shapeCount) { i ->
+        val angleDeg = baseAngleDeg + stepDeg * i
+        val angleRad = Math.toRadians(angleDeg.toDouble())
+        val x = cx + orbitRadius * cos(angleRad).toFloat()
+        val y = cy + orbitRadius * sin(angleRad).toFloat()
+        withTransform({
+            translate(x - pillWidth / 2f, y - pillHeight / 2f)
+            rotate(angleDeg + 90f, pivot = Offset(pillWidth / 2f, pillHeight / 2f))
+        }) {
+            drawRoundRect(
+                color = color,
+                size = Size(pillWidth, pillHeight),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(pillHeight / 2f)
+            )
         }
     }
 }
