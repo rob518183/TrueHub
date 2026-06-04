@@ -46,4 +46,9 @@ sealed class Screen(val route:String, val title:String) {
             return "${Files.route}/$poolName"
         }
     }
+    object RollbackVersion : Screen("rollback/{appName}", "Rollback App") {
+        fun createRoute(appName: String): String {
+            return "rollback/$appName"
+        }
+    }
 }

@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.coil.svg)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.graphics.shapes)
     implementation(libs.accompanist.permissions)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.appcompat)

@@ -10,7 +10,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,17 +26,35 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asComposePath
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.graphics.shapes.CornerRounding
+import androidx.graphics.shapes.Morph
+import androidx.graphics.shapes.RoundedPolygon
+import androidx.graphics.shapes.circle
+import androidx.graphics.shapes.star
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.JobRepository
 import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import dev.jeziellago.compose.markdowntext.MarkdownText
+private val STAR_POLYGON = RoundedPolygon.star(
+    numVerticesPerRadius = 8,
+    radius = 1f,
+    innerRadius = 0.5f,
+    rounding = CornerRounding(radius = 0.15f)
+)
 
+private val CIRCLE_POLYGON = RoundedPolygon.circle(numVertices = 8)
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun UpgradeSummaryScreen(
@@ -119,31 +137,13 @@ private fun UpgradingView(
     isFailed: Boolean,
     modifier: Modifier = Modifier
 ) {
-
-    val infiniteTransition = rememberInfiniteTransition(label = "blob")
-    val blob1Scale by infiniteTransition.animateFloat(
-        initialValue = 0.85f, targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse
-        ), label = "b1"
-    )
-    val blob2Scale by infiniteTransition.animateFloat(
-        initialValue = 1.1f, targetValue = 0.8f,
-        animationSpec = infiniteRepeatable(
-            tween(2200, easing = FastOutSlowInEasing), RepeatMode.Reverse
-        ), label = "b2"
-    )
-    val blob3Scale by infiniteTransition.animateFloat(
-        initialValue = 0.9f, targetValue = 1.2f,
-        animationSpec = infiniteRepeatable(
-            tween(2600, easing = FastOutSlowInEasing), RepeatMode.Reverse
-        ), label = "b3"
-    )
-    val blobRotation by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            tween(12000, easing = LinearEasing), RepeatMode.Restart
-        ), label = "rot"
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.toFloat() / 100f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "smoothProgress"
     )
 
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -155,43 +155,22 @@ private fun UpgradingView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-
         Box(
-            modifier = Modifier.size(200.dp),
+            modifier = Modifier.size(160.dp),
             contentAlignment = Alignment.Center
         ) {
 
-            Box(
-                modifier = Modifier
-                    .size(140.dp)
-                    .scale(blob1Scale)
-                    .graphicsLayer { rotationZ = blobRotation * 0.3f }
-                    .clip(RoundedCornerShape(60.dp))
-                    .background(containerColor)
+            // OUTER SHAPE: Larger, container color, rotating clockwise
+            MorphingM3Background(
+                color = containerColor.copy(alpha = 0.6f),
+                modifier = Modifier.size(140.dp),
+                isClockwise = true
             )
 
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .scale(blob2Scale)
-                    .graphicsLayer { rotationZ = -blobRotation * 0.5f }
-                    .clip(RoundedCornerShape(
-                        topStart = 40.dp, topEnd = 20.dp,
-                        bottomStart = 20.dp, bottomEnd = 40.dp
-                    ))
-                    .background(secondaryColor.copy(alpha = 0.25f))
-            )
-
-            Box(
-                modifier = Modifier
-                    .size(68.dp)
-                    .scale(blob3Scale)
-                    .graphicsLayer { rotationZ = blobRotation * 0.7f }
-                    .clip(RoundedCornerShape(
-                        topStart = 28.dp, topEnd = 12.dp,
-                        bottomStart = 16.dp, bottomEnd = 28.dp
-                    ))
-                    .background(primaryColor.copy(alpha = 0.18f))
+            MorphingM3Background(
+                color = secondaryColor.copy(alpha = 0.3f),
+                modifier = Modifier.size(100.dp),
+                isClockwise = false
             )
 
             AnimatedContent(
@@ -201,29 +180,29 @@ private fun UpgradingView(
                     else -> "running"
                 },
                 transitionSpec = {
-                    scaleIn(tween(400)) + fadeIn(tween(400)) togetherWith
-                            scaleOut(tween(250)) + fadeOut(tween(250))
+                    (scaleIn(tween(400)) + fadeIn(tween(400))) togetherWith
+                            (scaleOut(tween(250)) + fadeOut(tween(250)))
                 },
                 label = "center_icon"
             ) { state ->
                 when (state) {
                     "done" -> Icon(
                         Icons.Default.CheckCircle,
-                        contentDescription = null,
+                        contentDescription = "Success",
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(56.dp)
                     )
                     "failed" -> Icon(
                         Icons.Default.Close,
-                        contentDescription = null,
+                        contentDescription = "Failed",
                         tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(56.dp)
                     )
                     else -> CircularProgressIndicator(
-                        modifier = Modifier.size(0.dp),
+                        modifier = Modifier.size(48.dp),
                         color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 3.dp
-
+                        strokeWidth = 4.dp,
+                        strokeCap = StrokeCap.Round
                     )
                 }
             }
@@ -273,7 +252,6 @@ private fun UpgradingView(
 
         Spacer(modifier = Modifier.height(40.dp))
 
-
         AnimatedVisibility(
             visible = !isDone && !isFailed,
             enter = fadeIn(tween(400)),
@@ -284,7 +262,7 @@ private fun UpgradingView(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 LinearWavyProgressIndicator(
-                    progress = { progress.toFloat() / 100f },
+                    progress = { animatedProgress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(10.dp)
@@ -301,6 +279,7 @@ private fun UpgradingView(
                 )
             }
         }
+
         AnimatedVisibility(visible = isFailed) {
             Spacer(modifier = Modifier.height(24.dp))
             Button(
@@ -452,4 +431,58 @@ private fun ReviewView(
             }
         }
     }
+}
+
+@Composable
+private fun MorphingM3Background(
+    color: Color,
+    modifier: Modifier = Modifier,
+    isClockwise: Boolean = true
+) {
+    val morph = remember { Morph(STAR_POLYGON, CIRCLE_POLYGON) }
+    val path = remember { Path() }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "morph")
+
+    val morphProgress by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(3000, easing = LinearEasing), RepeatMode.Reverse)
+    )
+
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = if (isClockwise) 360f else -360f,
+        animationSpec = infiniteRepeatable(tween(20000, easing = LinearEasing))
+    )
+
+    Canvas(
+        modifier = modifier
+            .graphicsLayer {
+                rotationZ = rotation
+            }
+    ) {
+        val scaleFactor = size.minDimension / 2.2f
+
+        translate(left = size.width / 2f, top = size.height / 2f) {
+            scale(scaleX = scaleFactor, scaleY = scaleFactor) {
+                drawPath(path = morph.toComposePath(morphProgress, path), color = color)
+            }
+        }
+    }
+}
+private fun Morph.toComposePath(progress: Float, path: Path = Path()): Path {
+    var first = true
+    path.rewind()
+    forEachCubic(progress) { bezier ->
+        if (first) {
+            path.moveTo(bezier.anchor0X, bezier.anchor0Y)
+            first = false
+        }
+        path.cubicTo(
+            bezier.control0X, bezier.control0Y,
+            bezier.control1X, bezier.control1Y,
+            bezier.anchor1X, bezier.anchor1Y
+        )
+    }
+    path.close()
+    return path
 }

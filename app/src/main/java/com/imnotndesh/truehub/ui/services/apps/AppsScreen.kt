@@ -7,7 +7,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.graphics.ColorFilter
 import coil.request.ImageRequest
 import coil.decode.SvgDecoder
 import androidx.compose.animation.fadeOut
@@ -93,7 +92,6 @@ import coil.compose.AsyncImage
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.JobRepository
 import com.imnotndesh.truehub.data.models.Apps
-import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppInfoPane
@@ -106,7 +104,7 @@ fun AppsScreen(
     onNavigateToAppInfo: (Apps.AppQueryResponse) -> Unit = {},
     onNavigateToUpgrade: (String) -> Unit = {},
     onNavigateToRollback: (String) -> Unit = {},
-    onNavigateToMarketplace: () -> Unit = {}
+    onNavigateToMarketplace: () -> Unit = {},
 ) {
     val appsScreenViewModel: AppsScreenViewModel = viewModel(
         factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
@@ -210,7 +208,7 @@ fun AppsScreen(
                             onStartApp = { appName -> appsScreenViewModel.startApp(appName) },
                             onStopApp = { appName -> appsScreenViewModel.stopApp(appName) },
                             onShowUpgradeSummary = { appName -> onNavigateToUpgrade(appName) },
-                            onShowRollbackDialog = { appName -> onNavigateToRollback(appName) },
+                            onRollbackClick = {onNavigateToRollback(it)},
                             onAppInfoClick = { app -> onNavigateToAppInfo(app) },
                             selectedApp = null,
                             loadingSummaryForApp = uiState.isLoadingUpgradeSummaryForApp,
@@ -306,7 +304,7 @@ private fun AppsSplitPaneContent(
                 loadingSummaryForApp = loadingSummaryForApp,
                 onStopApp = onStopApp,
                 onShowUpgradeSummary = onShowUpgradeSummary,
-                onShowRollbackDialog = onShowRollbackDialog,
+                onRollbackClick = onShowRollbackDialog,
                 onAppInfoClick = onAppInfoClick,
                 selectedApp = selectedApp
             )
@@ -372,7 +370,7 @@ private fun AppsContent(
     onStartApp: (String) -> Unit,
     onStopApp: (String) -> Unit,
     onShowUpgradeSummary: (String) -> Unit,
-    onShowRollbackDialog: (String) -> Unit,
+    onRollbackClick: (String) -> Unit,
     onAppInfoClick: (Apps.AppQueryResponse) -> Unit,
     selectedApp: Apps.AppQueryResponse?
 ) {
@@ -402,7 +400,9 @@ private fun AppsContent(
                         onStartApp = onStartApp,
                         onStopApp = onStopApp,
                         onShowUpgradeSummary = onShowUpgradeSummary,
-                        onShowRollbackDialog = onShowRollbackDialog,
+                        onRollbackClick = {
+                            onRollbackClick(it)
+                        },
                         onAppInfoClick = onAppInfoClick,
                         isSelected = selectedApp?.id == app.id
                     )
@@ -432,7 +432,7 @@ private fun AppsContent(
                         onStartApp = onStartApp,
                         onStopApp = onStopApp,
                         onShowUpgradeSummary = onShowUpgradeSummary,
-                        onShowRollbackDialog = onShowRollbackDialog,
+                        onRollbackClick = { onRollbackClick(it) },
                         onAppInfoClick = onAppInfoClick,
                         isSelected = selectedApp?.id == app.id
                     )
@@ -454,7 +454,7 @@ private fun ServiceCard(
     onStartApp: (String) -> Unit,
     onStopApp: (String) -> Unit,
     onShowUpgradeSummary: (String) -> Unit,
-    onShowRollbackDialog: (String) -> Unit,
+    onRollbackClick: (String) -> Unit,
     onAppInfoClick: (Apps.AppQueryResponse) -> Unit,
     isSelected: Boolean = false
 ) {
@@ -759,7 +759,7 @@ private fun ServiceCard(
                         text = "Rollback Version",
                         icon = Icons.Default.Refresh,
                         isPrimary = false,
-                        onClick = { onShowRollbackDialog(app.name) },
+                        onClick = { onRollbackClick(app.name) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = true
                     )

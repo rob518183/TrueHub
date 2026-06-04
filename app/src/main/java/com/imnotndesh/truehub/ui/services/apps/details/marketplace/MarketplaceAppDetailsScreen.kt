@@ -549,7 +549,7 @@ private fun ActionBottomBar(
     onUninstallClick: () -> Unit,
     onInstallAnotherClick: () -> Unit,
     isDeleting: Boolean,
-    deletionJobState: com.imnotndesh.truehub.data.helpers.TrackedJob?  // Use TrackedJob type
+    deletionJobState: com.imnotndesh.truehub.data.helpers.TrackedJob?
 ) {
     Surface(
         tonalElevation = 8.dp,

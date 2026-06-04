@@ -42,7 +42,6 @@ data class AppsScreenUiState(
     val isLoadingUpgradeSummaryForApp: String? = null,
     val rollbackVersions: List<String> = emptyList(),
     val isLoadingRollbackVersions: Boolean = false,
-    val rollbackJobs: Map<String, System.UpgradeJobState> = emptyMap(),
     val selectedCategory: AppCategory = AppCategory.ALL,
     val searchQuery: String = "",
     val catalogAppDetails: Apps.CatalogAppDetails? = null,
@@ -98,7 +97,7 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
             _appConfigState.update { it.copy(isLoading = true, error = null) }
             when (val result = manager.apps.getAppConfig(appName)) {
                 is ApiResult.Success -> {
-                    val safeConfig = result.data?.filterValues { it != null } as? Map<String, Any>
+                    val safeConfig = result.data.filterValues { it != null }
                     _appConfigState.update {
                         it.copy(isLoading = false, config = safeConfig, error = null)
                     }
@@ -440,20 +439,17 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
         }
     }
 
-    fun rollbackApp(appName: String, version: String, rollbackSnapshot: Boolean = true) {
+    fun rollbackApp(context: Context, appName: String, version: String, rollbackSnapshot: Boolean = true) {
         viewModelScope.launch {
             val result = manager.apps.rollbackAppWithResult(appName, version, rollbackSnapshot)
             when (result) {
                 is ApiResult.Success -> {
-                    val jobId = result.data
-                    _uiState.value = _uiState.value.copy(
-                        rollbackJobs = _uiState.value.rollbackJobs + (
-                                appName to System.UpgradeJobState(
-                                    state = "ROLLING_BACK",
-                                    progress = 0,
-                                    description = "Starting rollback..."
-                                )
-                                )
+                    GlobalJobTracker.startTracking(
+                        context = context.applicationContext,
+                        manager = manager,
+                        jobId = result.data,
+                        appName = appName,
+                        showNotif = true
                     )
                 }
                 is ApiResult.Error -> {
@@ -522,13 +518,6 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
 
     fun clearCatalogAppDetails() {
         _uiState.update { it.copy(catalogAppDetails = null, catalogDetailsError = null) }
-    }
-
-    fun clearRollbackVersions() {
-        _uiState.value = _uiState.value.copy(
-            rollbackVersions = emptyList(),
-            isLoadingRollbackVersions = false
-        )
     }
 
     fun clearError() {

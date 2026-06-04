@@ -7,6 +7,7 @@ coilSvg = "2.7.0"
 composeBom = "2026.05.01"
 composeMarkdownVersion = "0.3.1"
 datastorePreferences = "1.2.1"
+graphicsShapes = "1.1.0"
 kotlin = "2.4.0"
 coreKtx = "1.19.0"
 junit = "4.13.2"
@@ -39,6 +40,7 @@ androidx-compose-material3-window-size-class1 = { module = "androidx.compose.mat
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
+androidx-graphics-shapes = { module = "androidx.graphics:graphics-shapes", version.ref = "graphicsShapes" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }

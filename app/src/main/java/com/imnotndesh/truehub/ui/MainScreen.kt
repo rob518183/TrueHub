@@ -71,6 +71,7 @@ import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppInfoScreen
 import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceAppDetailsScreen
 import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceAppInstallScreen
 import com.imnotndesh.truehub.ui.services.apps.details.marketplace.MarketplaceScreen
+import com.imnotndesh.truehub.ui.services.apps.details.rollback.RollbackVersionScreen
 import com.imnotndesh.truehub.ui.services.apps.details.upgrade.UpgradeSummaryScreen
 import com.imnotndesh.truehub.ui.services.containers.ContainersScreen
 import com.imnotndesh.truehub.ui.services.containers.details.ContainerDataHolder
@@ -96,7 +97,9 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
         setOf(
             Screen.AppConfigScreen.route,
             Screen.Settings.route,
-            Screen.AppUpgrade.route
+            Screen.AppUpgrade.route,
+            Screen.RollbackVersion.route,
+            Screen.AppDetailsScreen.route
         )
     }
 
@@ -283,7 +286,7 @@ private fun TrueHubNavGraph(
                     navController.navigate(Screen.AppDetailsScreen.route)
                 },
                 onNavigateToUpgrade = { appName -> navController.navigate(Screen.AppUpgrade.createRoute(appName)) },
-                onNavigateToRollback = { appName -> navController.navigate("app_rollback/$appName") },
+                onNavigateToRollback = { navController.navigate(Screen.RollbackVersion.createRoute(it)) },
                 onNavigateToMarketplace = { navController.navigate(Screen.Marketplace.route) }
             )
         }
@@ -293,6 +296,31 @@ private fun TrueHubNavGraph(
                 manager = manager,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToFiles = { poolName: String -> navController.navigate(Screen.DatasetExplorer.createRoute(poolName)) }
+            )
+        }
+        composable(
+            route = Screen.RollbackVersion.route,
+            arguments = listOf(navArgument("appName") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val appName = backStackEntry.arguments?.getString("appName") ?: ""
+            val context = LocalContext.current
+            val appsViewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
+            val uiState by appsViewModel.uiState.collectAsState()
+
+            LaunchedEffect(appName) {
+                appsViewModel.loadRollbackVersions(appName)
+            }
+
+            RollbackVersionScreen(
+                appName = appName,
+                versions = uiState.rollbackVersions,
+                isLoadingVersions = uiState.isLoadingRollbackVersions,
+                fetchError = uiState.error,
+                manager = manager,
+                onConfirmRollback = { targetVersion, rollbackSnapshot ->
+                    appsViewModel.rollbackApp(context, appName, targetVersion, rollbackSnapshot)
+                },
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
