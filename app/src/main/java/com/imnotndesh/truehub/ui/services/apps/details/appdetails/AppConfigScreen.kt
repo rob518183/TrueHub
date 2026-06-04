@@ -246,7 +246,7 @@ fun AppConfigScreen(
             }
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+        Column(modifier = Modifier.fillMaxSize()) {
             UnifiedScreenHeader(
                 title = "App Configuration",
                 subtitle = appValues.appName,
@@ -401,7 +401,6 @@ private fun ConfigEditorRow(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // Section header (key)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

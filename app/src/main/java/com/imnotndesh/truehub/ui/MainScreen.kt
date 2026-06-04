@@ -95,7 +95,8 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
     val routesWithoutBottomBar = remember {
         setOf(
             Screen.AppConfigScreen.route,
-            Screen.Settings.route
+            Screen.Settings.route,
+            Screen.AppUpgrade.route
         )
     }
 
@@ -235,11 +236,10 @@ private fun TrueHubNavGraph(
             val disks = AppDataHolder.disks
             DiskInfoScreen(
                 disks,
-                manager,
-                {
-                    navController.popBackStack()
-                }
-            )
+                manager
+            ) {
+                navController.popBackStack()
+            }
         }
         composable(Screen.AppConfigScreen.route){
             val currAppValues = AppDataHolder.selectedAppValues
@@ -280,11 +280,11 @@ private fun TrueHubNavGraph(
                 manager = manager,
                 onNavigateToAppInfo = { app ->
                     AppDataHolder.selectedApp = app
-                    navController.navigate("app_details")
+                    navController.navigate(Screen.AppDetailsScreen.route)
                 },
-                onNavigateToUpgrade = { appName -> navController.navigate("app_upgrade/$appName") },
+                onNavigateToUpgrade = { appName -> navController.navigate(Screen.AppUpgrade.createRoute(appName)) },
                 onNavigateToRollback = { appName -> navController.navigate("app_rollback/$appName") },
-                onNavigateToMarketplace = { navController.navigate("marketplace") }
+                onNavigateToMarketplace = { navController.navigate(Screen.Marketplace.route) }
             )
         }
 
@@ -292,11 +292,11 @@ private fun TrueHubNavGraph(
             PoolDetailsScreen(
                 manager = manager,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToFiles = { poolName: String -> navController.navigate("${Screen.Files.route}/$poolName") }
+                onNavigateToFiles = { poolName: String -> navController.navigate(Screen.DatasetExplorer.createRoute(poolName)) }
             )
         }
 
-        composable("app_details") {
+        composable(Screen.AppDetailsScreen.route) {
             val app = AppDataHolder.selectedApp
             val appsViewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             LaunchedEffect(Unit) {
@@ -306,7 +306,7 @@ private fun TrueHubNavGraph(
                 app = app!!,
                 manager = manager,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToMarketplaceCategory = { categoryName -> navController.navigate("marketplace?category=${categoryName}") },
+                onNavigateToMarketplaceCategory = { categoryName -> navController.navigate(Screen.MarketplaceCategory.createRoute(categoryName)) },
                 onNavigateToMarketplaceAppDetails = { appName ->
                     val matchedAvailableItem = appsViewModel.uiState.value.marketplaceApps.find { it.name == appName }
                     if (matchedAvailableItem != null) {
@@ -328,7 +328,7 @@ private fun TrueHubNavGraph(
         }
 
         composable(
-            route = "marketplace?category={category}",
+            route = Screen.MarketplaceCategory.route,
             arguments = listOf(navArgument("category") { type = NavType.StringType; defaultValue = ""; nullable = true })
         ) { backStackEntry ->
             val category = backStackEntry.arguments?.getString("category")?.takeIf { it.isNotBlank() }
@@ -339,7 +339,11 @@ private fun TrueHubNavGraph(
             MarketplaceScreen(manager = manager, onNavigateBack = { navController.popBackStack() }, onMarketplaceApplicationClicked = { app -> AppDataHolder.selectedMarketplaceApp = app; navController.navigate("marketplace_app_details") })
         }
 
-        composable(route = "app_upgrade/{appName}", arguments = listOf(navArgument("appName") { type = NavType.StringType })) { backStackEntry ->
+        composable(
+            route = Screen.AppUpgrade.route,
+            arguments = listOf(navArgument("appName")
+            { type = NavType.StringType })
+        ) { backStackEntry ->
             val appName = backStackEntry.arguments?.getString("appName") ?: ""
             val context = LocalContext.current
             val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
@@ -360,11 +364,11 @@ private fun TrueHubNavGraph(
             val appsViewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val app = AppDataHolder.selectedMarketplaceApp
             if (app != null) {
-                MarketplaceAppDetailsScreen(app = app, onNavigateBack = { navController.popBackStack() }, manager = manager, onInstallClick = { appName, train -> appsViewModel.loadCatalogAppDetails(appName, train); navController.navigate("catalog_install/$appName/$train") })
+                MarketplaceAppDetailsScreen(app = app, onNavigateBack = { navController.popBackStack() }, manager = manager, onInstallClick = { appName, train -> appsViewModel.loadCatalogAppDetails(appName, train); navController.navigate(Screen.CatalogInstall.createRoute(appName,train)) })
             }
         }
 
-        composable(route = "catalog_install/{appName}/{train}", arguments = listOf(navArgument("appName") { type = NavType.StringType }, navArgument("train") { type = NavType.StringType })) { backStackEntry ->
+        composable(route = Screen.CatalogInstall.route, arguments = listOf(navArgument("appName") { type = NavType.StringType }, navArgument("train") { type = NavType.StringType })) { backStackEntry ->
             val appsViewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val appName = backStackEntry.arguments?.getString("appName") ?: ""
             val train = backStackEntry.arguments?.getString("train") ?: ""
@@ -389,7 +393,7 @@ private fun TrueHubNavGraph(
             VmInfoScreen(vm = vm!!, manager = manager, onNavigateBack = { navController.popBackStack() })
         }
 
-        composable(route = "${Screen.Files.route}/{poolName}", arguments = listOf(navArgument("poolName") { type = NavType.StringType })) { backStackEntry ->
+        composable(route = Screen.DatasetExplorer.route, arguments = listOf(navArgument("poolName") { type = NavType.StringType })) { backStackEntry ->
             val poolName = backStackEntry.arguments?.getString("poolName") ?: ""
             DatasetExplorerScreen(manager = manager, onNavigateBack = { navController.popBackStack() }, poolName = poolName)
         }

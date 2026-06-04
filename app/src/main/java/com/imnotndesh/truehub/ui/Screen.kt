@@ -22,6 +22,28 @@ sealed class Screen(val route:String, val title:String) {
     object ChangePassword : Screen("change_password", "Change Password")
     object DiskInfo : Screen("disk_info", "Disk information")
     object AppConfigScreen : Screen("app_config", "Application config")
+    object AppDetailsScreen : Screen("app_details", "Application details page")
+    object MarketplaceCategory : Screen("marketplace?category={category}", "Marketplace Category") {
+        fun createRoute(category: String): String {
+            return "marketplace?category=$category"
+        }
+    }
 
+    object AppUpgrade : Screen("app_upgrade/{appName}", "App Upgrade") {
+        fun createRoute(appName: String): String {
+            return "app_upgrade/$appName"
+        }
+    }
 
+    object CatalogInstall : Screen("catalog_install/{appName}/{train}", "Catalog Install") {
+        fun createRoute(appName: String, train: String): String {
+            return "catalog_install/$appName/$train"
+        }
+    }
+
+    object DatasetExplorer : Screen("${Files.route}/{poolName}", "Dataset Explorer") {
+        fun createRoute(poolName: String): String {
+            return "${Files.route}/$poolName"
+        }
+    }
 }
