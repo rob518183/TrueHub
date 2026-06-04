@@ -18,10 +18,14 @@ TrueHub is an open-source Android application designed to provide a seamless and
 
 ## Features
 1. App management functions:
-     1. Update
-     2. Start / Stop
-     3. View Details
-     4. Rollback
+   1. Update
+   2. Start / Stop
+   3. View Details
+   4. Rollback
+   5. App Installation (Including similar instances)
+   6. Editing Config
+   7. App uninstallation
+   8. Catalog browsing
 2. Container management functions
      1. Start /Stop
      2. View Details
@@ -41,13 +45,6 @@ TrueHub is an open-source Android application designed to provide a seamless and
 | Settings| <img src="https://github.com/user-attachments/assets/989e31b8-7129-44ac-aefe-5cb5c7434eec" width="300" alt="Settings Screen"> |
 | Alerts pane | <img src="https://github.com/user-attachments/assets/0eed5877-50c7-4634-a1a3-3972af5ce514" width="300" alt="Alerts Pane"> |
 | Graphs pane | <img src="https://github.com/user-attachments/assets/0508732b-32f7-4e34-9ab4-f6e52328e392" width="300" alt="Graphs Pane"> |
-
-# Hopefully will implement
-- [ ] Proper backrounding of truenas client
-- [ ] Allow multiple servers
-- [ ] Allow multiple url for one server
-- [ ] Allow searching for apps
-- [ ] Add pool jobs
 
 
 ## Getting Started
@@ -69,4 +66,6 @@ If you wish to build the app from source:
 3.  **Build if needed after syncing files with gradle**
 
 ## Contributing
-Check our [issues](https://github.com/Imnotndesh/TrueHub/issues) page to add or even try and help out to solve issues that have been reported
+Check our [issues](https://github.com/Imnotndesh/TrueHub/issues) page to add or even try and help out to solve issues that have been reported. 
+
+Thank you for your continued support and feedback.
