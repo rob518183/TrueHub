@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -165,6 +166,7 @@ fun AppConfigScreen(
                                 formState.clear()
                                 flattenDefaults(versionData?.values ?: emptyMap(), formState)
                                 flattenDefaults(configState.config ?: emptyMap(), formState)
+                                onNavigateBack()
                             },
                             modifier = Modifier
                                 .weight(1f)
@@ -246,7 +248,7 @@ fun AppConfigScreen(
             }
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().padding(bottom = innerPadding.calculateBottomPadding())) {
             UnifiedScreenHeader(
                 title = "App Configuration",
                 subtitle = appValues.appName,

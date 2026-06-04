@@ -8,6 +8,30 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.withFrameMillis
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
+import kotlin.math.cos
+import kotlin.math.sin
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -201,79 +225,15 @@ fun MarketplaceAppInstallScreen(
             }
 
             if (isInstalling || installError != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        if (installError != null) {
-                            Icon(
-                                imageVector = Icons.Default.Error,
-                                contentDescription = "Error",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(64.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Installation Failed",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = installError ?: "Unknown deployment exception occurred.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(24.dp))
-                            Button(
-                                onClick = { viewModel.clearInstallState() },
-                                shape = RoundedCornerShape(14.dp)
-                            ) {
-                                Text("Dismiss Layout")
-                            }
-                        } else {
-                            val progressValue = (trackedJob?.progress ?: 0) / 100f
-                            val progressPercent = trackedJob?.progress ?: 0
-                            val currentStepDescription = trackedJob?.description ?: "Initializing system middleware provisioning..."
-
-                            CircularProgressIndicator(
-                                progress = { progressValue },
-                                modifier = Modifier.size(84.dp),
-                                strokeWidth = 8.dp,
-                                trackColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                            Spacer(modifier = Modifier.height(24.dp))
-                            Text(
-                                text = "Deploying Application",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.ExtraBold
-                            )
-                            Text(
-                                text = "$progressPercent%",
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Black
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = currentStepDescription,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                        }
-                    }
-                }
+                InstallProgressView(
+                    appName = appName,
+                    progress = trackedJob?.progress ?: 0,
+                    description = trackedJob?.description,
+                    isError = installError != null,
+                    errorMessage = installError,
+                    onDismissError = { viewModel.clearInstallState() },
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     }
@@ -920,6 +880,253 @@ private fun InstallFlowRow(
                 }
                 y += rowHeights[index] + verticalArrangement.spacing.roundToPx()
             }
+        }
+    }
+}
+@Composable
+private fun InstallProgressView(
+    appName: String,
+    progress: Int,
+    description: String?,
+    isError: Boolean,
+    errorMessage: String?,
+    onDismissError: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress / 100f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "installProgress"
+    )
+
+    Column(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier.size(220.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            PixelShapesOrbit(
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
+                isDone = isError,   // stop spinning on error too
+                modifier = Modifier.fillMaxSize()
+            )
+
+            AnimatedContent(
+                targetState = if (isError) "error" else "running",
+                transitionSpec = {
+                    (scaleIn(tween(400)) + fadeIn(tween(400))) togetherWith
+                            (scaleOut(tween(250)) + fadeOut(tween(250)))
+                },
+                label = "install_center_icon"
+            ) { state ->
+                when (state) {
+                    "error" -> Icon(
+                        imageVector = Icons.Default.Error,
+                        contentDescription = "Failed",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(56.dp)
+                    )
+                    else -> CircularProgressIndicator(
+                        progress = { animatedProgress },
+                        modifier = Modifier.size(56.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.primaryContainer,
+                        strokeWidth = 5.dp,
+                        strokeCap = StrokeCap.Round
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        AnimatedContent(
+            targetState = if (isError) "error" else "running",
+            transitionSpec = {
+                fadeIn(tween(400)) togetherWith fadeOut(tween(200))
+            },
+            label = "install_status_text"
+        ) { state ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = if (state == "error") "Installation Failed" else "Deploying $appName",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    color = if (state == "error")
+                        MaterialTheme.colorScheme.error
+                    else
+                        MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = if (state == "error")
+                        errorMessage ?: "An unknown error occurred."
+                    else
+                        description ?: "Provisioning application resources…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                if (state != "error") {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "$progress%",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+        }
+
+        if (isError) {
+            Spacer(modifier = Modifier.height(28.dp))
+            Button(
+                onClick = onDismissError,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text("Dismiss", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PixelShapesOrbit(
+    primaryColor: Color,
+    secondaryColor: Color,
+    isDone: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val speedScale by animateFloatAsState(
+        targetValue = if (isDone) 0f else 1f,
+        animationSpec = tween(durationMillis = 1800, easing = FastOutSlowInEasing),
+        label = "speed_scale"
+    )
+
+    val ring1AngleState = remember { mutableFloatStateOf(0f) }
+    val ring2AngleState = remember { mutableFloatStateOf(0f) }
+    val ring3AngleState = remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(Unit) {
+        var lastTime = withFrameMillis { it }
+        while (true) {
+            val now = withFrameMillis { it }
+            val dt = (now - lastTime) / 1000f
+            lastTime = now
+            val s = speedScale
+            ring1AngleState.floatValue += dt * 45f * s
+            ring2AngleState.floatValue -= dt * 28f * s
+            ring3AngleState.floatValue += dt * 18f * s
+        }
+    }
+
+    Canvas(modifier = modifier) {
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val unit = size.minDimension / 2f
+
+        drawOrbitRing(
+            cx = cx, cy = cy,
+            orbitRadius = unit * 0.42f,
+            baseAngleDeg = ring1AngleState.floatValue,
+            shapeCount = 3,
+            shapeSize = unit * 0.18f,
+            cornerFraction = 0.35f,
+            color = primaryColor.copy(alpha = 0.85f)
+        )
+        drawOrbitRingPills(
+            cx = cx, cy = cy,
+            orbitRadius = unit * 0.68f,
+            baseAngleDeg = ring2AngleState.floatValue,
+            shapeCount = 4,
+            pillWidth = unit * 0.22f,
+            pillHeight = unit * 0.09f,
+            color = secondaryColor.copy(alpha = 0.55f)
+        )
+        drawOrbitRing(
+            cx = cx, cy = cy,
+            orbitRadius = unit * 0.88f,
+            baseAngleDeg = ring3AngleState.floatValue,
+            shapeCount = 5,
+            shapeSize = unit * 0.11f,
+            cornerFraction = 0.4f,
+            color = primaryColor.copy(alpha = 0.35f)
+        )
+    }
+}
+
+private fun DrawScope.drawOrbitRing(
+    cx: Float, cy: Float,
+    orbitRadius: Float,
+    baseAngleDeg: Float,
+    shapeCount: Int,
+    shapeSize: Float,
+    cornerFraction: Float,
+    color: Color
+) {
+    val stepDeg = 360f / shapeCount
+    repeat(shapeCount) { i ->
+        val angleDeg = baseAngleDeg + stepDeg * i
+        val angleRad = Math.toRadians(angleDeg.toDouble())
+        val x = cx + orbitRadius * cos(angleRad).toFloat()
+        val y = cy + orbitRadius * sin(angleRad).toFloat()
+        withTransform({
+            translate(x - shapeSize / 2f, y - shapeSize / 2f)
+            rotate(angleDeg, pivot = Offset(shapeSize / 2f, shapeSize / 2f))
+        }) {
+            drawRoundRect(
+                color = color,
+                size = Size(shapeSize, shapeSize),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(shapeSize * cornerFraction)
+            )
+        }
+    }
+}
+
+private fun DrawScope.drawOrbitRingPills(
+    cx: Float, cy: Float,
+    orbitRadius: Float,
+    baseAngleDeg: Float,
+    shapeCount: Int,
+    pillWidth: Float,
+    pillHeight: Float,
+    color: Color
+) {
+    val stepDeg = 360f / shapeCount
+    repeat(shapeCount) { i ->
+        val angleDeg = baseAngleDeg + stepDeg * i
+        val angleRad = Math.toRadians(angleDeg.toDouble())
+        val x = cx + orbitRadius * cos(angleRad).toFloat()
+        val y = cy + orbitRadius * sin(angleRad).toFloat()
+        withTransform({
+            translate(x - pillWidth / 2f, y - pillHeight / 2f)
+            rotate(angleDeg + 90f, pivot = Offset(pillWidth / 2f, pillHeight / 2f))
+        }) {
+            drawRoundRect(
+                color = color,
+                size = Size(pillWidth, pillHeight),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(pillHeight / 2f)
+            )
         }
     }
 }
