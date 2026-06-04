@@ -99,7 +99,10 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
             Screen.Settings.route,
             Screen.AppUpgrade.route,
             Screen.RollbackVersion.route,
-            Screen.AppDetailsScreen.route
+            Screen.AppDetailsScreen.route,
+            Screen.Marketplace.route,
+            Screen.MarketplaceAppDetails.route,
+            Screen.MarketplaceCategory.route
         )
     }
 

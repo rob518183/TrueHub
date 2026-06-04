@@ -446,25 +446,22 @@ private fun MorphingM3Background(
 
     val morphProgress by infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(3000, easing = LinearEasing), RepeatMode.Reverse)
+        animationSpec = infiniteRepeatable(tween(3000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "morph_progress"
     )
-
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = if (isClockwise) 360f else -360f,
-        animationSpec = infiniteRepeatable(tween(20000, easing = LinearEasing))
+        animationSpec = infiniteRepeatable(tween(20000, easing = LinearEasing), RepeatMode.Restart),
+        label = "slow_rotation"
     )
 
-    Canvas(
-        modifier = modifier
-            .graphicsLayer {
-                rotationZ = rotation
-            }
-    ) {
-        val scaleFactor = size.minDimension / 2.2f
-
+    Canvas(modifier = modifier) {                        // no graphicsLayer here
+        val scaleFactor = size.minDimension / 2f         // fills canvas exactly
         translate(left = size.width / 2f, top = size.height / 2f) {
-            scale(scaleX = scaleFactor, scaleY = scaleFactor) {
-                drawPath(path = morph.toComposePath(morphProgress, path), color = color)
+            rotate(degrees = rotation) {                  // rotation inside draw scope only
+                scale(scaleX = scaleFactor, scaleY = scaleFactor) {
+                    drawPath(path = morph.toComposePath(morphProgress, path), color = color)
+                }
             }
         }
     }

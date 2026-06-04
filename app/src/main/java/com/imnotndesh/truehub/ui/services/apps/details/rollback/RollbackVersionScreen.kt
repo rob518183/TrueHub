@@ -512,10 +512,11 @@ private fun MorphingM3Background(
         label = "slow_rotation"
     )
 
-    Canvas(modifier = modifier) {
+    Canvas(modifier = modifier) {                        // no graphicsLayer here
+        val scaleFactor = size.minDimension / 2f         // was size.width/2f — wrong for non-square
         translate(left = size.width / 2f, top = size.height / 2f) {
-            scale(scaleX = size.width / 2f, scaleY = size.height / 2f) {
-                rotate(rotation) {
+            rotate(degrees = rotation) {                  // rotation inside draw scope only
+                scale(scaleX = scaleFactor, scaleY = scaleFactor) {
                     drawPath(path = morph.toComposePath(morphProgress, path), color = color)
                 }
             }
