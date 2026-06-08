@@ -49,7 +49,7 @@ fun UpgradeSummaryScreen(
     appName: String,
     summary: Apps.AppUpgradeSummaryResult,
     manager: TrueNASApiManager,
-    onConfirmUpgrade: () -> Unit,
+    onConfirmUpgrade: (String, Boolean) -> Unit,
     onNavigateBack: () -> Unit
 ) {
 
@@ -104,7 +104,7 @@ fun UpgradeSummaryScreen(
             } else {
                 ReviewView(
                     summary = summary,
-                    onConfirmUpgrade = onConfirmUpgrade,
+                    onConfirmUpgrade = {selectedVersion, backup -> onConfirmUpgrade(selectedVersion,backup)},
                     onNavigateBack = onNavigateBack,
                     modifier = Modifier
                         .fillMaxSize()
@@ -271,14 +271,28 @@ private fun UpgradingView(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun ReviewView(
     summary: Apps.AppUpgradeSummaryResult,
-    onConfirmUpgrade: () -> Unit,
+    onConfirmUpgrade: (String, Boolean) -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val availableVersions = summary.available_versions_for_upgrade
+    val showVersionPicker = availableVersions.size > 1
+
+    val defaultVersion = summary.upgrade_version
+    var selectedVersion by remember { mutableStateOf(defaultVersion) }
+
+    var takeBackup by remember { mutableStateOf(true) }
+
+
+    val selectedHumanVersion = remember(selectedVersion) {
+        availableVersions.find { it.version == selectedVersion }?.human_version
+            ?: summary.upgrade_human_version
+    }
+
     Column(
         modifier = modifier.padding(16.dp)
     ) {
@@ -288,7 +302,6 @@ private fun ReviewView(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -296,42 +309,119 @@ private fun ReviewView(
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                ) {
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(horizontalAlignment = Alignment.Start) {
+                            Text(
+                                text = "Current",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = summary.latest_human_version,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
+                        )
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "New",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = selectedHumanVersion,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    if (showVersionPicker) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        var expanded by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { expanded = !expanded }
+                        ) {
+                            TextField(
+                                value = selectedHumanVersion,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                modifier = Modifier.menuAnchor(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ExposedDropdownMenuDefaults.textFieldColors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent
+                                ),
+                                textStyle = MaterialTheme.typography.bodyMedium
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                availableVersions.forEach { versionItem ->
+                                    DropdownMenuItem(
+                                        text = { Text(versionItem.human_version) },
+                                        onClick = {
+                                            selectedVersion = versionItem.version
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Backup checkbox
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(24.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(horizontalAlignment = Alignment.Start) {
-                        Text(
-                            text = "Current",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        )
-                        Text(
-                            text = summary.latest_human_version,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
+                    Checkbox(
+                        checked = takeBackup,
+                        onCheckedChange = { takeBackup = it }
                     )
-                    Column(horizontalAlignment = Alignment.End) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
                         Text(
-                            text = "New",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            text = "Take snapshot before upgrade",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = summary.upgrade_human_version,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            text = "Creates a ZFS snapshot that can be used for rollback",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -339,6 +429,7 @@ private fun ReviewView(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
+            // Changelog section (unchanged)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Default.Description,
@@ -396,7 +487,7 @@ private fun ReviewView(
                 Text("Cancel")
             }
             Button(
-                onClick = onConfirmUpgrade,
+                onClick = { onConfirmUpgrade(selectedVersion, takeBackup) },
                 modifier = Modifier.weight(1f).height(50.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(

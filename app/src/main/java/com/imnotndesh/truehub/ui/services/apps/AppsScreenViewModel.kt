@@ -335,12 +335,11 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
         }
     }
 
-    fun upgradeApp(appName: String,context: Context ) {
+    fun upgradeApp(appName: String, context: Context, version: String, backup: Boolean) {
         viewModelScope.launch {
-            when (val result = manager.apps.upgradeAppWithResult(appName)) {
+            when (val result = manager.apps.upgradeAppWithResult(appName, version, backup)) {
                 is ApiResult.Success -> {
                     val jobId = result.data
-
                     GlobalJobTracker.startTracking(
                         context = context.applicationContext,
                         manager = manager,

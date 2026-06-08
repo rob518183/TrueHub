@@ -386,7 +386,15 @@ private fun TrueHubNavGraph(
             if (isLoading) {
                 LoadingScreen("Checking upgrades...")
             } else if (summary != null) {
-                UpgradeSummaryScreen(appName = appName, summary = summary, manager = manager, onConfirmUpgrade = { viewModel.upgradeApp(appName, context) }, onNavigateBack = { navController.popBackStack() })
+                UpgradeSummaryScreen(
+                    appName = appName,
+                    summary = summary,
+                    manager = manager,
+                    onConfirmUpgrade = { version, backup ->
+                        viewModel.upgradeApp(appName, context, version, backup)
+                    },
+                    onNavigateBack = { navController.popBackStack() }
+                )
             } else if (uiState.error != null) {
                 LaunchedEffect(Unit) { navController.popBackStack() }
             }
