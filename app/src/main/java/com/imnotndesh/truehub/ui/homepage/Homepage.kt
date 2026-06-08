@@ -564,6 +564,8 @@ private fun StorageCard(modifier: Modifier = Modifier, pool: System.Pool, onClic
         return "${DecimalFormat("#.#").format(size)} ${units[unitIndex]}"
     }
 
+    // Lowkey band-aid solution due to discrepancy in 25.04.x and 25.10.x API
+    // TODO : Find some way of using version from system.details to determine what versions of responses i need to use (lots of work)
     Card(onClick = onClick, shape = RoundedCornerShape(24.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -571,28 +573,66 @@ private fun StorageCard(modifier: Modifier = Modifier, pool: System.Pool, onClic
                     Text("Storage Pool", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                     Text(pool.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 }
-                val statusColor = if (pool.healthy) { if (pool.warning) Color(0xFFF57C00) else Color(0xFF2E7D32) } else MaterialTheme.colorScheme.error
+                val isHealthy = pool.healthy
+                val hasWarning = pool.warning
+                val statusColor = when {
+                    !isHealthy -> MaterialTheme.colorScheme.error
+                    hasWarning -> Color(0xFFF57C00)
+                    else -> Color(0xFF2E7D32)
+                }
                 Surface(color = statusColor.copy(alpha = 0.12f), shape = RoundedCornerShape(100.dp)) {
-                    Text(if (pool.healthy) { if (pool.warning) "Warning" else "Healthy" } else "Error", style = MaterialTheme.typography.labelMedium, color = statusColor, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                    val statusText = when {
+                        !isHealthy -> "Error"
+                        hasWarning -> "Warning"
+                        else -> "Healthy"
+                    }
+                    Text(statusText, style = MaterialTheme.typography.labelMedium, color = statusColor, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
-            val usedPercentage = if (pool.size > 0) (pool.allocated.toFloat() / pool.size.toFloat()) else 0f
-            val animatedProgress by animateFloatAsState(targetValue = usedPercentage, animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing), label = "storageProgress")
-            val progressColor by animateColorAsState(targetValue = when { usedPercentage > 0.8f -> MaterialTheme.colorScheme.error; usedPercentage > 0.6f -> Color(0xFFF57C00); else -> MaterialTheme.colorScheme.primary }, label = "progressColor")
-            Column {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Used: ${formatBytes(pool.allocated)}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
-                    Text("Free: ${formatBytes(pool.free)}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-                LinearProgressIndicator(progress = { animatedProgress }, modifier = Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)), color = progressColor, trackColor = MaterialTheme.colorScheme.surfaceVariant, strokeCap = ProgressIndicatorDefaults.LinearStrokeCap)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Total: ${formatBytes(pool.size)} • Fragmentation: ${pool.fragmentation}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-                if (pool.warning && !pool.status_detail.isNullOrEmpty()) {
+
+            val size = pool.size
+            val allocated = pool.allocated
+            val free = pool.free
+            val fragmentation = pool.fragmentation
+
+            if (size != null && allocated != null && size > 0) {
+                val usedPercentage = (allocated.toFloat() / size.toFloat()).coerceIn(0f, 1f)
+                val animatedProgress by animateFloatAsState(targetValue = usedPercentage, animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing), label = "storageProgress")
+                val progressColor by animateColorAsState(
+                    targetValue = when {
+                        usedPercentage > 0.8f -> MaterialTheme.colorScheme.error
+                        usedPercentage > 0.6f -> Color(0xFFF57C00)
+                        else -> MaterialTheme.colorScheme.primary
+                    },
+                    label = "progressColor"
+                )
+
+                Column {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Used: ${formatBytes(allocated)}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                        Text("Free: ${free?.let { formatBytes(it) } ?: "Unavailable"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    LinearProgressIndicator(progress = { animatedProgress }, modifier = Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)), color = progressColor, trackColor = MaterialTheme.colorScheme.surfaceVariant, strokeCap = ProgressIndicatorDefaults.LinearStrokeCap)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(pool.status_detail, style = MaterialTheme.typography.bodySmall, color = Color(0xFFF57C00), modifier = Modifier.padding(horizontal = 4.dp))
+                    Text(
+                        "Total: ${formatBytes(size)} • Fragmentation: ${fragmentation?.let { "${it}%" } ?: "N/A"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
                 }
+            } else {
+                Text(
+                    "Storage details missing",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if ((pool.warning == true) && !pool.status_detail.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(pool.status_detail, style = MaterialTheme.typography.bodySmall, color = Color(0xFFF57C00), modifier = Modifier.padding(horizontal = 4.dp))
             }
         }
     }
