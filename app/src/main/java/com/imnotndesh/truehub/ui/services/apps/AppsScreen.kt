@@ -106,6 +106,7 @@ fun AppsScreen(
     onNavigateToRollback: (String) -> Unit = {},
     onNavigateToMarketplace: () -> Unit = {},
 ) {
+    // TODO : ADD UPDATE ALL APPS OPTION ALONG WITH INVOKE FROM HOMESCREEN
     val appsScreenViewModel: AppsScreenViewModel = viewModel(
         factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
     )
