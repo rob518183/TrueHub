@@ -47,6 +47,7 @@ import kotlin.math.sin
 @Composable
 fun UpgradeSummaryScreen(
     appName: String,
+    appCurrentVersion: String,
     summary: Apps.AppUpgradeSummaryResult,
     manager: TrueNASApiManager,
     onConfirmUpgrade: (String, Boolean) -> Unit,
@@ -104,6 +105,7 @@ fun UpgradeSummaryScreen(
             } else {
                 ReviewView(
                     summary = summary,
+                    currentVersion = appCurrentVersion,
                     onConfirmUpgrade = {selectedVersion, backup -> onConfirmUpgrade(selectedVersion,backup)},
                     onNavigateBack = onNavigateBack,
                     modifier = Modifier
@@ -275,6 +277,7 @@ private fun UpgradingView(
 @Composable
 private fun ReviewView(
     summary: Apps.AppUpgradeSummaryResult,
+    currentVersion : String,
     onConfirmUpgrade: (String, Boolean) -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -327,7 +330,7 @@ private fun ReviewView(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
                             Text(
-                                text = summary.latest_human_version,
+                                text = currentVersion,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer

@@ -289,7 +289,9 @@ private fun TrueHubNavGraph(
                     AppDataHolder.selectedApp = app
                     navController.navigate(Screen.AppDetailsScreen.route)
                 },
-                onNavigateToUpgrade = { appName -> navController.navigate(Screen.AppUpgrade.createRoute(appName)) },
+                onNavigateToUpgrade = { appName,currentVersion ->
+                    AppDataHolder.appCurrentVersion = currentVersion
+                    navController.navigate(Screen.AppUpgrade.createRoute(appName)) },
                 onNavigateToRollback = { navController.navigate(Screen.RollbackVersion.createRoute(it)) },
                 onNavigateToMarketplace = { navController.navigate(Screen.Marketplace.route) }
             )
@@ -377,6 +379,7 @@ private fun TrueHubNavGraph(
             { type = NavType.StringType })
         ) { backStackEntry ->
             val appName = backStackEntry.arguments?.getString("appName") ?: ""
+            val currentVersion = AppDataHolder.appCurrentVersion
             val context = LocalContext.current
             val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val uiState by viewModel.uiState.collectAsState()
@@ -388,6 +391,7 @@ private fun TrueHubNavGraph(
             } else if (summary != null) {
                 UpgradeSummaryScreen(
                     appName = appName,
+                    appCurrentVersion = currentVersion,
                     summary = summary,
                     manager = manager,
                     onConfirmUpgrade = { version, backup ->

@@ -102,7 +102,7 @@ import com.imnotndesh.truehub.ui.utils.AdaptiveLayoutHelper
 fun AppsScreen(
     manager: TrueNASApiManager,
     onNavigateToAppInfo: (Apps.AppQueryResponse) -> Unit = {},
-    onNavigateToUpgrade: (String) -> Unit = {},
+    onNavigateToUpgrade: (String,String) -> Unit,
     onNavigateToRollback: (String) -> Unit = {},
     onNavigateToMarketplace: () -> Unit = {},
 ) {
@@ -208,7 +208,7 @@ fun AppsScreen(
                             apps = filteredApps,
                             onStartApp = { appName -> appsScreenViewModel.startApp(appName) },
                             onStopApp = { appName -> appsScreenViewModel.stopApp(appName) },
-                            onShowUpgradeSummary = { appName -> onNavigateToUpgrade(appName) },
+                            onShowUpgradeSummary = { appName,currentVersion -> onNavigateToUpgrade(appName,currentVersion) },
                             onRollbackClick = {onNavigateToRollback(it)},
                             onAppInfoClick = { app -> onNavigateToAppInfo(app) },
                             selectedApp = null,
@@ -221,7 +221,7 @@ fun AppsScreen(
                             onStartApp = { appName -> appsScreenViewModel.startApp(appName) },
                             loadingSummaryForApp = uiState.isLoadingUpgradeSummaryForApp,
                             onStopApp = { appName -> appsScreenViewModel.stopApp(appName) },
-                            onShowUpgradeSummary = { appName -> onNavigateToUpgrade(appName) },
+                            onShowUpgradeSummary = { appName,currentVersion -> onNavigateToUpgrade(appName,currentVersion) },
                             onShowRollbackDialog = { appName -> onNavigateToRollback(appName) },
                             onAppInfoClick = { app -> onNavigateToAppInfo(app) },
                             onCloseInfoPane = { /* handle close */ }
@@ -288,7 +288,7 @@ private fun AppsSplitPaneContent(
     loadingSummaryForApp: String?,
     onStartApp: (String) -> Unit,
     onStopApp: (String) -> Unit,
-    onShowUpgradeSummary: (String) -> Unit,
+    onShowUpgradeSummary: (String,String) -> Unit,
     onShowRollbackDialog: (String) -> Unit,
     onAppInfoClick: (Apps.AppQueryResponse) -> Unit,
     onCloseInfoPane: () -> Unit
@@ -370,7 +370,7 @@ private fun AppsContent(
     loadingSummaryForApp: String?,
     onStartApp: (String) -> Unit,
     onStopApp: (String) -> Unit,
-    onShowUpgradeSummary: (String) -> Unit,
+    onShowUpgradeSummary: (String,String) -> Unit,
     onRollbackClick: (String) -> Unit,
     onAppInfoClick: (Apps.AppQueryResponse) -> Unit,
     selectedApp: Apps.AppQueryResponse?
@@ -432,7 +432,7 @@ private fun AppsContent(
                         isLoadingSummary = app.name == loadingSummaryForApp,
                         onStartApp = onStartApp,
                         onStopApp = onStopApp,
-                        onShowUpgradeSummary = onShowUpgradeSummary,
+                        onShowUpgradeSummary = { appName, currentVersion -> onShowUpgradeSummary(appName,currentVersion)},
                         onRollbackClick = { onRollbackClick(it) },
                         onAppInfoClick = onAppInfoClick,
                         isSelected = selectedApp?.id == app.id
@@ -454,7 +454,7 @@ private fun ServiceCard(
     isLoadingSummary: Boolean,
     onStartApp: (String) -> Unit,
     onStopApp: (String) -> Unit,
-    onShowUpgradeSummary: (String) -> Unit,
+    onShowUpgradeSummary: (String,String) -> Unit,
     onRollbackClick: (String) -> Unit,
     onAppInfoClick: (Apps.AppQueryResponse) -> Unit,
     isSelected: Boolean = false
@@ -617,7 +617,7 @@ private fun ServiceCard(
                             fontWeight = FontWeight.Medium
                         )
                         UpgradeButton(
-                            onClick = { onShowUpgradeSummary(app.name) },
+                            onClick = { onShowUpgradeSummary(app.name,app.humanVersion!!) },
                             isLoading = isLoadingSummary
                         )
                     }

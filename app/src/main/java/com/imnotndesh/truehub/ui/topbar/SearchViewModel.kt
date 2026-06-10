@@ -223,7 +223,7 @@ class SearchViewModel(
                             SearchResult.PoolResult(
                                 id = "pool_${pool.id}",
                                 title = pool.name,
-                                subtitle = "Pool • ${formatBytes(pool.size)}",
+                                subtitle = "Pool • ${formatBytes(pool.size!!)}",
                                 relevanceScore = relevance,
                                 pool = pool
                             )
