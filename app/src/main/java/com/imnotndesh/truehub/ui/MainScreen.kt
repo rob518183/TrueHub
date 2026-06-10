@@ -289,8 +289,7 @@ private fun TrueHubNavGraph(
                     AppDataHolder.selectedApp = app
                     navController.navigate(Screen.AppDetailsScreen.route)
                 },
-                onNavigateToUpgrade = { appName,currentVersion ->
-                    AppDataHolder.appCurrentVersion = currentVersion
+                onNavigateToUpgrade = { appName ->
                     navController.navigate(Screen.AppUpgrade.createRoute(appName)) },
                 onNavigateToRollback = { navController.navigate(Screen.RollbackVersion.createRoute(it)) },
                 onNavigateToMarketplace = { navController.navigate(Screen.Marketplace.route) }
@@ -379,11 +378,13 @@ private fun TrueHubNavGraph(
             { type = NavType.StringType })
         ) { backStackEntry ->
             val appName = backStackEntry.arguments?.getString("appName") ?: ""
-            val currentVersion = AppDataHolder.appCurrentVersion
             val context = LocalContext.current
             val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val uiState by viewModel.uiState.collectAsState()
             LaunchedEffect(appName) { viewModel.clearUpgradeSummary(); viewModel.loadUpgradeSummary(appName) }
+            val currentApp = uiState.apps.find { it.name == appName }
+            val currentVersion = currentApp?.version ?: "Unknown"
+            val currentHumanVersion = currentApp?.metadata?.appVersion
             val summary = uiState.upgradeSummaryResult
             val isLoading = (uiState.isLoadingUpgradeSummaryForApp == appName) && (summary == null)
             if (isLoading) {
@@ -391,8 +392,9 @@ private fun TrueHubNavGraph(
             } else if (summary != null) {
                 UpgradeSummaryScreen(
                     appName = appName,
-                    appCurrentVersion = currentVersion,
                     summary = summary,
+                    currentVersion = currentVersion,
+                    currentHumanVersion = currentHumanVersion,
                     manager = manager,
                     onConfirmUpgrade = { version, backup ->
                         viewModel.upgradeApp(appName, context, version, backup)

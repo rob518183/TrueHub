@@ -42,12 +42,14 @@ import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun UpgradeSummaryScreen(
     appName: String,
-    appCurrentVersion: String,
+    currentHumanVersion: String? = null,
+    currentVersion: String,
     summary: Apps.AppUpgradeSummaryResult,
     manager: TrueNASApiManager,
     onConfirmUpgrade: (String, Boolean) -> Unit,
@@ -63,7 +65,7 @@ fun UpgradeSummaryScreen(
 
     LaunchedEffect(isDone) {
         if (isDone) {
-            kotlinx.coroutines.delay(1800)
+            kotlinx.coroutines.delay(1800.milliseconds)
             onNavigateBack()
         }
     }
@@ -105,8 +107,9 @@ fun UpgradeSummaryScreen(
             } else {
                 ReviewView(
                     summary = summary,
-                    currentVersion = appCurrentVersion,
-                    onConfirmUpgrade = {selectedVersion, backup -> onConfirmUpgrade(selectedVersion,backup)},
+                    currentVersion = currentVersion,
+                    currentHumanVersion = currentHumanVersion,
+                    onConfirmUpgrade = {selectedVersion, backup -> onConfirmUpgrade(selectedVersion, backup)},
                     onNavigateBack = onNavigateBack,
                     modifier = Modifier
                         .fillMaxSize()
@@ -277,8 +280,9 @@ private fun UpgradingView(
 @Composable
 private fun ReviewView(
     summary: Apps.AppUpgradeSummaryResult,
-    currentVersion : String,
     onConfirmUpgrade: (String, Boolean) -> Unit,
+    currentVersion: String,
+    currentHumanVersion: String? = null,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -287,13 +291,14 @@ private fun ReviewView(
 
     val defaultVersion = summary.upgrade_version
     var selectedVersion by remember { mutableStateOf(defaultVersion) }
+    val displayCurrentVersion = currentHumanVersion ?: currentVersion
 
     var takeBackup by remember { mutableStateOf(true) }
 
 
     val selectedHumanVersion = remember(selectedVersion) {
-        availableVersions.find { it.version == selectedVersion }?.human_version
-            ?: summary.upgrade_human_version
+        availableVersions.find { it.version == selectedVersion }?.version
+            ?: summary.latest_version
     }
 
     Column(
@@ -330,7 +335,7 @@ private fun ReviewView(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
                             Text(
-                                text = currentVersion,
+                                text = displayCurrentVersion,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
