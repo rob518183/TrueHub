@@ -29,6 +29,12 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import com.imnotndesh.truehub.data.ApiResult
+import com.imnotndesh.truehub.data.TrueNASClient
+import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.data.helpers.MultiAccountPrefs
+import com.imnotndesh.truehub.data.models.Apps
+import com.imnotndesh.truehub.data.models.Config
 
 class AppUpdatesWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = AppUpdatesWidget()
@@ -37,8 +43,32 @@ class AppUpdatesWidgetReceiver : GlanceAppWidgetReceiver() {
 class AppUpdatesWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val servers = MultiAccountPrefs.getServers(context)
+        val activeServer = servers.firstOrNull()
 
-        val mockUpgradableApps = listOf("Plex", "Nextcloud", "AdGuard Home")
+        var upgradableApps = emptyList<Apps.AppQueryResponse>()
+
+        if (activeServer != null) {
+            try {
+                val client =
+                    TrueNASClient(Config.ClientConfig(activeServer.serverUrl, activeServer.insecure))
+                client.connect()
+                val manager = TrueNASApiManager(client, context)
+                val result = manager.apps.getInstalledAppsWithResult()
+                if (result is ApiResult.Success) {
+                    upgradableApps = result.data.filter { it.upgrade_available }
+                }
+                client.disconnect()
+            } catch (e: Exception) {
+                // Log error
+            }
+        }
+        /* TODO:
+            1. Introduce cache to apps page
+            2. Force user to open the app in order for the widget to work
+            3. Restructure how the worker works so it also pre-caches the app information that we need. not just showing alerts only
+         */
+
 
         provideContent {
             GlanceTheme {
@@ -49,18 +79,13 @@ class AppUpdatesWidget : GlanceAppWidget() {
                         .cornerRadius(24.dp)
                         .background(GlanceTheme.colors.surfaceVariant)
                 ) {
-                    Text(
-                        text = "Updates Available (${mockUpgradableApps.size})",
-                        style = TextStyle(
-                            color = GlanceTheme.colors.onSurfaceVariant,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        ),
-                        modifier = GlanceModifier.padding(bottom = 12.dp)
-                    )
-
-                    mockUpgradableApps.forEach { appName ->
-                        AppUpdateRow(appName)
+                    if (upgradableApps.isEmpty()) {
+                        Text("No updates available")
+                    } else {
+                        Text("Updates Available (${upgradableApps.size})")
+                        upgradableApps.forEach { app ->
+                            AppUpdateRow(app.metadata?.title ?: app.name)
+                        }
                     }
                 }
             }
