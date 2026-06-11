@@ -43,9 +43,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Info
@@ -450,7 +452,28 @@ fun AppsScreen(
                                         )
                                     }
 
-                                    // Cancel is deliberately placed last so it appears closest to the main FAB
+                                    if (selectedAppIds.size < filteredApps.size) {
+                                        FloatingActionButtonMenuItem(
+                                            onClick = {
+                                                fabMenuExpanded = false
+                                                selectedAppIds = filteredApps.map { it.id }.toSet()
+                                            },
+                                            icon = { Icon(Icons.Default.DoneAll, contentDescription = null) },
+                                            text = { Text("Select All") }
+                                        )
+                                    }
+
+                                    if (selectedAppIds.isNotEmpty()) {
+                                        FloatingActionButtonMenuItem(
+                                            onClick = {
+                                                fabMenuExpanded = false
+                                                selectedAppIds = emptySet()
+                                            },
+                                            icon = { Icon(Icons.Default.ClearAll, contentDescription = null) },
+                                            text = { Text("Clear Selection") }
+                                        )
+                                    }
+
                                     FloatingActionButtonMenuItem(
                                         onClick = {
                                             fabMenuExpanded = false
