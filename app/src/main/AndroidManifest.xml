@@ -41,7 +41,7 @@
             android:exported="false" />
 
         <receiver
-            android:name=".ui.widgets.AppUpdatesWidgetReceiver"
+            android:name=".ui.widgets.AppsUpdateWidgetReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

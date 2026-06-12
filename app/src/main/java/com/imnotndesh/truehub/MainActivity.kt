@@ -87,10 +87,10 @@ fun MainActivityContent(
     LaunchedEffect(Unit) {
         viewModel.initializeApp(context)
     }
-
     LaunchedEffect(manager) {
         manager?.let {
             viewModel.startPeriodicPing(context)
+            viewModel.startPeriodicAppSync(context)
         }
     }
     LaunchedEffect(Unit) {

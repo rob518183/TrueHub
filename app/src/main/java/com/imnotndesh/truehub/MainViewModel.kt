@@ -13,6 +13,7 @@ import com.imnotndesh.truehub.data.models.Config.ClientConfig
 import com.imnotndesh.truehub.data.models.LoginMethod
 import com.imnotndesh.truehub.data.models.SavedAccount
 import com.imnotndesh.truehub.data.models.SavedServer
+import com.imnotndesh.truehub.data.workers.AppsRefreshWorker
 import com.imnotndesh.truehub.ui.Screen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -93,6 +94,10 @@ class MainViewModel : ViewModel() {
 
     fun updateManager(newManager: TrueNASApiManager) {
         _manager.value = newManager
+    }
+    fun startPeriodicAppSync(context: Context) {
+        AppsRefreshWorker.scheduleRecurring(context)
+        AppsRefreshWorker.scheduleImmediate(context)
     }
 
     fun startPeriodicPing(context: Context) {
