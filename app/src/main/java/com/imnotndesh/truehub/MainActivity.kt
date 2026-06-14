@@ -1,9 +1,11 @@
 package com.imnotndesh.truehub
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -18,7 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -44,14 +47,19 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
+    // Use activity-level viewModels() delegate so we can access the VM
+    // both inside and outside setContent — this is the standard pattern.
+    private val viewModel: MainViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Handle widget deep-link on cold start
+        handleWidgetIntent(intent)
+
         setContent {
             var currentTheme by rememberSaveable { mutableStateOf(Prefs.loadTheme(this)) }
-            val viewModel: MainViewModel = viewModel()
-
             TrueHubAppTheme(theme = currentTheme) {
                 MainActivityContent(
                     viewModel = viewModel,
@@ -61,6 +69,20 @@ class MainActivity : ComponentActivity() {
                     }
                 )
             }
+        }
+    }
+
+    // Called when the app is already running and the widget is tapped again.
+    // onNewIntent is a plain lifecycle method — NOT @Composable.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent) // update the stored intent
+        handleWidgetIntent(intent)
+    }
+
+    private fun handleWidgetIntent(intent: Intent?) {
+        if (intent?.action == "com.imnotndesh.truehub.OPEN_APPS") {
+            viewModel.requestNavigateTo(Screen.Apps.route)
         }
     }
 
@@ -155,11 +177,30 @@ private fun AppNavigation(
     currentTheme: AppTheme,
     onThemeChanged: (AppTheme) -> Unit,
     startRoute: String,
-    navController: androidx.navigation.NavHostController,
+    navController: NavHostController,
     viewModel: MainViewModel,
     manager: com.imnotndesh.truehub.data.api.TrueNASApiManager?
 ) {
     val context = LocalContext.current
+
+    // Consume the pending navigation signal from the widget.
+    // When the ViewModel has a route queued (e.g. "apps" from the widget tap),
+    // we navigate to Screen.Main first (so the bottom nav is visible), then
+    // post a second navigate inside MainScreen to the Apps tab.
+    // The simplest correct approach: navigate to Main, and pass the deep route
+    // via the ViewModel so MainScreen can pick it up.
+    val pendingNav by viewModel.pendingNavigation.collectAsState()
+    LaunchedEffect(pendingNav) {
+        val route = pendingNav ?: return@LaunchedEffect
+        // If we're not already on Main, go there first
+        if (navController.currentDestination?.route != Screen.Main.route) {
+            navController.navigate(Screen.Main.route) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+            }
+        }
+        // Don't clear yet — MainScreen will consume it to switch its inner tab
+    }
 
     NavHost(
         navController = navController,
@@ -207,7 +248,11 @@ private fun AppNavigation(
 
         composable(Screen.Main.route) {
             manager?.let { validManager ->
-                MainScreen(validManager, navController)
+                MainScreen(
+                    manager = validManager,
+                    rootNavController = navController,
+                    viewModel = viewModel
+                )
             } ?: run {
                 LaunchedEffect(Unit) {
                     ToastManager.showError("Session invalid. Please log in again.")
@@ -246,15 +291,11 @@ private fun AppNavigation(
             manager?.let { validManager ->
                 AboutScreen(
                     manager = validManager,
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
+                    onNavigateBack = { navController.popBackStack() }
                 )
             } ?: run {
                 LoadingScreen("Redirecting...")
-                LaunchedEffect(Unit) {
-                    navController.popBackStack()
-                }
+                LaunchedEffect(Unit) { navController.popBackStack() }
             }
         }
 
@@ -262,27 +303,19 @@ private fun AppNavigation(
             manager?.let { validManager ->
                 LicensesScreen(
                     manager = validManager,
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
+                    onNavigateBack = { navController.popBackStack() }
                 )
             } ?: run {
                 LoadingScreen("Redirecting...")
-                LaunchedEffect(Unit) {
-                    navController.popBackStack()
-                }
+                LaunchedEffect(Unit) { navController.popBackStack() }
             }
         }
 
         composable(Screen.Theme.route) {
             ThemeScreen(
                 currentTheme = currentTheme,
-                onThemeSelected = { newTheme ->
-                    onThemeChanged(newTheme)
-                },
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
+                onThemeSelected = { newTheme -> onThemeChanged(newTheme) },
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

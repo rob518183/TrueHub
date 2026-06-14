@@ -41,7 +41,16 @@ class MainViewModel : ViewModel() {
     val manager: StateFlow<TrueNASApiManager?> = _manager.asStateFlow()
 
     private var hasInitialized = false
+    private val _pendingNavigation = MutableStateFlow<String?>(null)
+    val pendingNavigation: StateFlow<String?> = _pendingNavigation.asStateFlow()
 
+    fun requestNavigateTo(route: String) {
+        _pendingNavigation.value = route
+    }
+
+    fun clearPendingNavigation() {
+        _pendingNavigation.value = null
+    }
     fun initializeApp(context: Context) {
         if (hasInitialized) return
         hasInitialized = true

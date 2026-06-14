@@ -52,6 +52,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.imnotndesh.truehub.MainViewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
@@ -89,7 +90,11 @@ private data class NavItem(
 )
 
 @Composable
-fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
+fun MainScreen(
+    manager: TrueNASApiManager,
+    rootNavController: NavController,
+    viewModel: MainViewModel
+) {
     val navController = rememberNavController()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -118,7 +123,17 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
+    val pendingNav by viewModel.pendingNavigation.collectAsState()
+    LaunchedEffect(pendingNav) {
+        if (pendingNav == Screen.Apps.route) {
+            navController.navigate(Screen.Apps.route) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            viewModel.clearPendingNavigation()
+        }
+    }
     if (isLandscape) {
         Row {
             NavigationRail(
