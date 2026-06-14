@@ -20,20 +20,33 @@ import com.imnotndesh.truehub.data.helpers.TrueHubLogger
 import com.imnotndesh.truehub.data.helpers.WidgetDataStore
 import com.imnotndesh.truehub.data.models.Config
 import com.imnotndesh.truehub.data.models.LoginMethod
+import com.imnotndesh.truehub.data.workers.AppsRefreshWorker.Companion.scheduleImmediate
+import com.imnotndesh.truehub.data.workers.AppsRefreshWorker.Companion.scheduleRecurring
 import com.imnotndesh.truehub.ui.utils.AppCache
 import com.imnotndesh.truehub.ui.widgets.AppsUpdateWidgetUpdater
+import com.imnotndesh.truehub.ui.widgets.pools.PoolsWidgetUpdater
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
+/**
+ * Background worker that refreshes both the Apps widget cache and the Pools
+ * widget cache in a single authenticated session.
+ *
+ * Call sites are unchanged — [scheduleRecurring] and [scheduleImmediate] have
+ * the same signatures and work names as before. The only internal change is
+ * that pools are fetched in parallel with apps, stored via
+ * [WidgetDataStore.saveAppsAndPools], and [PoolsWidgetUpdater.update] is
+ * called so the pools widget refreshes alongside the apps widget.
+ */
 class AppsRefreshWorker(
     private val context: Context,
     workerParams: WorkerParameters
 ) : CoroutineWorker(context, workerParams) {
 
     companion object {
-        const val WORK_NAME = "TrueHub_Apps_Refresh"
-        // Triggered once from MainActivity after first successful login
+        const val WORK_NAME          = "TrueHub_Apps_Refresh"
         const val ONE_TIME_WORK_NAME = "TrueHub_Apps_Refresh_Once"
 
         fun scheduleRecurring(context: Context) {
@@ -84,18 +97,18 @@ class AppsRefreshWorker(
             val account = MultiAccountPrefs.getAccount(context, accountId)
                 ?: return@withContext Result.failure()
 
-            client = TrueNASClient(
-                Config.ClientConfig(
+            client = TrueNASClient(Config.ClientConfig(
                 serverUrl = server.serverUrl,
                 insecure  = server.insecure
             ))
             if (!client.connect()) return@withContext Result.retry()
 
             val manager = TrueNASApiManager(client, context)
-            val token = MultiAccountPrefs.getTokenForLastUsed(context)
+
+            // ── Auth (unchanged logic) ────────────────────────────────────────
+            val token  = MultiAccountPrefs.getTokenForLastUsed(context)
             val authed = if (token != null) {
-                val result = manager.auth.loginWithTokenAndResult(token)
-                result is ApiResult.Success
+                (manager.auth.loginWithTokenAndResult(token) is ApiResult.Success)
             } else false
 
             if (!authed) {
@@ -113,12 +126,44 @@ class AppsRefreshWorker(
                 if (loginResult is ApiResult.Error) return@withContext Result.retry()
             }
 
-            val result = manager.apps.getInstalledAppsWithResult()
-            if (result is ApiResult.Success) {
-                WidgetDataStore.saveUpgradableApps(context, result.data)
-                AppCache.updateApps(result.data)
-                AppsUpdateWidgetUpdater.update(context)
+            // ── Fetch apps + pools concurrently ──────────────────────────────
+            val appsDeferred  = async { manager.apps.getInstalledAppsWithResult() }
+            val poolsDeferred = async { manager.system.getPoolsWithResult() }
+
+            val appsResult  = appsDeferred.await()
+            val poolsResult = poolsDeferred.await()
+
+            // ── Persist & update in-memory cache ─────────────────────────────
+            val apps  = if (appsResult  is ApiResult.Success) appsResult.data  else null
+            val pools = if (poolsResult is ApiResult.Success) poolsResult.data else null
+
+            when {
+                // Both succeeded — use the atomic combined write
+                apps != null && pools != null -> {
+                    WidgetDataStore.saveAppsAndPools(context, apps, pools)
+                    AppCache.updateApps(apps)
+                    AppCache.updatePools(pools)
+                }
+                // Apps only
+                apps != null -> {
+                    WidgetDataStore.saveUpgradableApps(context, apps)
+                    AppCache.updateApps(apps)
+                }
+                // Pools only
+                pools != null -> {
+                    WidgetDataStore.savePools(context, pools)
+                    AppCache.updatePools(pools)
+                }
+                // Nothing succeeded — retry
+                else -> {
+                    client.disconnect()
+                    return@withContext if (runAttemptCount < 3) Result.retry() else Result.failure()
+                }
             }
+
+            // ── Trigger widget redraws ────────────────────────────────────────
+            if (apps  != null) AppsUpdateWidgetUpdater.update(context)
+            if (pools != null) PoolsWidgetUpdater.update(context)
 
             client.disconnect()
             Result.success()
