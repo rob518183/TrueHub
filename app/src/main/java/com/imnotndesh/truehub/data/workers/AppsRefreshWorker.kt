@@ -16,6 +16,7 @@ import com.imnotndesh.truehub.data.TrueNASClient
 import com.imnotndesh.truehub.data.api.AuthService
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.MultiAccountPrefs
+import com.imnotndesh.truehub.data.helpers.QuickLaunchSync
 import com.imnotndesh.truehub.data.helpers.TrueHubLogger
 import com.imnotndesh.truehub.data.helpers.WidgetDataStore
 import com.imnotndesh.truehub.data.models.Config
@@ -105,7 +106,6 @@ class AppsRefreshWorker(
 
             val manager = TrueNASApiManager(client, context)
 
-            // ── Auth (unchanged logic) ────────────────────────────────────────
             val token  = MultiAccountPrefs.getTokenForLastUsed(context)
             val authed = if (token != null) {
                 (manager.auth.loginWithTokenAndResult(token) is ApiResult.Success)
@@ -133,28 +133,24 @@ class AppsRefreshWorker(
             val appsResult  = appsDeferred.await()
             val poolsResult = poolsDeferred.await()
 
-            // ── Persist & update in-memory cache ─────────────────────────────
             val apps  = if (appsResult  is ApiResult.Success) appsResult.data  else null
             val pools = if (poolsResult is ApiResult.Success) poolsResult.data else null
 
             when {
-                // Both succeeded — use the atomic combined write
                 apps != null && pools != null -> {
                     WidgetDataStore.saveAppsAndPools(context, apps, pools)
                     AppCache.updateApps(apps)
                     AppCache.updatePools(pools)
                 }
-                // Apps only
                 apps != null -> {
                     WidgetDataStore.saveUpgradableApps(context, apps)
                     AppCache.updateApps(apps)
+                    QuickLaunchSync.refresh(context, apps)
                 }
-                // Pools only
                 pools != null -> {
                     WidgetDataStore.savePools(context, pools)
                     AppCache.updatePools(pools)
                 }
-                // Nothing succeeded — retry
                 else -> {
                     client.disconnect()
                     return@withContext if (runAttemptCount < 3) Result.retry() else Result.failure()

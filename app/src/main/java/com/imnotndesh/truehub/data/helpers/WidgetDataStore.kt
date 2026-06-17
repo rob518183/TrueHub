@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.imnotndesh.truehub.data.models.Apps
+import com.imnotndesh.truehub.data.models.QuickLaunchApp
 import com.imnotndesh.truehub.data.models.System
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -35,6 +36,32 @@ object WidgetDataStore {
 
 
     private val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+
+    private val QUICK_LAUNCH_APPS_KEY = stringPreferencesKey("widget_quick_launch_apps_json")
+
+    private val quickLaunchAdapter = moshi.adapter<List<QuickLaunchApp>>(
+        Types.newParameterizedType(List::class.java, QuickLaunchApp::class.java)
+    )
+
+    fun quickLaunchAppsFlow(context: Context): Flow<List<QuickLaunchApp>> =
+        context.dataStore.data
+            .map { prefs ->
+                val json = prefs[QUICK_LAUNCH_APPS_KEY] ?: return@map emptyList()
+                runCatching { quickLaunchAdapter.fromJson(json) ?: emptyList() }.getOrDefault(emptyList())
+            }
+            .catch { emit(emptyList()) }
+
+    suspend fun getQuickLaunchApps(context: Context): List<QuickLaunchApp> {
+        val prefs = context.dataStore.data.first()
+        val json = prefs[QUICK_LAUNCH_APPS_KEY] ?: return emptyList()
+        return runCatching { quickLaunchAdapter.fromJson(json) ?: emptyList() }.getOrDefault(emptyList())
+    }
+
+    suspend fun saveQuickLaunchApps(context: Context, apps: List<QuickLaunchApp>) {
+        context.dataStore.edit { prefs ->
+            prefs[QUICK_LAUNCH_APPS_KEY] = quickLaunchAdapter.toJson(apps)
+        }
+    }
 
     private val appsAdapter = moshi.adapter<List<Apps.AppQueryResponse>>(
         Types.newParameterizedType(List::class.java, Apps.AppQueryResponse::class.java)
