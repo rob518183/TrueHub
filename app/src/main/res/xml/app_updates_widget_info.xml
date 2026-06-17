@@ -4,4 +4,7 @@
     android:minHeight="110dp"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/glance_default_placement"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="home_screen"
+    android:description="@string/AppUpdateWidgetDescription"
+    android:previewImage="@drawable/appupdatespreview"
+    />

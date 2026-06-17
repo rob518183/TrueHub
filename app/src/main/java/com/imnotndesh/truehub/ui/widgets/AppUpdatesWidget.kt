@@ -17,6 +17,8 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
+import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.itemsIndexed
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -48,7 +50,6 @@ class AppsUpdateWidgetReceiver : GlanceAppWidgetReceiver() {
 
 class AppsUpdateWidget : GlanceAppWidget() {
 
-    // Respond to every unique size the launcher reports
     override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -77,7 +78,6 @@ private fun openAppsIntent(context: Context): Intent =
         flags  = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
     }
 
-/** Opens the upgrade bottom-sheet for a specific app. */
 private fun upgradeIntent(context: Context, appName: String): Intent =
     Intent(context, UpgradeBottomSheetActivity::class.java).apply {
         putExtra("EXTRA_APP_NAME", appName)
@@ -98,24 +98,24 @@ private fun SmallWidget(upgradableApps: List<Apps.AppQueryResponse>, context: Co
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalAlignment   = Alignment.CenterVertically,
-            modifier = GlanceModifier.padding(8.dp)
+            modifier = GlanceModifier.padding(6.dp)
         ) {
             Text(
                 text  = if (upgradableApps.isEmpty()) "✓" else upgradableApps.size.toString(),
                 style = TextStyle(
                     fontWeight = FontWeight.Bold,
-                    fontSize   = 28.sp,
+                    fontSize   = 26.sp,
                     color      = if (upgradableApps.isEmpty())
                         GlanceTheme.colors.onSurfaceVariant
                     else
                         GlanceTheme.colors.primary
                 )
             )
-            Spacer(GlanceModifier.height(4.dp))
+            Spacer(GlanceModifier.height(2.dp))
             Text(
                 text  = if (upgradableApps.isEmpty()) "No updates" else "Updates",
                 style = TextStyle(
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     color    = GlanceTheme.colors.onSurfaceVariant
                 )
             )
@@ -131,18 +131,18 @@ private fun MediumWidget(upgradableApps: List<Apps.AppQueryResponse>, context: C
             .fillMaxSize()
             .background(GlanceTheme.colors.widgetBackground)
             .cornerRadius(20.dp)
-            .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 12.dp)
+            .padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 8.dp)
     ) {
         // Header
         Row(
-            modifier          = GlanceModifier.fillMaxWidth().padding(bottom = 8.dp),
+            modifier          = GlanceModifier.fillMaxWidth().padding(bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text  = "App Updates",
                 style = TextStyle(
                     fontWeight = FontWeight.Bold,
-                    fontSize   = 14.sp,
+                    fontSize   = 13.sp,
                     color      = GlanceTheme.colors.primary
                 ),
                 modifier = GlanceModifier.defaultWeight()
@@ -167,24 +167,19 @@ private fun MediumWidget(upgradableApps: List<Apps.AppQueryResponse>, context: C
                 )
             }
         } else {
-            // Show up to 3 rows in 2×2
-            upgradableApps.take(3).forEach { app ->
-                CompactAppRow(app = app, context = context)
+            LazyColumn(
+                modifier = GlanceModifier.defaultWeight().fillMaxWidth()
+            ) {
+                itemsIndexed(upgradableApps) { index, app ->
+                    Column(modifier = GlanceModifier.fillMaxWidth()) {
+                        CompactAppRow(app = app, context = context)
+                        if (index < upgradableApps.lastIndex) {
+                            Spacer(GlanceModifier.height(4.dp)) // Spacing between rows
+                        }
+                    }
+                }
             }
-            if (upgradableApps.size > 3) {
-                Spacer(GlanceModifier.height(4.dp))
-                Text(
-                    text  = "+${upgradableApps.size - 3} more",
-                    style = TextStyle(
-                        fontSize = 11.sp,
-                        color    = GlanceTheme.colors.onSurfaceVariant
-                    )
-                )
-            }
-            Spacer(GlanceModifier.defaultWeight())
         }
-
-
     }
 }
 
@@ -196,10 +191,10 @@ private fun LargeWidget(upgradableApps: List<Apps.AppQueryResponse>, context: Co
             .fillMaxSize()
             .background(GlanceTheme.colors.widgetBackground)
             .cornerRadius(20.dp)
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp)
+            .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 8.dp)
     ) {
         Row(
-            modifier          = GlanceModifier.fillMaxWidth().padding(bottom = 12.dp),
+            modifier          = GlanceModifier.fillMaxWidth().padding(bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = GlanceModifier.defaultWeight()) {
@@ -207,7 +202,7 @@ private fun LargeWidget(upgradableApps: List<Apps.AppQueryResponse>, context: Co
                     text  = "TrueNAS Updates",
                     style = TextStyle(
                         fontWeight = FontWeight.Bold,
-                        fontSize   = 16.sp,
+                        fontSize   = 15.sp,
                         color      = GlanceTheme.colors.primary
                     )
                 )
@@ -215,7 +210,7 @@ private fun LargeWidget(upgradableApps: List<Apps.AppQueryResponse>, context: Co
                     text  = if (upgradableApps.isEmpty()) "No updates available"
                     else "${upgradableApps.size} app(s) need attention",
                     style = TextStyle(
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color    = GlanceTheme.colors.onSurfaceVariant
                     )
                 )
@@ -225,7 +220,7 @@ private fun LargeWidget(upgradableApps: List<Apps.AppQueryResponse>, context: Co
             }
         }
 
-        Spacer(GlanceModifier.height(8.dp))
+        Spacer(GlanceModifier.height(4.dp))
 
         if (upgradableApps.isEmpty()) {
             Box(
@@ -235,26 +230,22 @@ private fun LargeWidget(upgradableApps: List<Apps.AppQueryResponse>, context: Co
                 Text(
                     text  = "No updates available",
                     style = TextStyle(
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         color    = GlanceTheme.colors.onSurfaceVariant
                     )
                 )
             }
         } else {
-            Column(modifier = GlanceModifier.defaultWeight()) {
-                upgradableApps.take(6).forEach { app ->
-                    LargeAppRow(app = app, context = context)
-                    Spacer(GlanceModifier.height(6.dp))
-                }
-                if (upgradableApps.size > 6) {
-                    Text(
-                        text  = "+${upgradableApps.size - 6} more updates available",
-                        style = TextStyle(
-                            fontSize = 11.sp,
-                            color    = GlanceTheme.colors.onSurfaceVariant
-                        ),
-                        modifier = GlanceModifier.padding(top = 4.dp)
-                    )
+            LazyColumn(
+                modifier = GlanceModifier.defaultWeight().fillMaxWidth()
+            ) {
+                itemsIndexed(upgradableApps) { index, app ->
+                    Column(modifier = GlanceModifier.fillMaxWidth()) {
+                        LargeAppRow(app = app, context = context)
+                        if (index < upgradableApps.lastIndex) {
+                            Spacer(GlanceModifier.height(6.dp)) // Spacing between rows
+                        }
+                    }
                 }
             }
         }
@@ -263,41 +254,40 @@ private fun LargeWidget(upgradableApps: List<Apps.AppQueryResponse>, context: Co
 
 // ── Shared sub-composables ────────────────────────────────────────────────────
 
-/** A small rounded pill showing the pending count. */
 @Composable
 private fun BadgePill(count: Int) {
     Box(
         modifier         = GlanceModifier
             .background(GlanceTheme.colors.primaryContainer)
             .cornerRadius(100.dp)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text  = count.toString(),
             style = TextStyle(
                 fontWeight = FontWeight.Bold,
-                fontSize   = 12.sp,
+                fontSize   = 11.sp,
                 color      = GlanceTheme.colors.onPrimaryContainer
             )
         )
     }
 }
 
-/** Compact single-line row used in 2×2. Tapping opens the upgrade sheet. */
+/** Compact single-line row. Added horizontal padding, vertical item padding. */
 @Composable
 private fun CompactAppRow(app: Apps.AppQueryResponse, context: Context) {
     Row(
         modifier = GlanceModifier
             .fillMaxWidth()
-            .padding(vertical = 5.dp)
+            .padding(horizontal = 4.dp, vertical = 5.dp) // Enhanced row component internal bounds
             .clickable(actionStartActivity(upgradeIntent(context, app.name))),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text     = app.metadata?.title ?: app.name,
             style    = TextStyle(
-                fontSize   = 13.sp,
+                fontSize   = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color      = GlanceTheme.colors.onSurface
             ),
@@ -308,14 +298,14 @@ private fun CompactAppRow(app: Apps.AppQueryResponse, context: Context) {
         Box(
             modifier         = GlanceModifier
                 .background(GlanceTheme.colors.primaryContainer)
-                .cornerRadius(8.dp)
-                .padding(horizontal = 8.dp, vertical = 3.dp),
+                .cornerRadius(6.dp)
+                .padding(horizontal = 8.dp, vertical = 3.dp), // Increased interior pill padding
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text  = app.latestVersion ?: "↑",
                 style = TextStyle(
-                    fontSize   = 11.sp,
+                    fontSize   = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color      = GlanceTheme.colors.onPrimaryContainer
                 ),
@@ -325,15 +315,15 @@ private fun CompactAppRow(app: Apps.AppQueryResponse, context: Context) {
     }
 }
 
-/** Larger two-line row used in the large widget. Tapping opens the upgrade sheet. */
+/** Larger card row. Augmented internal vertical and horizontal cell boundaries. */
 @Composable
 private fun LargeAppRow(app: Apps.AppQueryResponse, context: Context) {
     Row(
         modifier = GlanceModifier
             .fillMaxWidth()
             .background(GlanceTheme.colors.surface)
-            .cornerRadius(12.dp)
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .cornerRadius(10.dp)
+            .padding(horizontal = 14.dp, vertical = 10.dp)
             .clickable(actionStartActivity(upgradeIntent(context, app.name))),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -341,7 +331,7 @@ private fun LargeAppRow(app: Apps.AppQueryResponse, context: Context) {
             Text(
                 text     = app.metadata?.title ?: app.name,
                 style    = TextStyle(
-                    fontSize   = 14.sp,
+                    fontSize   = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color      = GlanceTheme.colors.onSurface
                 ),
@@ -352,7 +342,7 @@ private fun LargeAppRow(app: Apps.AppQueryResponse, context: Context) {
                 Text(
                     text  = "v${app.version} → ${app.latestVersion ?: "latest"}",
                     style = TextStyle(
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color    = GlanceTheme.colors.onSurfaceVariant
                     ),
                     maxLines = 1
@@ -363,14 +353,14 @@ private fun LargeAppRow(app: Apps.AppQueryResponse, context: Context) {
         Box(
             modifier         = GlanceModifier
                 .background(GlanceTheme.colors.primaryContainer)
-                .cornerRadius(8.dp)
+                .cornerRadius(6.dp)
                 .padding(horizontal = 10.dp, vertical = 5.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text  = "Update",
                 style = TextStyle(
-                    fontSize   = 11.sp,
+                    fontSize   = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color      = GlanceTheme.colors.onPrimaryContainer
                 )

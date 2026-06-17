@@ -1,6 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">TrueHub</string>
-    <string name="title_activity_setup_screen">SetupScreen</string>
     <string name="AppUpdateWidgetDescription">View pending TrueNAS app updates</string>
     <string name="PoolWidgetDescription">Monitor TrueNAS storage pool health</string>
 </resources>

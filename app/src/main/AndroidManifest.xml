@@ -42,6 +42,7 @@
 
         <receiver
             android:name=".ui.widgets.AppsUpdateWidgetReceiver"
+            android:label="App Updates"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -50,8 +51,10 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/app_updates_widget_info" />
         </receiver>
+
         <receiver
             android:name=".ui.widgets.pools.PoolsWidgetReceiver"
+            android:label="Storage Pools"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
