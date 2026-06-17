@@ -177,4 +177,60 @@ class SystemService(val manager: TrueNASApiManager){
             resultType = Any::class.java
         )
     }
+    suspend fun getSystemUpdateVersions(): ApiResult<List<System.UpdateAvailableVersionsResponse>>{
+        val result = Types.newParameterizedType(List::class.java, System.UpdateAvailableVersionsResponse::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.System.GET_SYSTEM_UPDATE_VERSIONS,
+            params = emptyList(),
+            resultType = result
+        )
+    }
+
+    suspend fun getSystemUpdatesConfig(): ApiResult<System.UpdateConfigResponse>{
+        return manager.callWithResult(
+            method = ApiMethods.System.GET_SYSTEM_UPDATE_CONFIG,
+            params = emptyList(),
+            resultType = System.UpdateConfigResponse::class.java
+        )
+    }
+
+    suspend fun downloadUpdate(train: String ?= "null", version: String ?= "null"): ApiResult<Boolean>{
+        return manager.callWithResult(
+            method = ApiMethods.System.DOWNLOAD_SYSTEM_UPDATE_VERSION,
+            params = listOf(train,version),
+            resultType = Boolean::class.java
+        )
+    }
+    suspend fun getUpdateProfiles(): ApiResult<System.UpdateProfileChoicesResponse>{
+        return manager.callWithResult(
+            method = ApiMethods.System.GET_UPDATE_PROFILES,
+            params = emptyList(),
+            resultType = System.UpdateProfileChoicesResponse::class.java
+        )
+    }
+    /** Updates system with cached update files **/
+    suspend fun runSystemUpdate(options: System.UpdateRunDefaults ?= System.UpdateRunDefaults()): ApiResult<Int>{
+        return manager.callWithResult(
+            method = ApiMethods.System.RUN_SYSTEM_UPDATES,
+            params = listOf(options),
+            resultType = Int::class.java
+        )
+    }
+
+    suspend fun getUpdateStatus(): ApiResult<System.UpdateStatusResponse>{
+        return manager.callWithResult(
+            method = ApiMethods.System.GET_UPDATE_STATUS,
+            params = emptyList(),
+            resultType = System.UpdateStatusResponse::class.java
+        )
+    }
+
+    /** Update the update profile / config **/
+    suspend fun updateSystemUpdateProfileConfig(autoCheck : Boolean ?= false, profile : String): ApiResult<System.ProfileUpdateResult>{
+        return manager.callWithResult(
+            method = ApiMethods.System.UPDATE_SYSTEM_UPDATE_CONFIGURATION,
+            params = listOf(autoCheck,profile),
+            resultType = System.ProfileUpdateResult::class.java
+        )
+    }
 }

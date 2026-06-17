@@ -379,6 +379,89 @@ object System {
         val level : String,
         val proactive_support: Boolean
     )
+    @JsonClass(generateAdapter = true)
+    data class UpdateAvailableVersionsResponse(
+        val train : String,
+        val version : UpdateAvailableVersionsVersions
+    )
 
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class UpdateAvailableVersionsVersions(
+        val version: String,
+        val manifest: Map<String, Any>,
+        val release_notes : String ?= null,
+        val release_notes_url : String
+    )
 
+    @JsonClass(generateAdapter = true)
+    data class UpdateConfigResponse(
+        val id : Int,
+        val autocheck: Boolean,
+        val profile: String
+    )
+    @JsonClass(generateAdapter = true)
+    data class UpdateDownloadParams(
+        val train : String = "null",
+        val version : String = "null"
+    )
+    @JsonClass(generateAdapter = true)
+    data class UpdateProfileChoicesResponse(
+        val name : String,
+        val footnote :String,
+        val description: String,
+        val available : Boolean
+    )
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class UpdateRunDefaults(
+        val dataset_name : String ?= "null",
+        val resume : Boolean ?= false,
+        val train :String ?= "null",
+        val version : String ?= "null",
+        val reboot : Boolean ?= false
+    )
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class UpdateStatusResponse(
+        val code :String,
+        val status : UpdateStatusOptions ?= null,
+        val error : UpdateStatusErrorOptions ?= null,
+        val upgrade_download_progress : UpdateDownloadProgress ?= null
+    )
+    @Suppress("PropertyName")
+    data class UpdateStatusOptions(
+        val current_version: CurrentVersionOptions ?= null,
+        val new_version : NewVersionOptions ?= null
+    )
+    @Suppress("PropertyName")
+    data class CurrentVersionOptions(
+        val train :String,
+        val profile : String,
+        val matches_profile: Boolean
+    )
+    @Suppress("PropertyName")
+    data class NewVersionOptions(
+        val version :String,
+        val manifest :String,
+        val release_notes :String ?= null,
+        val release_notes_url: String
+    )
+    @JsonClass(generateAdapter = true)
+    data class UpdateStatusErrorOptions(
+        val errname : String,
+        val reason : String
+    )
+    @JsonClass(generateAdapter = true)
+    data class UpdateDownloadProgress(
+        val percent : Int,
+        val description: String,
+        val version : String
+    )
+    @JsonClass(generateAdapter = true)
+    data class ProfileUpdateResult(
+        val id : Int,
+        val autocheck : Boolean,
+        val profile : String
+    )
 }

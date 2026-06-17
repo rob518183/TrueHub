@@ -30,6 +30,13 @@ object ApiMethods {
         const val SHUTDOWN = "system.shutdown"
         const val GET_DISK_DETAILS = "disk.query"
         const val GET_POOL_DETAILS = "pool.query"
+        const val GET_SYSTEM_UPDATE_VERSIONS = "update.available_versions"
+        const val GET_SYSTEM_UPDATE_CONFIG = "update.config"
+        const val DOWNLOAD_SYSTEM_UPDATE_VERSION = "update.download"
+        const val GET_UPDATE_PROFILES = "update.profile_choices"
+        const val RUN_SYSTEM_UPDATES = "update.run"
+        const val GET_UPDATE_STATUS = "update.status"
+        const val UPDATE_SYSTEM_UPDATE_CONFIGURATION = "update.update"
 
         // Reporting Stuff
         const val GET_GRAPHS = "reporting.graphs"
