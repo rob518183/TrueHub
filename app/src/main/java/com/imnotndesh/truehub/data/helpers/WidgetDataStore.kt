@@ -27,17 +27,12 @@ import kotlinx.coroutines.flow.map
  */
 object WidgetDataStore {
 
-    // ── Keys ─────────────────────────────────────────────────────────────────
-
-    // Apps (pre-existing)
     private val UPGRADABLE_APPS_KEY  = stringPreferencesKey("widget_upgradable_apps_json")
     private val APPS_LAST_SYNC_KEY   = longPreferencesKey("widget_last_sync_epoch")
 
-    // Pools (new)
     private val POOLS_KEY            = stringPreferencesKey("widget_pools_json")
     private val POOLS_LAST_SYNC_KEY  = longPreferencesKey("widget_pools_last_sync_epoch")
 
-    // ── Moshi adapters ───────────────────────────────────────────────────────
 
     private val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
 
@@ -48,8 +43,6 @@ object WidgetDataStore {
     private val poolsAdapter = moshi.adapter<List<System.Pool>>(
         Types.newParameterizedType(List::class.java, System.Pool::class.java)
     )
-
-    // ── Apps – public API (unchanged, callers stay compatible) ───────────────
 
     fun upgradableAppsFlow(context: Context): Flow<List<Apps.AppQueryResponse>> =
         context.dataStore.data
@@ -119,6 +112,14 @@ object WidgetDataStore {
         }
     }
 
+    suspend fun removeUpgradableApp(context: Context, appName: String) {
+        context.dataStore.edit { prefs ->
+            val json = prefs[UPGRADABLE_APPS_KEY] ?: return@edit
+            val current = runCatching { appsAdapter.fromJson(json) ?: emptyList() }.getOrDefault(emptyList())
+            val updated = current.filterNot { it.name == appName }
+            prefs[UPGRADABLE_APPS_KEY] = appsAdapter.toJson(updated)
+        }
+    }
     suspend fun getPoolsLastSyncEpoch(context: Context): Long {
         val prefs = context.dataStore.data.first()
         return prefs[POOLS_LAST_SYNC_KEY] ?: 0L

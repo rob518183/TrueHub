@@ -33,7 +33,9 @@
             android:name=".data.api.JobNotificationService"
             android:foregroundServiceType="dataSync"
             android:exported="false" />
-
+        <receiver
+            android:name=".data.workers.DismissAlertReceiver"
+            android:exported="false" />
         <activity
             android:name=".ui.widgets.UpgradeBottomSheetActivity"
             android:theme="@style/Theme.TrueHub.Transparent"
