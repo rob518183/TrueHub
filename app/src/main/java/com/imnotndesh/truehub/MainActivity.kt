@@ -283,6 +283,9 @@ private fun AppNavigation(
                     navController.navigate(Screen.AccountSwitcher.route) {
                         popUpTo(Screen.Settings.route) { inclusive = true }
                     }
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

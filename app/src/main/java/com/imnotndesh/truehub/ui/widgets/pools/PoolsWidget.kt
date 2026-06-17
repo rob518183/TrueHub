@@ -210,7 +210,7 @@ private fun PoolsWideShortWidget(pools: List<System.Pool>, currentIndex: Int, co
         Column(
             modifier = GlanceModifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 8.dp)
+                .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
@@ -261,7 +261,7 @@ private fun PoolsWideShortWidget(pools: List<System.Pool>, currentIndex: Int, co
 
             LinearProgressIndicator(
                 progress = usedFraction,
-                modifier = GlanceModifier.fillMaxWidth().height(5.dp),
+                modifier = GlanceModifier.fillMaxWidth().height(10.dp),
                 color = customBarColor,
                 backgroundColor = GlanceTheme.colors.surfaceVariant
             )
