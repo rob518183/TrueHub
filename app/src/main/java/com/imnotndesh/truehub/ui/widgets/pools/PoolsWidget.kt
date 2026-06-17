@@ -30,7 +30,6 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
-import androidx.glance.layout.wrapContentHeight
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -39,7 +38,7 @@ import com.imnotndesh.truehub.data.helpers.WidgetDataStore
 import com.imnotndesh.truehub.data.models.System
 import java.text.DecimalFormat
 
-// ── Size breakpoints (mirrors AppsUpdateWidget pattern) ──────────────────────
+// Remove text from above the widget and button below to redirect
 private val MEDIUM_WIDTH  = 180.dp
 private val MEDIUM_HEIGHT = 180.dp
 
@@ -71,7 +70,6 @@ class PoolsWidget : GlanceAppWidget() {
     }
 }
 
-// ── Intent helpers ────────────────────────────────────────────────────────────
 
 private fun openPoolsIntent(context: Context): Intent =
     Intent(context, MainActivity::class.java).apply {
@@ -80,7 +78,7 @@ private fun openPoolsIntent(context: Context): Intent =
         flags  = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
     }
 
-// ── Byte formatter (mirrors Homepage.kt StorageCard) ─────────────────────────
+
 
 private fun formatBytes(bytes: Long): String {
     val units     = arrayOf("B", "KB", "MB", "GB", "TB")
@@ -90,7 +88,7 @@ private fun formatBytes(bytes: Long): String {
     return "${DecimalFormat("#.#").format(size)} ${units[unitIndex]}"
 }
 
-// ── Small widget ──────────────────────────────────────────────────────────────
+
 
 @Composable
 private fun PoolsSmallWidget(pools: List<System.Pool>, context: Context) {
@@ -135,7 +133,6 @@ private fun PoolsSmallWidget(pools: List<System.Pool>, context: Context) {
     }
 }
 
-// ── Medium widget ─────────────────────────────────────────────────────────────
 
 @Composable
 private fun PoolsMediumWidget(pools: List<System.Pool>, context: Context) {
@@ -192,12 +189,10 @@ private fun PoolsMediumWidget(pools: List<System.Pool>, context: Context) {
             }
             Spacer(GlanceModifier.defaultWeight())
         }
-
-        PoolsFooterButton(label = "Open Dashboard", context = context)
     }
 }
 
-// ── Large widget ──────────────────────────────────────────────────────────────
+
 
 @Composable
 private fun PoolsLargeWidget(pools: List<System.Pool>, context: Context) {
@@ -238,14 +233,7 @@ private fun PoolsLargeWidget(pools: List<System.Pool>, context: Context) {
             PoolCountPill(pools = pools)
         }
 
-        // Divider (mirrors the LargeWidget in AppsUpdateWidget)
-        Box(
-            modifier = GlanceModifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(GlanceTheme.colors.onSurfaceVariant)
-        ) {}
-        Spacer(GlanceModifier.height(8.dp))
+
 
         if (pools.isEmpty()) {
             Box(
@@ -278,12 +266,9 @@ private fun PoolsLargeWidget(pools: List<System.Pool>, context: Context) {
                 }
             }
         }
-
-        PoolsFooterButton(label = "Open Dashboard", context = context)
     }
 }
 
-// ── Shared sub-composables ────────────────────────────────────────────────────
 
 /**
  * Pill badge showing pool count — healthy pools green, any unhealthy turns it error-tinted.
@@ -518,32 +503,5 @@ private fun LargePoolRow(pool: System.Pool, context: Context) {
                 maxLines = 2
             )
         }
-    }
-}
-
-/**
- * Footer button — mirrors [com.imnotndesh.truehub.ui.widgets.WidgetFooterButton] in AppsUpdateWidget exactly.
- */
-@Composable
-private fun PoolsFooterButton(label: String, context: Context) {
-    Box(
-        modifier = GlanceModifier
-            .fillMaxWidth()
-            .wrapContentHeight()
-            .padding(top = 8.dp, bottom = 12.dp)
-            .background(GlanceTheme.colors.primary)
-            .cornerRadius(14.dp)
-            .clickable(actionStartActivity(openPoolsIntent(context))),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text     = label,
-            style    = TextStyle(
-                fontWeight = FontWeight.Bold,
-                fontSize   = 13.sp,
-                color      = GlanceTheme.colors.onPrimary
-            ),
-            modifier = GlanceModifier.padding(vertical = 10.dp)
-        )
     }
 }

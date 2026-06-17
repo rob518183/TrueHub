@@ -29,7 +29,6 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
-import androidx.glance.layout.wrapContentHeight
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -185,11 +184,7 @@ private fun MediumWidget(upgradableApps: List<Apps.AppQueryResponse>, context: C
             Spacer(GlanceModifier.defaultWeight())
         }
 
-        // Footer button — NOT inside a nested Spacer, sits flush at the bottom
-        WidgetFooterButton(
-            label   = "Open Apps",
-            context = context
-        )
+
     }
 }
 
@@ -230,12 +225,6 @@ private fun LargeWidget(upgradableApps: List<Apps.AppQueryResponse>, context: Co
             }
         }
 
-        Box(
-            modifier = GlanceModifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(GlanceTheme.colors.onSurfaceVariant)
-        ) {}
         Spacer(GlanceModifier.height(8.dp))
 
         if (upgradableApps.isEmpty()) {
@@ -269,11 +258,6 @@ private fun LargeWidget(upgradableApps: List<Apps.AppQueryResponse>, context: Co
                 }
             }
         }
-
-        WidgetFooterButton(
-            label   = "Open Apps",
-            context = context
-        )
     }
 }
 
@@ -392,35 +376,5 @@ private fun LargeAppRow(app: Apps.AppQueryResponse, context: Context) {
                 )
             )
         }
-    }
-}
-
-/**
- * Footer "Open Apps" button.
- * Uses wrapContentHeight so it never gets clipped at the bottom.
- * The outer Column has no bottom padding — this row is the last item and
- * adds its own internal padding.
- */
-@Composable
-private fun WidgetFooterButton(label: String, context: Context) {
-    Box(
-        modifier = GlanceModifier
-            .fillMaxWidth()
-            .wrapContentHeight()
-            .padding(top = 8.dp, bottom = 12.dp)
-            .background(GlanceTheme.colors.primary)
-            .cornerRadius(14.dp)
-            .clickable(actionStartActivity(openAppsIntent(context))),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text  = label,
-            style = TextStyle(
-                fontWeight = FontWeight.Bold,
-                fontSize   = 13.sp,
-                color      = GlanceTheme.colors.onPrimary
-            ),
-            modifier = GlanceModifier.padding(vertical = 10.dp)
-        )
     }
 }
