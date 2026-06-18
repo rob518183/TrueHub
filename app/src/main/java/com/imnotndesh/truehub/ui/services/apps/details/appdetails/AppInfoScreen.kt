@@ -3,9 +3,6 @@ package com.imnotndesh.truehub.ui.services.apps.details.appdetails
 import android.text.method.LinkMovementMethod
 import android.widget.TextView
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -22,6 +19,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,9 +71,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -96,16 +96,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
-import com.imnotndesh.truehub.data.api.TrueNASApiManager
-import com.imnotndesh.truehub.data.models.Apps
-import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
-import dev.jeziellago.compose.markdowntext.MarkdownText
 import com.imnotndesh.truehub.R
-import com.imnotndesh.truehub.data.TrueNASClient
+import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.JobRepository
-import com.imnotndesh.truehub.data.models.Config
+import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.ui.components.ExpressiveIconButton
-import com.imnotndesh.truehub.ui.theme.TrueHubAppTheme
+import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
+import com.imnotndesh.truehub.ui.utils.ScreenshotViewer
+import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @Composable
 fun AppInfoScreen(
@@ -123,6 +121,7 @@ fun AppInfoScreen(
         key = app.name
     )
     var showDeleteConfigDialog by remember { mutableStateOf(false) }
+    var activeScreenshotIndex by remember { mutableStateOf<Int?>(null) }
     val deletionJobId by viewModel.deletionJobId.collectAsState()
     val activeJobs by JobRepository.activeJobs.collectAsState()
     val currentDeletionJob = deletionJobId?.let { activeJobs[it] }
@@ -399,17 +398,20 @@ fun AppInfoScreen(
                             contentPadding = PaddingValues(horizontal = 4.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(screenshots) { screenshotUrl ->
+                            itemsIndexed(screenshots) { index, screenshotUrl ->
                                 Card(
                                     shape = RoundedCornerShape(16.dp),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                                     modifier = Modifier
                                         .width(240.dp)
                                         .height(140.dp)
+                                        .clickable {
+                                            activeScreenshotIndex = index
+                                        }
                                 ) {
                                     AsyncImage(
                                         model = screenshotUrl,
-                                        contentDescription = null,
+                                        contentDescription = "Screenshot $index",
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize()
                                     )
@@ -670,6 +672,13 @@ fun AppInfoScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+    if (activeScreenshotIndex != null && !app.metadata?.screenshots.isNullOrEmpty()) {
+        ScreenshotViewer(
+            screenshots = app.metadata.screenshots,
+            initialIndex = activeScreenshotIndex!!,
+            onDismiss = { activeScreenshotIndex = null }
+        )
     }
 }
 
