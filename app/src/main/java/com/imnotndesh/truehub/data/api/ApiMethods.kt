@@ -41,6 +41,7 @@ object ApiMethods {
         // Reporting Stuff
         const val GET_GRAPHS = "reporting.graphs"
         const val GET_GRAPH_DATA = "reporting.get_data"
+        const val STOP_JOB = "core.job_abort"
 
         // Alert Stuff
         /**

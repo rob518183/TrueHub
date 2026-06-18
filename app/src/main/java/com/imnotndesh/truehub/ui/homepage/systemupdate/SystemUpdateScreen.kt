@@ -1,4 +1,4 @@
-package com.imnotndesh.truehub.ui.homepage.systemupdate
+package com.imnotndesh.truehub.ui.homepage.update
 
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -63,13 +65,9 @@ import com.imnotndesh.truehub.data.ApiResult
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.GlobalJobTracker
 import com.imnotndesh.truehub.data.helpers.JobRepository
-import com.imnotndesh.truehub.data.helpers.TrackedJob
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.ToastManager
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
-import dev.jeziellago.compose.markdowntext.MarkdownText
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
@@ -89,6 +87,7 @@ fun SystemUpdateScreen(
     val activeJobs by JobRepository.activeJobs.collectAsState()
     var selectedVersionForNotes by remember { mutableStateOf<System.UpdateAvailableVersionsResponse?>(null) }
 
+    // The system can only realistically run one update job at a time.
     val activeUpdateJob = remember(activeJobs) {
         activeJobs.values.find { it.type == "SYSTEM_UPDATE" && it.state !in listOf("SUCCESS", "FAILED", "ABORTED") }
     }
@@ -100,9 +99,10 @@ fun SystemUpdateScreen(
             isLoading = false,
             isRefreshing = false,
             error = null,
+            onRefresh = {},
+            onDismissError = {},
             manager = manager,
-            onDismissError = {  },
-            onBackPressed = onNavigateBack
+            onNavigateToSettings = onNavigateBack
         )
 
         if (versions.isEmpty()) {
@@ -156,7 +156,7 @@ private fun startSystemUpdateJob(
     manager: TrueNASApiManager,
     update: System.UpdateAvailableVersionsResponse
 ) {
-    CoroutineScope(Dispatchers.IO).launch {
+    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
         try {
             ToastManager.showInfo("Starting update to ${update.version.version}...")
             val result = manager.system.runSystemUpdate(
@@ -196,15 +196,11 @@ private fun UpdateHeaderCard(currentVersion: String?) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
@@ -218,11 +214,18 @@ private fun UpdateHeaderCard(currentVersion: String?) {
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(
-                    "Currently running $currentVersion",
+                    "Updates Available",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
+                if (currentVersion != null) {
+                    Text(
+                        "Currently running $currentVersion",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                    )
+                }
             }
         }
     }
@@ -232,7 +235,7 @@ private fun UpdateHeaderCard(currentVersion: String?) {
 private fun UpdateVersionCard(
     update: System.UpdateAvailableVersionsResponse,
     isThisJobActive: Boolean,
-    activeJob: TrackedJob?,
+    activeJob: com.imnotndesh.truehub.data.helpers.TrackedJob?,
     isAnotherJobActive: Boolean,
     onInfoClick: () -> Unit,
     onDownloadClick: () -> Unit
@@ -317,10 +320,7 @@ private fun UpdateVersionCard(
                         Spacer(modifier = Modifier.height(8.dp))
                         LinearProgressIndicator(
                             progress = { job.progress / 100f },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(CircleShape),
+                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
                             color = MaterialTheme.colorScheme.primary,
                             trackColor = MaterialTheme.colorScheme.primaryContainer
                         )
@@ -378,15 +378,12 @@ private fun EmptyUpdatesState() {
 private fun ReleaseNotesSheet(
     update: System.UpdateAvailableVersionsResponse,
     isJobActive: Boolean,
-    activeJob: TrackedJob?,
+    activeJob: com.imnotndesh.truehub.data.helpers.TrackedJob?,
     onDismiss: () -> Unit,
     onDownloadClick: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val uriHandler = LocalUriHandler.current
-    val notes = update.version.release_notes
-    val hasNotes = !notes.isNullOrBlank()
-    val hasUrl = update.version.release_notes_url.isNotBlank()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -424,6 +421,8 @@ private fun ReleaseNotesSheet(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Column(
                 modifier = Modifier
@@ -431,49 +430,41 @@ private fun ReleaseNotesSheet(
                     .heightIn(max = 380.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                if (hasNotes) {
-                    MarkdownText(
-                        markdown = notes,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                val notes = update.version.release_notes
+                if (!notes.isNullOrBlank()) {
+                    Text(
+                        text = notes,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.fillMaxWidth()
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
                     Text(
                         text = "No release notes were provided for this version.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(vertical = 8.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 }
 
-                if (hasUrl) {
+                if (update.version.release_notes_url.isNotBlank()) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Surface(
-                        onClick = { uriHandler.openUri(update.version.release_notes_url) },
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clickable { uriHandler.openUri(update.version.release_notes_url) }
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.OpenInNew,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "View full release notes",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.OpenInNew,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            "View full release notes",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }
@@ -481,71 +472,45 @@ private fun ReleaseNotesSheet(
             Spacer(modifier = Modifier.height(24.dp))
 
             if (isJobActive && activeJob != null) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = activeJob.description ?: "Updating...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.weight(1f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "${activeJob.progress}%",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        LinearProgressIndicator(
-                            progress = { activeJob.progress / 100f },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(CircleShape),
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = activeJob.description ?: "Updating...",
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.primaryContainer
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${activeJob.progress}%",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { activeJob.progress / 100f },
+                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.primaryContainer
+                    )
                 }
             } else {
                 Button(
                     onClick = onDownloadClick,
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        Icons.Default.CloudDownload,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        "Download & Update",
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Download & Update")
                 }
             }
         }

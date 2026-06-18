@@ -63,7 +63,7 @@ import com.imnotndesh.truehub.ui.homepage.details.PerformanceScreen
 import com.imnotndesh.truehub.ui.homepage.details.ShareInfoScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
-import com.imnotndesh.truehub.ui.homepage.systemupdate.SystemUpdateScreen
+import com.imnotndesh.truehub.ui.homepage.update.SystemUpdateScreen
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppConfigPageValues

@@ -232,5 +232,14 @@ class SystemService(val manager: TrueNASApiManager){
                 params = listOf(autoCheck,profile),
                 resultType = System.ProfileUpdateResult::class.java
             )
+
+        }
+
+    suspend fun cancelJob(id: Int): ApiResult<Unit>{
+        return manager.callWithResult(
+            method = ApiMethods.System.STOP_JOB,
+            params = listOf(id),
+            resultType = Unit::class.java
+        )
     }
 }
