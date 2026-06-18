@@ -110,7 +110,8 @@ fun MainScreen(
             Screen.Marketplace.route,
             Screen.MarketplaceAppDetails.route,
             Screen.MarketplaceCategory.route,
-            Screen.CatalogInstall.route
+            Screen.CatalogInstall.route,
+            Screen.SystemUpdateScreen.route
         )
     }
 
