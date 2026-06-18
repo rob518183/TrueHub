@@ -63,6 +63,7 @@ import com.imnotndesh.truehub.ui.homepage.details.PerformanceScreen
 import com.imnotndesh.truehub.ui.homepage.details.ShareInfoScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
+import com.imnotndesh.truehub.ui.homepage.systemupdate.SystemUpdateScreen
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppConfigPageValues
@@ -80,6 +81,7 @@ import com.imnotndesh.truehub.ui.services.containers.details.ContainerInfoScreen
 import com.imnotndesh.truehub.ui.services.vm.VmsScreen
 import com.imnotndesh.truehub.ui.services.vm.details.VmDataHolder
 import com.imnotndesh.truehub.ui.services.vm.details.VmInfoScreen
+import com.imnotndesh.truehub.ui.utils.AppCache
 
 
 private data class NavItem(
@@ -251,7 +253,21 @@ private fun TrueHubNavGraph(
                 onNavigateToPerformance = {metricType ->
                     AppDataHolder.initialMetricType = metricType
                     navController.navigate(Screen.Performance.route)
+                },
+                onUpdateClick = {
+                    navController.navigate(Screen.SystemUpdateScreen.route)
                 }
+            )
+        }
+        composable(Screen.SystemUpdateScreen.route) {
+            val updateVersions by AppCache.cachedUpdateVersions.collectAsState()
+            val systemInfo by AppCache.cachedSystemInfo.collectAsState()
+
+            SystemUpdateScreen(
+                manager = manager,
+                versions = updateVersions,
+                currentVersion = systemInfo?.version,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.DiskInfo.route){

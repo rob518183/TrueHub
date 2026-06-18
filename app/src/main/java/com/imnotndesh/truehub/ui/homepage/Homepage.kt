@@ -88,6 +88,7 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit = {},
     onPoolClick: (System.Pool) -> Unit,
     onDisksClick: () -> Unit,
+    onUpdateClick: () -> Unit,
     onNavigateToPerformance: (MetricType) -> Unit,
     onNavigateToShareInfo: (ShareType) -> Unit = {}
 ) {
@@ -139,6 +140,9 @@ fun HomeScreen(
                     onNavigateToShareInfo = onNavigateToShareInfo,
                     onNavigateToPerformance = {metricType ->
                         onNavigateToPerformance(metricType)
+                    },
+                    onUpdateClick = {
+                        onUpdateClick()
                     }
                 )
             }
@@ -229,7 +233,8 @@ private fun HomeContent(
     onShutdown: (String) -> Unit,
     onDiskClick: () -> Unit,
     onNavigateToShareInfo: (ShareType) -> Unit,
-    onNavigateToPerformance: (MetricType) -> Unit
+    onNavigateToPerformance: (MetricType) -> Unit,
+    onUpdateClick: () -> Unit
 ) {
     var currentMetricType by remember { mutableStateOf(MetricType.ALL) }
 
@@ -247,7 +252,8 @@ private fun HomeContent(
             isConnectedStatus = isConnectedStatus,
             systemInfo = state.systemInfo,
             modifier = Modifier.padding(bottom = 16.dp),
-            systemUpdateVersions = state.systemUpdateVersions
+            systemUpdateVersions = state.systemUpdateVersions,
+            onUpdateClick = onUpdateClick
         )
 
         if (isAdaptiveLayout) {
