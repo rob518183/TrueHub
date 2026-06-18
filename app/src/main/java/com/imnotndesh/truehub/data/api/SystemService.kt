@@ -234,7 +234,7 @@ class SystemService(val manager: TrueNASApiManager){
             )
 
         }
-
+    // TODO : IMPLEMENT THIS INTO THE AREAS OF TRACKING AS A CANCEL FUNCTION / BUTTON
     suspend fun cancelJob(id: Int): ApiResult<Unit>{
         return manager.callWithResult(
             method = ApiMethods.System.STOP_JOB,

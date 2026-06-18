@@ -6,7 +6,6 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -47,20 +46,15 @@ class JobNotificationService : Service() {
             val notification = buildJobNotification(appName, progress, statusText, isDone)
 
             if (activeJobsTracker.isEmpty()) {
-                // COMBINED: Promote the service to the foreground using the ACTUAL job notification itself.
-                // This satisfies Android's system rule without spawning a second "state holder" bar.
                 activeJobsTracker.add(jobId)
                 startForeground(jobId, notification)
             } else {
                 activeJobsTracker.add(jobId)
-                // If it's a concurrent parallel job, publish it as its own distinct row updating smoothly
                 notificationManager.notify(jobId, notification)
             }
 
             if (isDone) {
                 activeJobsTracker.remove(jobId)
-
-                // Safe token wrapper so handler removals only hit the matching task closure
                 val token = jobId
                 handler.postAtTime({
                     notificationManager.cancel(jobId)
@@ -74,7 +68,6 @@ class JobNotificationService : Service() {
 
     private fun checkAndShutdownService() {
         if (activeJobsTracker.isEmpty()) {
-            // Removes the foreground state and tears down the combined tracking bar together
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
@@ -86,7 +79,7 @@ class JobNotificationService : Service() {
         statusText: String,
         isDone: Boolean
     ): Notification {
-        val titleText = if (isDone) "Deployment Complete: $appName" else "Deploying $appName"
+        val titleText = if (isDone) "Complete: $appName" else appName
         val explicitStatus = if (isDone) "Infrastructure setup configured successfully." else statusText
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
@@ -95,24 +88,22 @@ class JobNotificationService : Service() {
             .setSmallIcon(if (isDone) android.R.drawable.stat_sys_download_done else android.R.drawable.stat_sys_download)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-            .setOnlyAlertOnce(true) // Updates values smoothly in place without flickering the notification shade
+            .setOnlyAlertOnce(true)
             .setOngoing(!isDone)
             .setProgress(100, if (isDone) 100 else progress, false)
             .build()
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW // Low priority prevents annoying constant notification alerts on every tick update
-            ).apply {
-                description = "Tracks ongoing middleware application container deployments"
-                setShowBadge(false)
-            }
-            notificationManager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Tracks ongoing middleware application container deployments"
+            setShowBadge(false)
         }
+        notificationManager.createNotificationChannel(channel)
     }
 
     override fun onDestroy() {
