@@ -9,6 +9,7 @@ object Prefs {
     private const val SERVER_URL = "server_url"
     private const val SERVER_INSECURE = "insecure"
     private const val APP_THEME = "app_theme"
+    private const val TRUE_BLACK_MODE = "true_black_mode"
 
     fun save(context: Context, serverUrl: String, insecure: Boolean) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -28,6 +29,18 @@ object Prefs {
             .edit {
                 putString(APP_THEME, theme.name)
             }
+    }
+    fun saveBlackMode(context: Context, isEnabled: Boolean) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit {
+                putBoolean(TRUE_BLACK_MODE, isEnabled)
+            }
+    }
+
+
+    fun loadBlackMode(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(TRUE_BLACK_MODE, false)
     }
 
     fun loadTheme(context: Context): AppTheme {

@@ -1,5 +1,6 @@
 package com.imnotndesh.truehub
 
+import android.Manifest
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,6 +15,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -28,6 +30,7 @@ import androidx.navigation.compose.rememberNavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.Prefs
 import com.imnotndesh.truehub.ui.MainScreen
 import com.imnotndesh.truehub.ui.Screen
@@ -60,7 +63,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var currentTheme by rememberSaveable { mutableStateOf(Prefs.loadTheme(this)) }
-            TrueHubAppTheme(theme = currentTheme) {
+            var isBlackMode by remember { mutableStateOf(Prefs.loadBlackMode(this)) }
+            TrueHubAppTheme(theme = currentTheme, isBlackMode = isBlackMode) {
                 MainActivityContent(
                     viewModel = viewModel,
                     currentTheme = currentTheme,
@@ -100,10 +104,11 @@ fun MainActivityContent(
 ) {
     val context = LocalContext.current
     val appState by viewModel.appState.collectAsState()
+    var isBlackMode by remember { mutableStateOf(Prefs.loadBlackMode(context)) }
     val manager by viewModel.manager.collectAsState()
     val navController = rememberNavController()
     val notifPermission = rememberPermissionState(
-        android.Manifest.permission.POST_NOTIFICATIONS
+        Manifest.permission.POST_NOTIFICATIONS
     )
 
     LaunchedEffect(Unit) {
@@ -179,7 +184,7 @@ private fun AppNavigation(
     startRoute: String,
     navController: NavHostController,
     viewModel: MainViewModel,
-    manager: com.imnotndesh.truehub.data.api.TrueNASApiManager?
+    manager: TrueNASApiManager?
 ) {
     val context = LocalContext.current
 
@@ -190,6 +195,7 @@ private fun AppNavigation(
     // The simplest correct approach: navigate to Main, and pass the deep route
     // via the ViewModel so MainScreen can pick it up.
     val pendingNav by viewModel.pendingNavigation.collectAsState()
+    var isBlackMode by remember { mutableStateOf(Prefs.loadBlackMode(context)) }
     LaunchedEffect(pendingNav) {
         val route = pendingNav ?: return@LaunchedEffect
         // If we're not already on Main, go there first
@@ -316,9 +322,12 @@ private fun AppNavigation(
 
         composable(Screen.Theme.route) {
             ThemeScreen(
+                manager = manager,
                 currentTheme = currentTheme,
                 onThemeSelected = { newTheme -> onThemeChanged(newTheme) },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                isBlackModeEnabled = isBlackMode,
+                onBlackModeToggled = { isToggled -> Prefs.saveBlackMode(context,isToggled) }
             )
         }
     }

@@ -6,15 +6,17 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun TrueHubAppTheme(
     theme: AppTheme = AppTheme.TRUEHUB,
     darkTheme: Boolean = isSystemInDarkTheme(),
+    isBlackMode: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when (theme) {
+    var colorScheme = when (theme) {
         AppTheme.DYNAMIC -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context)
@@ -26,6 +28,16 @@ fun TrueHubAppTheme(
         AppTheme.SUNSET -> if (darkTheme) SunsetDarkColors else SunsetLightColors
         AppTheme.LAVENDER -> if (darkTheme) LavenderDarkColors else LavenderLightColors
         AppTheme.MONOCHROME -> if (darkTheme) MonochromeDarkColors else MonochromeLightColors
+    }
+
+    if (darkTheme && isBlackMode) {
+        colorScheme = colorScheme.copy(
+            surface = Color.Black,
+            background = Color.Black,
+            surfaceContainer = Color(0xFF0D0D0D),
+            surfaceContainerLow = Color(0xFF050505),
+            surfaceContainerHigh = Color(0xFF141414)
+        )
     }
 
     MaterialTheme(
