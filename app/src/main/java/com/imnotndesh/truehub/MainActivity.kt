@@ -187,25 +187,16 @@ private fun AppNavigation(
     manager: TrueNASApiManager?
 ) {
     val context = LocalContext.current
-
-    // Consume the pending navigation signal from the widget.
-    // When the ViewModel has a route queued (e.g. "apps" from the widget tap),
-    // we navigate to Screen.Main first (so the bottom nav is visible), then
-    // post a second navigate inside MainScreen to the Apps tab.
-    // The simplest correct approach: navigate to Main, and pass the deep route
-    // via the ViewModel so MainScreen can pick it up.
     val pendingNav by viewModel.pendingNavigation.collectAsState()
     var isBlackMode by remember { mutableStateOf(Prefs.loadBlackMode(context)) }
     LaunchedEffect(pendingNav) {
         val route = pendingNav ?: return@LaunchedEffect
-        // If we're not already on Main, go there first
         if (navController.currentDestination?.route != Screen.Main.route) {
             navController.navigate(Screen.Main.route) {
                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                 launchSingleTop = true
             }
         }
-        // Don't clear yet — MainScreen will consume it to switch its inner tab
     }
 
     NavHost(
