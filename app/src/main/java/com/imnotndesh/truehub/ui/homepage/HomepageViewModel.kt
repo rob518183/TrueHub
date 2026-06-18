@@ -6,11 +6,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.imnotndesh.truehub.data.ApiResult
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
-import com.imnotndesh.truehub.ui.utils.AppCache
 import com.imnotndesh.truehub.data.helpers.EncryptedPrefs
 import com.imnotndesh.truehub.data.models.Shares
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.ToastManager
+import com.imnotndesh.truehub.ui.utils.AppCache
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +29,8 @@ sealed class HomeUiState {
         val memoryData: List<System.ReportingGraphResponse>?,
         val temperatureData: List<System.ReportingGraphResponse>? = null,
         val smbShares: List<Shares.SmbShare> = emptyList(),
-        val isRefreshing: Boolean = false
+        val isRefreshing: Boolean = false,
+        val systemUpdateVersions: List<System.UpdateAvailableVersionsResponse> = emptyList()
     ) : HomeUiState()
 
     data class Error(
@@ -259,6 +260,9 @@ class HomeViewModel(
                     )
                     apiManager.system.getReportingDataWithResult(cpuGraphRequest, query)
                 }
+                val updateVersionsDeferred = async {
+                    apiManager.system.getSystemUpdateVersions()
+                }
                 val memoryDataDeferred = async {
                     val memoryGraphRequest = listOf(
                         System.ReportingGraphRequest(
@@ -273,6 +277,7 @@ class HomeViewModel(
                 }
 
                 val poolResult = poolDeferred.await()
+                val updateVersionsResult = updateVersionsDeferred.await()
                 val diskResult = diskDeferred.await()
                 val smbSharesResult = smbSharesDeferred.await()
                 val nfsSharesResult = nfsSharesDeferred.await()
@@ -284,11 +289,13 @@ class HomeViewModel(
                 val disks = if (diskResult is ApiResult.Success) diskResult.data else emptyList()
                 val smbShares = if (smbSharesResult is ApiResult.Success) smbSharesResult.data else emptyList()
                 val nfsShares = if (nfsSharesResult is ApiResult.Success) nfsSharesResult.data else emptyList()
+                val updateVersions = if (updateVersionsResult is ApiResult.Success) updateVersionsResult.data else emptyList()
 
                 AppCache.updatePools(pools)
                 AppCache.updateDisks(disks)
                 AppCache.updateSmbShares(smbShares)
                 AppCache.updateNfsShares(nfsShares)
+                AppCache.updateSystemUpdateVersions(updateVersions)
 
                 _uiState.value = HomeUiState.Success(
                     systemInfo = systemInfo,
@@ -299,6 +306,7 @@ class HomeViewModel(
                     temperatureData = if (tempDataResult is ApiResult.Success) tempDataResult.data else null,
                     smbShares = smbShares,
                     nfsShares = nfsShares,
+                    systemUpdateVersions = updateVersions,
                     isRefreshing = false
                 )
 

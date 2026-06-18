@@ -32,8 +32,8 @@ import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material.icons.filled.Thermostat
-import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -246,7 +246,8 @@ private fun HomeContent(
         SystemOverviewCard(
             isConnectedStatus = isConnectedStatus,
             systemInfo = state.systemInfo,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 16.dp),
+            systemUpdateVersions = state.systemUpdateVersions
         )
 
         if (isAdaptiveLayout) {
@@ -364,38 +365,78 @@ private fun AdaptiveGridLayout(
 private fun SystemOverviewCard(
     isConnectedStatus: Boolean,
     systemInfo: System.SystemInfo,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    systemUpdateVersions: List<System.UpdateAvailableVersionsResponse> = emptyList(),
+    onUpdateClick: () -> Unit = {}
 ) {
     WavyGradientBackground {
         Card(
             shape = RoundedCornerShape(24.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(24.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier.size(64.dp).clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Computer, null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Box(
+                        modifier = Modifier.size(64.dp).clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Computer, null,
+                            modifier = Modifier.size(36.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(20.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(systemInfo.hostname, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(systemInfo.version, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("Uptime: ${systemInfo.uptime.toShortUptime()}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+
+                    val statusColor by animateColorAsState(if (isConnectedStatus) Color(0xFF2E7D32) else Color(0xFFF57C00), label = "statusColor")
+                    Surface(color = statusColor.copy(alpha = 0.12f), shape = RoundedCornerShape(100.dp)) {
+                        Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(statusColor))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (isConnectedStatus) "Online" else "Offline", style = MaterialTheme.typography.labelMedium, color = statusColor, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.width(20.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(systemInfo.hostname, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(systemInfo.version, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("Uptime: ${systemInfo.uptime.toShortUptime()}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                val statusColor by animateColorAsState(if (isConnectedStatus) Color(0xFF2E7D32) else Color(0xFFF57C00), label = "statusColor")
-                Surface(color = statusColor.copy(alpha = 0.12f), shape = RoundedCornerShape(100.dp)) {
-                    Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(statusColor))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (isConnectedStatus) "Online" else "Offline", style = MaterialTheme.typography.labelMedium, color = statusColor, fontWeight = FontWeight.Bold)
+
+                if (systemUpdateVersions.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Surface(
+                        onClick = onUpdateClick,
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.SystemUpdateAlt,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Update available (${systemUpdateVersions.size})",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }

@@ -15,4 +15,5 @@ object AppDataHolder {
     var temperatureData: List<System.ReportingGraphResponse>? = null
     var initialMetricType: MetricType = MetricType.ALL
     var selectedAppValues : AppConfigPageValues = AppConfigPageValues()
+
 }
