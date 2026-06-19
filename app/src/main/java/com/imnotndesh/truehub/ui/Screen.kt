@@ -10,6 +10,7 @@ sealed class Screen(val route:String, val title:String) {
     object Performance : Screen("performance", "Performance")
     object Settings : Screen("settings","Settings")
     object Licenses : Screen("licenses","Licenses")
+    object ShareInfo : Screen ("share_info","Exposed shares details")
     object About : Screen("about","About")
     object Theme : Screen("theme","Theme")
     object AccountSwitcher : Screen("account_switcher","account_switcher")

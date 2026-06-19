@@ -246,7 +246,7 @@ private fun TrueHubNavGraph(
                 },
                 onNavigateToShareInfo = { shareType ->
                     AppDataHolder.selectedShareType = shareType
-                    navController.navigate("share_info")
+                    navController.navigate(Screen.ShareInfo.route)
                 },
                 onDisksClick = {
                     navController.navigate(Screen.DiskInfo.route)
@@ -291,7 +291,7 @@ private fun TrueHubNavGraph(
             )
         }
 
-        composable("share_info") {
+        composable(Screen.ShareInfo.route) {
             val shareType = AppDataHolder.selectedShareType
             if (shareType != null) {
                 ShareInfoScreen(

@@ -1,8 +1,6 @@
 package com.imnotndesh.truehub.ui.settings.sheets
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -12,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,18 +30,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -51,14 +46,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
-import com.imnotndesh.truehub.ui.background.WavyGradientBackground
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChangePasswordScreen(
-    manager: TrueNASApiManager, // Exact non-null type as LicenseScreen
-    //onDismiss: () -> Unit,
+    manager: TrueNASApiManager,
     onSubmit: (oldPassword: String, newPassword: String) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
@@ -74,99 +67,50 @@ fun ChangePasswordScreen(
 
     val passwordsMatch = newPassword == confirmPassword
     val isFormValid = oldPassword.isNotEmpty() &&
-            newPassword.isNotEmpty() &&
-            confirmPassword.isNotEmpty() &&
-            passwordsMatch &&
-            newPassword.length >= 8
+    newPassword.isNotEmpty() &&
+    confirmPassword.isNotEmpty() &&
+    passwordsMatch &&
+    newPassword.length >= 8
 
-    Scaffold(
-        topBar = {
-            UnifiedScreenHeader(
-                title = "Security",
-                subtitle = "Change Password",
-                isLoading = false,
-                isRefreshing = false,
-                error = null,
-                onDismissError = {},
-                manager = manager,
-                onBackPressed = onNavigateBack
-            )
-        }
-    ) { paddingValues ->
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            color = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Compact Header Section matching Licenses style
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp)
-                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                ) {
-                    WavyGradientBackground {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Security,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(48.dp)
-                            )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+    ) {
+        UnifiedScreenHeader(
+        title = "Security",
+        subtitle = "Change Password",
+        isLoading = false,
+        isRefreshing = false,
+        error = null,
+        onDismissError = {},
+        manager = manager,
+        onBackPressed = onNavigateBack
+    )
 
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                text = "Update Credentials",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-                }
-
-                // Form Content
-                PasswordChangeForm(
-                    modifier = Modifier.weight(1f),
-                    oldPassword = oldPassword,
-                    newPassword = newPassword,
-                    confirmPassword = confirmPassword,
-                    passwordsMatch = passwordsMatch,
-                    isFormValid = isFormValid,
-                    onOldPasswordChange = { oldPassword = it },
-                    onNewPasswordChange = { newPassword = it },
-                    onConfirmPasswordChange = { confirmPassword = it },
-                    oldPasswordFocusRequester = oldPasswordFocusRequester,
-                    newPasswordFocusRequester = newPasswordFocusRequester,
-                    confirmPasswordFocusRequester = confirmPasswordFocusRequester,
-                    onSubmit = {
-                        keyboardController?.hide()
-                        onSubmit(oldPassword, newPassword)
-                    },
-                    onCancel = {
-                        keyboardController?.hide()
-                      //  onDismiss()
-                    }
-                )
+        PasswordChangeForm(
+            modifier = Modifier.weight(1f),
+            oldPassword = oldPassword,
+            newPassword = newPassword,
+            confirmPassword = confirmPassword,
+            passwordsMatch = passwordsMatch,
+            isFormValid = isFormValid,
+            onOldPasswordChange = { oldPassword = it },
+            onNewPasswordChange = { newPassword = it },
+            onConfirmPasswordChange = { confirmPassword = it },
+            oldPasswordFocusRequester = oldPasswordFocusRequester,
+            newPasswordFocusRequester = newPasswordFocusRequester,
+            confirmPasswordFocusRequester = confirmPasswordFocusRequester,
+            onSubmit = {
+                keyboardController?.hide()
+                onSubmit(oldPassword, newPassword)
+            },
+            onCancel = {
+                keyboardController?.hide()
             }
-        }
+        )
     }
 
-    // Auto-focus first field when screen opens
-    LaunchedEffect(Unit) {
-        oldPasswordFocusRequester.requestFocus()
-    }
 }
 
 @Composable
@@ -193,7 +137,6 @@ private fun PasswordChangeForm(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Security Information Section
         PasswordInfoSection(
             title = "Security Requirements",
             icon = Icons.Default.Info
@@ -208,12 +151,10 @@ private fun PasswordChangeForm(
             )
         }
 
-        // Password Fields Section
         PasswordInfoSection(
             title = "Password Details",
             icon = Icons.Default.Lock
         ) {
-            // Current Password Field
             OutlinedTextField(
                 value = oldPassword,
                 onValueChange = onOldPasswordChange,
@@ -231,7 +172,6 @@ private fun PasswordChangeForm(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // New Password Field
             OutlinedTextField(
                 value = newPassword,
                 onValueChange = onNewPasswordChange,
@@ -250,7 +190,6 @@ private fun PasswordChangeForm(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Confirm Password Field
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = onConfirmPasswordChange,
@@ -279,7 +218,6 @@ private fun PasswordChangeForm(
                 isError = confirmPassword.isNotEmpty() && !passwordsMatch
             )
 
-            // Password mismatch error
             if (confirmPassword.isNotEmpty() && !passwordsMatch) {
                 Text(
                     text = "Passwords do not match",
@@ -290,14 +228,11 @@ private fun PasswordChangeForm(
             }
         }
 
-        // Action Buttons
         Column(
             modifier = Modifier
-                .fillMaxWidth()
                 .height(120.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Submit Button
             Button(
                 onClick = onSubmit,
                 modifier = Modifier
@@ -319,7 +254,6 @@ private fun PasswordChangeForm(
                 )
             }
 
-            // Cancel Button
             OutlinedButton(
                 onClick = onCancel,
                 modifier = Modifier
@@ -341,7 +275,6 @@ private fun PasswordChangeForm(
             }
         }
 
-        // Extra spacer to ensure content is scrollable
         Spacer(modifier = Modifier.height(16.dp))
     }
 }

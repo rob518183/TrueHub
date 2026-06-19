@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 
 sealed class AppState {
     object Initializing : AppState()
@@ -121,7 +122,7 @@ class MainViewModel : ViewModel() {
                     }
                 } catch (_: Exception) {
                 }
-                delay(30000L)
+                delay(30000.milliseconds)
             }
         }
     }
@@ -192,7 +193,7 @@ class MainViewModel : ViewModel() {
         account: SavedAccount,
         token: String
     ): TrueNASApiManager? {
-        return withTimeoutOrNull(10000L) {
+        return withTimeoutOrNull(10000.milliseconds) {
             try {
                 val config = ClientConfig(
                     serverUrl = server.serverUrl,

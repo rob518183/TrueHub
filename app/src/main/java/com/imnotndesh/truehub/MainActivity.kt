@@ -1,12 +1,19 @@
 package com.imnotndesh.truehub
 
 import android.Manifest
+import android.app.Application
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -22,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -40,25 +48,24 @@ import com.imnotndesh.truehub.ui.components.ModernToastHost
 import com.imnotndesh.truehub.ui.components.NoInternetScreen
 import com.imnotndesh.truehub.ui.components.ToastManager
 import com.imnotndesh.truehub.ui.login.LoginScreen
+import com.imnotndesh.truehub.ui.settings.SettingsEvent
 import com.imnotndesh.truehub.ui.settings.SettingsScreen
+import com.imnotndesh.truehub.ui.settings.SettingsScreenViewModel
 import com.imnotndesh.truehub.ui.settings.screens.AboutScreen
 import com.imnotndesh.truehub.ui.settings.screens.LicensesScreen
 import com.imnotndesh.truehub.ui.settings.screens.ThemeScreen
+import com.imnotndesh.truehub.ui.settings.sheets.ChangePasswordScreen
 import com.imnotndesh.truehub.ui.theme.AppTheme
 import com.imnotndesh.truehub.ui.theme.TrueHubAppTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    // Use activity-level viewModels() delegate so we can access the VM
-    // both inside and outside setContent — this is the standard pattern.
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        // Handle widget deep-link on cold start
         handleWidgetIntent(intent)
 
         setContent {
@@ -76,11 +83,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Called when the app is already running and the widget is tapped again.
-    // onNewIntent is a plain lifecycle method — NOT @Composable.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setIntent(intent) // update the stored intent
+        setIntent(intent)
         handleWidgetIntent(intent)
     }
 
@@ -104,7 +109,6 @@ fun MainActivityContent(
 ) {
     val context = LocalContext.current
     val appState by viewModel.appState.collectAsState()
-    var isBlackMode by remember { mutableStateOf(Prefs.loadBlackMode(context)) }
     val manager by viewModel.manager.collectAsState()
     val navController = rememberNavController()
     val notifPermission = rememberPermissionState(
@@ -201,7 +205,19 @@ private fun AppNavigation(
 
     NavHost(
         navController = navController,
-        startDestination = startRoute
+        startDestination = startRoute,
+        enterTransition = {
+            fadeIn(animationSpec = tween(300)) + slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
+        },
+        exitTransition = {
+            fadeOut(animationSpec = tween(300)) + slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
+        },
+        popEnterTransition = {
+            fadeIn(animationSpec = tween(300)) + slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
+        },
+        popExitTransition = {
+            fadeOut(animationSpec = tween(300)) + slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
+        }
     ) {
         composable(Screen.Login.route) {
             LoginScreen(
@@ -281,12 +297,32 @@ private fun AppNavigation(
                         popUpTo(Screen.Settings.route) { inclusive = true }
                     }
                 },
+                onNavigateToChangePassword = {
+                    navController.navigate(Screen.ChangePassword.route)
+                },
                 onNavigateBack = {
                     navController.popBackStack()
                 }
             )
         }
-
+        composable(Screen.ChangePassword.route) {
+            val context = LocalContext.current
+            val settingsViewModel: SettingsScreenViewModel = viewModel(
+                factory = SettingsScreenViewModel.SettingsViewModelFactory(
+                    manager = manager!!,
+                    application = context.applicationContext as Application
+                )
+            )
+            ChangePasswordScreen(
+                manager,
+                { oldPassword, newPassword ->
+                    settingsViewModel.handleEvent(
+                        SettingsEvent.ChangePassword(oldPassword, newPassword)
+                    )
+                },
+                { navController.popBackStack() }
+            )
+        }
         composable(Screen.About.route) {
             manager?.let { validManager ->
                 AboutScreen(

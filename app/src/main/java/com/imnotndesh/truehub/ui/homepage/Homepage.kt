@@ -236,11 +236,9 @@ private fun HomeContent(
     onNavigateToPerformance: (MetricType) -> Unit,
     onUpdateClick: () -> Unit
 ) {
-    var currentMetricType by remember { mutableStateOf(MetricType.ALL) }
 
     val isAdaptiveLayout = AdaptiveLayoutHelper.isExpandedLayout()
     val columnCount = AdaptiveLayoutHelper.getColumnCount()
-    val contentPadding = AdaptiveLayoutHelper.getContentPadding()
 
     Column(
         modifier = Modifier

@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 sealed class HomeUiState {
     object Loading : HomeUiState()
@@ -79,19 +80,17 @@ class HomeViewModel(
         viewModelScope.launch {
             while (true) {
                 checkConnectivity()
-                delay(30000)
+                delay(30000.milliseconds)
             }
         }
 
     }
     private fun startLoadAveragesMonitoring() {
         viewModelScope.launch {
-            // Initial load
             loadLoadAverages()
 
-            // Periodic updates every 10 seconds
             while (true) {
-                delay(10000)
+                delay(10000.milliseconds)
                 loadLoadAverages()
             }
         }
@@ -385,28 +384,24 @@ class HomeViewModel(
             _performanceDataLoading.value = true
 
             try {
-                // Fetch CPU data
                 val cpuDeferred = async {
                     val request = listOf(System.ReportingGraphRequest(System.ReportingGraphName.CPU))
                     val query = System.ReportingGraphQuery(unit = System.ReportingUnit.HOUR, aggregate = true)
                     apiManager.system.getReportingDataWithResult(request, query)
                 }
 
-                // Fetch Memory data
                 val memoryDeferred = async {
                     val request = listOf(System.ReportingGraphRequest(System.ReportingGraphName.MEMORY))
                     val query = System.ReportingGraphQuery(unit = System.ReportingUnit.HOUR, aggregate = true)
                     apiManager.system.getReportingDataWithResult(request, query)
                 }
 
-                // Fetch CPU Temperature data
                 val tempDeferred = async {
                     val request = listOf(System.ReportingGraphRequest(System.ReportingGraphName.CPUTEMP))
                     val query = System.ReportingGraphQuery(unit = System.ReportingUnit.HOUR, aggregate = true)
                     apiManager.system.getReportingDataWithResult(request, query)
                 }
 
-                // Await results
                 val cpuResult = cpuDeferred.await()
                 val memoryResult = memoryDeferred.await()
                 val tempResult = tempDeferred.await()
