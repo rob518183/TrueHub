@@ -3,6 +3,8 @@ package com.imnotndesh.truehub.ui
 sealed class Screen(val route:String, val title:String) {
     object Home : Screen("home", "Home")
     object Apps : Screen("apps","Apps")
+    object ServicesScreen : Screen("services", "TrueNAS Services")
+    object ServicesDetailScreen: Screen("service_detail", "Details about TrueNAS services")
     object Containers : Screen ("containers", "Containers")
     object Vms : Screen("vms","VMs")
     object Login : Screen("login","Login")

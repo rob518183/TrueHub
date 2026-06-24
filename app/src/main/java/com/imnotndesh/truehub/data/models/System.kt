@@ -480,6 +480,9 @@ object System {
         RESTART,
         RELOAD
     }
+    data class ServiceUpdate(
+        var enable : Boolean
+    )
     @JsonClass(generateAdapter = true)
     @Suppress("PropertyName")
     data class ServiceControlCallOptions(

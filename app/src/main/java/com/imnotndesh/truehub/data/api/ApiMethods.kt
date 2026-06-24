@@ -73,7 +73,7 @@ object ApiMethods {
 
         // Service Stuff
         const val GET_SERVICES = "service.query"
-        const val GET_SERVICE_INSTANCE = "servie.get_instance"
+        const val GET_SERVICE_INSTANCE = "service.get_instance"
         const val CONTROL_SERVICE = "service.control"
         const val IS_SERVICE_STARTED = "service.started"
         const val IS_SERVICE_STARTED_OR_ENABLED = "service.started_or_enabled"

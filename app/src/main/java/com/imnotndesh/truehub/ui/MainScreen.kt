@@ -62,6 +62,7 @@ import com.imnotndesh.truehub.ui.homepage.details.DiskInfoScreen
 import com.imnotndesh.truehub.ui.homepage.details.PerformanceScreen
 import com.imnotndesh.truehub.ui.homepage.details.ShareInfoScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.InstanceConfigScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
 import com.imnotndesh.truehub.ui.homepage.update.SystemUpdateScreen
@@ -79,6 +80,7 @@ import com.imnotndesh.truehub.ui.services.apps.details.upgrade.UpgradeSummaryScr
 import com.imnotndesh.truehub.ui.services.containers.ContainersScreen
 import com.imnotndesh.truehub.ui.services.containers.details.ContainerDataHolder
 import com.imnotndesh.truehub.ui.services.containers.details.ContainerInfoScreen
+import com.imnotndesh.truehub.ui.services.system.services.ServiceDetailScreen
 import com.imnotndesh.truehub.ui.services.vm.VmsScreen
 import com.imnotndesh.truehub.ui.services.vm.details.VmDataHolder
 import com.imnotndesh.truehub.ui.services.vm.details.VmInfoScreen
@@ -264,10 +266,34 @@ private fun TrueHubNavGraph(
                 }
             )
         }
-        composable (Screen.InstanceConfigScreen.route){
+        composable(Screen.InstanceConfigScreen.route) {
             InstanceConfigScreen(
-                manager,
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToServices = {
+                    navController.navigate(Screen.ServicesScreen.route)
+                }
             )
+        }
+        composable(Screen.ServicesScreen.route) {
+            ServicesScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToServiceDetail = { service ->
+                    AppDataHolder.selectedService = service
+                    navController.navigate(Screen.ServicesDetailScreen.route)
+                }
+            )
+        }
+        composable(Screen.ServicesDetailScreen.route) {
+            val service = AppDataHolder.selectedService
+            if (service != null) {
+                ServiceDetailScreen(
+                    service = service,
+                    manager = manager,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
         composable(Screen.SystemUpdateScreen.route) {
             val updateVersions by AppCache.cachedUpdateVersions.collectAsState()

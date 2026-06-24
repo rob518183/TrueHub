@@ -259,11 +259,11 @@ class SystemService(val manager: TrueNASApiManager){
             System.ServiceQueryResponse::class.java
         )
     }
-    suspend fun controlService(action : System.ServiceControlOptions,service : String, options: System.ServiceControlCallOptions): ApiResult<Boolean>{
+    suspend fun controlService(action : System.ServiceControlOptions,service : String, options: System.ServiceControlCallOptions): ApiResult<Double>{
         return manager.callWithResult(
             ApiMethods.System.CONTROL_SERVICE,
             listOf(action,service,options),
-            Boolean::class.java
+            Double::class.java
         )
     }
 
@@ -295,7 +295,7 @@ class SystemService(val manager: TrueNASApiManager){
 
         return manager.callWithResult(
             ApiMethods.System.UPDATE_SERVICE,
-            listOf(parameter, startOnBoot),
+            listOf(parameter, System.ServiceUpdate(startOnBoot)),
             Int::class.java
         )
     }
