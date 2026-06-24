@@ -3,6 +3,7 @@ package com.imnotndesh.truehub.data.api
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import com.imnotndesh.truehub.data.workers.CancelJobReceiver
 
 class JobNotificationService : Service() {
 
@@ -43,7 +45,7 @@ class JobNotificationService : Service() {
         if (jobId != -1) {
             handler.removeCallbacksAndMessages(jobId)
 
-            val notification = buildJobNotification(appName, progress, statusText, isDone)
+            val notification = buildJobNotification(jobId, appName, progress, statusText, isDone)
 
             if (activeJobsTracker.isEmpty()) {
                 activeJobsTracker.add(jobId)
@@ -74,6 +76,7 @@ class JobNotificationService : Service() {
     }
 
     private fun buildJobNotification(
+        jobId: Int,
         appName: String,
         progress: Int,
         statusText: String,
@@ -82,7 +85,7 @@ class JobNotificationService : Service() {
         val titleText = if (isDone) "Complete: $appName" else appName
         val explicitStatus = if (isDone) "Infrastructure setup configured successfully." else statusText
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(titleText)
             .setContentText(explicitStatus)
             .setSmallIcon(if (isDone) android.R.drawable.stat_sys_download_done else android.R.drawable.stat_sys_download)
@@ -91,9 +94,27 @@ class JobNotificationService : Service() {
             .setOnlyAlertOnce(true)
             .setOngoing(!isDone)
             .setProgress(100, if (isDone) 100 else progress, false)
-            .build()
-    }
 
+        if (!isDone) {
+            val cancelIntent = Intent(this, CancelJobReceiver::class.java).apply {
+                action = CancelJobReceiver.ACTION_CANCEL_JOB
+                putExtra(CancelJobReceiver.EXTRA_JOB_ID, jobId)
+            }
+            val cancelPendingIntent = PendingIntent.getBroadcast(
+                this,
+                jobId,
+                cancelIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                "Cancel",
+                cancelPendingIntent
+            )
+        }
+
+        return builder.build()
+    }
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
