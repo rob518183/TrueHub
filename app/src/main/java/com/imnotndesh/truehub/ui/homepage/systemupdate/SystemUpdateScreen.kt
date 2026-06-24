@@ -87,7 +87,6 @@ fun SystemUpdateScreen(
     val activeJobs by JobRepository.activeJobs.collectAsState()
     var selectedVersionForNotes by remember { mutableStateOf<System.UpdateAvailableVersionsResponse?>(null) }
 
-    // The system can only realistically run one update job at a time.
     val activeUpdateJob = remember(activeJobs) {
         activeJobs.values.find { it.type == "SYSTEM_UPDATE" && it.state !in listOf("SUCCESS", "FAILED", "ABORTED") }
     }
@@ -189,41 +188,67 @@ private fun startSystemUpdateJob(
 
 @Composable
 private fun UpdateHeaderCard(currentVersion: String?) {
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.SystemUpdate,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    "Updates Available",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                )
-                if (currentVersion != null) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.SystemUpdate,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
                     Text(
-                        "Currently running $currentVersion",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                        "Updates Available",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (currentVersion != null) {
+                        Text(
+                            "Currently running $currentVersion",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Surface(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Review release notes before updating",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }

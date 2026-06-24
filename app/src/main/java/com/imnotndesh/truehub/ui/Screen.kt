@@ -23,6 +23,7 @@ sealed class Screen(val route:String, val title:String) {
     object ChangePassword : Screen("change_password", "Change Password")
     object DiskInfo : Screen("disk_info", "Disk information")
     object AppConfigScreen : Screen("app_config", "Application config")
+    object InstanceConfigScreen : Screen("instance_config", "TrueNAS Instance Configuration")
     object AppDetailsScreen : Screen("app_details", "Application details page")
     object SystemUpdateScreen : Screen("system_update", "TrueNAS Version Update")
     object MarketplaceCategory : Screen("marketplace?category={category}", "Marketplace Category") {

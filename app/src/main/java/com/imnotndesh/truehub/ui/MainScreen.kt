@@ -61,6 +61,7 @@ import com.imnotndesh.truehub.ui.homepage.dataset.DatasetExplorerScreen
 import com.imnotndesh.truehub.ui.homepage.details.DiskInfoScreen
 import com.imnotndesh.truehub.ui.homepage.details.PerformanceScreen
 import com.imnotndesh.truehub.ui.homepage.details.ShareInfoScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.InstanceConfigScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
 import com.imnotndesh.truehub.ui.homepage.update.SystemUpdateScreen
@@ -257,7 +258,15 @@ private fun TrueHubNavGraph(
                 },
                 onUpdateClick = {
                     navController.navigate(Screen.SystemUpdateScreen.route)
+                },
+                onInstanceConfigClick = {
+                    navController.navigate(Screen.InstanceConfigScreen.route)
                 }
+            )
+        }
+        composable (Screen.InstanceConfigScreen.route){
+            InstanceConfigScreen(
+                manager,
             )
         }
         composable(Screen.SystemUpdateScreen.route) {

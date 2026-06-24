@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -89,6 +90,7 @@ fun HomeScreen(
     onPoolClick: (System.Pool) -> Unit,
     onDisksClick: () -> Unit,
     onUpdateClick: () -> Unit,
+    onInstanceConfigClick: () -> Unit,
     onNavigateToPerformance: (MetricType) -> Unit,
     onNavigateToShareInfo: (ShareType) -> Unit = {}
 ) {
@@ -143,7 +145,8 @@ fun HomeScreen(
                     },
                     onUpdateClick = {
                         onUpdateClick()
-                    }
+                    },
+                    onInstanceConfigClick = { onInstanceConfigClick() }
                 )
             }
         }
@@ -231,6 +234,7 @@ private fun HomeContent(
     onRefresh: () -> Unit,
     onPoolClick: (System.Pool) -> Unit,
     onShutdown: (String) -> Unit,
+    onInstanceConfigClick: () -> Unit = {},
     onDiskClick: () -> Unit,
     onNavigateToShareInfo: (ShareType) -> Unit,
     onNavigateToPerformance: (MetricType) -> Unit,
@@ -251,7 +255,8 @@ private fun HomeContent(
             systemInfo = state.systemInfo,
             modifier = Modifier.padding(bottom = 16.dp),
             systemUpdateVersions = state.systemUpdateVersions,
-            onUpdateClick = onUpdateClick
+            onUpdateClick = onUpdateClick,
+            onInstanceConfigClick = onInstanceConfigClick
         )
 
         if (isAdaptiveLayout) {
@@ -371,8 +376,9 @@ private fun SystemOverviewCard(
     systemInfo: System.SystemInfo,
     modifier: Modifier = Modifier,
     systemUpdateVersions: List<System.UpdateAvailableVersionsResponse> = emptyList(),
-    onUpdateClick: () -> Unit = {}
-) {
+    onUpdateClick: () -> Unit = {},
+    onInstanceConfigClick: () -> Unit = {}
+){
     WavyGradientBackground {
         Card(
             shape = RoundedCornerShape(24.dp),
@@ -412,6 +418,31 @@ private fun SystemOverviewCard(
                                 Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(statusColor))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(if (isConnectedStatus) "Online" else "Offline", style = MaterialTheme.typography.labelMedium, color = statusColor, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            onClick = onInstanceConfigClick,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = RoundedCornerShape(100.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Tune,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Instance config",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
                         }
 
