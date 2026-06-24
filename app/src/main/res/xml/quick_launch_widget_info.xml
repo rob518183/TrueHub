@@ -8,4 +8,4 @@
     android:resizeMode="horizontal"
     android:description="@string/quick_launch_widget_description"
     android:previewImage="@drawable/quicklaunch"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="home_screen|keyguard" />

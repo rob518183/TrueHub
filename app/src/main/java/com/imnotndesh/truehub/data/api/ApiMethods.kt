@@ -70,6 +70,14 @@ object ApiMethods {
          * @param uuid
          */
         const val RESTORE_ALERTS = "alert.restore"
+
+        // Service Stuff
+        const val GET_SERVICES = "service.query"
+        const val GET_SERVICE_INSTANCE = "servie.get_instance"
+        const val CONTROL_SERVICE = "service.control"
+        const val IS_SERVICE_STARTED = "service.started"
+        const val IS_SERVICE_STARTED_OR_ENABLED = "service.started_or_enabled"
+        const val UPDATE_SERVICE = "service.update"
     }
     object Apps {
         const val QUERY_APPS = "app.query"

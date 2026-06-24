@@ -234,12 +234,69 @@ class SystemService(val manager: TrueNASApiManager){
             )
 
         }
-    // TODO : IMPLEMENT THIS INTO THE AREAS OF TRACKING AS A CANCEL FUNCTION / BUTTON
     suspend fun cancelJob(id: Int): ApiResult<Unit>{
         return manager.callWithResult(
             method = ApiMethods.System.STOP_JOB,
             params = listOf(id),
             resultType = Unit::class.java
+        )
+    }
+
+    // Services calls
+    suspend fun getInstanceServices(): ApiResult<List<System.ServiceQueryResponse>>{
+        val result = Types.newParameterizedType(List::class.java, System.ServiceQueryResponse::class.java)
+        return manager.callWithResult(
+            ApiMethods.System.GET_SERVICES,
+            emptyList(),
+            result
+        )
+    }
+
+    suspend fun getInstanceServiceInstance(id : Int) : ApiResult<System.ServiceQueryResponse>{
+        return manager.callWithResult(
+            ApiMethods.System.GET_SERVICE_INSTANCE,
+            listOf(id),
+            System.ServiceQueryResponse::class.java
+        )
+    }
+    suspend fun controlService(action : System.ServiceControlOptions,service : String, options: System.ServiceControlCallOptions): ApiResult<Boolean>{
+        return manager.callWithResult(
+            ApiMethods.System.CONTROL_SERVICE,
+            listOf(action,service,options),
+            Boolean::class.java
+        )
+    }
+
+    suspend fun isServiceStarted(service:String): ApiResult<Boolean>{
+        return manager.callWithResult(
+            ApiMethods.System.IS_SERVICE_STARTED,
+            listOf(service),
+            Boolean::class.java
+        )
+    }
+
+    suspend fun isServiceStartedOrEnabled(service:String): ApiResult<Boolean>{
+        return manager.callWithResult(
+            ApiMethods.System.IS_SERVICE_STARTED_OR_ENABLED,
+            listOf(service),
+            Boolean::class.java
+        )
+    }
+
+    suspend inline fun <reified T> updateService(
+        serviceIdentifier: T,
+        startOnBoot: Boolean
+    ): ApiResult<Int> {
+        val parameter = when (T::class) {
+            String::class -> serviceIdentifier as String
+            Int::class -> serviceIdentifier as Int
+            else -> throw IllegalArgumentException("Unsupported type: ${T::class.simpleName}")
+        }
+
+        return manager.callWithResult(
+            ApiMethods.System.UPDATE_SERVICE,
+            listOf(parameter, startOnBoot),
+            Int::class.java
         )
     }
 }

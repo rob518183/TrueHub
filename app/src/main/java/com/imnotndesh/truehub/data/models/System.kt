@@ -464,4 +464,30 @@ object System {
         val autocheck : Boolean,
         val profile : String
     )
+
+    // Service structs
+    @JsonClass(generateAdapter = true)
+    data class ServiceQueryResponse(
+        val id : Int,
+        val service : String,
+        val enable : Boolean,
+        val state :String,
+        val pids : List<Int>
+    )
+    enum class ServiceControlOptions{
+        START,
+        STOP,
+        RESTART,
+        RELOAD
+    }
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class ServiceControlCallOptions(
+        val ha_propagate : Boolean = true,
+        val silent : Boolean = true,
+        val timeout : Int ?= 120
+    )
+
+
+
 }
