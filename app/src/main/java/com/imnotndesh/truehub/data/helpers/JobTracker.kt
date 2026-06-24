@@ -60,7 +60,7 @@ object JobTracker {
                         if (newState.state in listOf("SUCCESS", "FAILED", "ABORTED")) {
                             onComplete?.invoke(newState.state)
 
-                            delay(5000)
+                            delay(5000.milliseconds)
                             jobsStateFlow.update { it - trackingKey }
                             return
                         }

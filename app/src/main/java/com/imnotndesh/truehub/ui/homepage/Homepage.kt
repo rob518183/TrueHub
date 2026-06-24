@@ -405,41 +405,42 @@ private fun SystemOverviewCard(
                         Text("Uptime: ${systemInfo.uptime.toShortUptime()}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
 
-                    val statusColor by animateColorAsState(if (isConnectedStatus) Color(0xFF2E7D32) else Color(0xFFF57C00), label = "statusColor")
-                    Surface(color = statusColor.copy(alpha = 0.12f), shape = RoundedCornerShape(100.dp)) {
-                        Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(statusColor))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(if (isConnectedStatus) "Online" else "Offline", style = MaterialTheme.typography.labelMedium, color = statusColor, fontWeight = FontWeight.Bold)
+                    Column(horizontalAlignment = Alignment.End) {
+                        val statusColor by animateColorAsState(if (isConnectedStatus) Color(0xFF2E7D32) else Color(0xFFF57C00), label = "statusColor")
+                        Surface(color = statusColor.copy(alpha = 0.12f), shape = RoundedCornerShape(100.dp)) {
+                            Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(statusColor))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(if (isConnectedStatus) "Online" else "Offline", style = MaterialTheme.typography.labelMedium, color = statusColor, fontWeight = FontWeight.Bold)
+                            }
                         }
-                    }
-                }
 
-                if (systemUpdateVersions.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Surface(
-                        onClick = onUpdateClick,
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.SystemUpdateAlt,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Update available (${systemUpdateVersions.size})",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                        if (systemUpdateVersions.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Surface(
+                                onClick = onUpdateClick,
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                shape = RoundedCornerShape(100.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.SystemUpdateAlt,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Update (${systemUpdateVersions.size})",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
                         }
                     }
                 }

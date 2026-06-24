@@ -3,6 +3,7 @@ package com.imnotndesh.truehub.data.api
 import com.imnotndesh.truehub.data.ApiResult
 import com.imnotndesh.truehub.data.models.Apps
 import com.squareup.moshi.Types
+import kotlin.time.Duration.Companion.milliseconds
 
 class AppsService(val manager: TrueNASApiManager) {
     /**
@@ -42,6 +43,7 @@ class AppsService(val manager: TrueNASApiManager) {
      * @param appName
      * @param version (optional)
      * @param backup (optional)
+     *
      */
     suspend fun upgradeAppWithResult(
         appName: String,
@@ -52,11 +54,56 @@ class AppsService(val manager: TrueNASApiManager) {
             app_version = version ?: "latest",
             snapshot_hostpaths = backup ?: false
         )
-        return manager.callWithResult(
+
+        val result = manager.callWithResult<Int>(
             method = ApiMethods.Apps.UPGRADE_APP,
             params = listOf(appName, options),
             resultType = Int::class.java
         )
+
+        if (result is ApiResult.Error && isStoppedStateError(result)) {
+            val startResult = startAppWithResult(appName)
+            if (startResult is ApiResult.Error) {
+                return startResult.let { ApiResult.Error(it.message, it.throwable) }
+            }
+
+            val reachedRunning = waitUntilAppRunning(appName)
+            if (!reachedRunning) {
+                return ApiResult.Error("App did not reach RUNNING state after start; upgrade not retried.")
+            }
+
+            return manager.callWithResult(
+                method = ApiMethods.Apps.UPGRADE_APP,
+                params = listOf(appName, options),
+                resultType = Int::class.java
+            )
+        }
+
+        return result
+    }
+
+    private fun isStoppedStateError(error: ApiResult.Error): Boolean {
+        return error.message?.contains("must not be in stopped state", ignoreCase = true) == true
+    }
+
+    /**
+     * Polls @see app.query for [appName] until its state is RUNNING.
+     * Returns false on timeout or query failure rather than throwing,
+     * so callers can decide how to surface that.
+     */
+    private suspend fun waitUntilAppRunning(
+        appName: String,
+        pollIntervalMillis: Long = 1500L,
+        maxAttempts: Int = 20
+    ): Boolean {
+        repeat(maxAttempts) {
+            val result = getAppByName(appName)
+            if (result is ApiResult.Success && result.data?.state == "RUNNING") {
+                return true
+            }
+            kotlinx.coroutines.delay(pollIntervalMillis.milliseconds)
+        }
+        return false
     }
 
     /**
