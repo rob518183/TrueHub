@@ -13,6 +13,7 @@ import com.imnotndesh.truehub.data.models.LoginMethod
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.lang.reflect.Type
+import kotlin.time.Duration.Companion.milliseconds
 
 class TrueNASApiManager(
     private val client: TrueNASClient,
@@ -32,6 +33,7 @@ class TrueNASApiManager(
     val connection : ConnectionService by lazy { ConnectionService(this) }
     val user : UserService by lazy { UserService(this) }
     val storage : StorageService by lazy { StorageService(this) }
+    val alertsService : AlertsService by lazy { AlertsService(this) }
 
     @RequiresPermission(Manifest.permission.ACCESS_NETWORK_STATE)
     suspend fun <T> callWithResult(method: String, params: List<Any?>, resultType: Type): ApiResult<T> {
@@ -53,7 +55,7 @@ class TrueNASApiManager(
                         return retryResult
                     }
                 }
-                kotlinx.coroutines.delay(500)
+                kotlinx.coroutines.delay(500.milliseconds)
             }
         }
         return ApiResult.Error("Session expired. Please login again.")
@@ -120,7 +122,7 @@ class TrueNASApiManager(
             val code = (result.throwable as TrueNASRpcException).code
             if (code == 207 || code == -32001) return true
         }
-        val msg = result.message?.lowercase() ?: ""
+        val msg = result.message.lowercase()
         return msg.contains("enotauthenticated") || msg.contains("invalid session")
     }
 

@@ -257,5 +257,15 @@ object ApiMethods {
          */
         const val SNAPSHOT_TASK_UPDATE_WILL_CHANGE_RETENTION = "pool.snapshottask.update_will_change_retention_for"
     }
+    object Alerts {
+        const val ALERTCLASSES_CONFIG = "alertclasses.config"
+        const val ALERTCLASSES_UPDATE = "alertclasses.update"
+        const val ALERT_SERVICE_GET_INSTANCE = "alertservice.get_instance"
+        const val ALERT_SERVICE_DELETE = "alertservice.delete"
+        const val ALERT_SERVICE_CREATE = "alertservice.create"
+        const val ALERT_SERVICE_QUERY = "alertservice.query"
+        const val ALERT_SERVICE_TEST = "alertservice.test"
+        const val ALERT_SERVICE_UPDATE = "alertservice.update"
+    }
 
 }

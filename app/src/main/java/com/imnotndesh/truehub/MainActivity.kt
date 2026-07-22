@@ -32,9 +32,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -47,6 +49,10 @@ import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.ModernToastHost
 import com.imnotndesh.truehub.ui.components.NoInternetScreen
 import com.imnotndesh.truehub.ui.components.ToastManager
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceCreateScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertsservice.AlertClassesConfigScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertsservice.AlertServiceDetailScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertsservice.AlertServicesListScreen
 import com.imnotndesh.truehub.ui.login.LoginScreen
 import com.imnotndesh.truehub.ui.settings.SettingsEvent
 import com.imnotndesh.truehub.ui.settings.SettingsScreen
@@ -322,6 +328,49 @@ private fun AppNavigation(
                 },
                 { navController.popBackStack() }
             )
+        }
+        composable(Screen.AlertServicesList.route) {
+            manager?.let { validManager ->
+                AlertServicesListScreen(
+                    manager = validManager,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { service ->
+                        navController.navigate(Screen.AlertServiceDetail.createRoute(service.id))
+                    },
+                    onNavigateToCreate = {
+                        navController.navigate(Screen.AlertServiceCreate.route)
+                    }
+                )
+            }
+        }
+        composable(
+            Screen.AlertServiceDetail.route,
+            arguments = listOf(navArgument("serviceId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val serviceId = backStackEntry.arguments?.getInt("serviceId") ?: return@composable
+            manager?.let { validManager ->
+                AlertServiceDetailScreen(
+                    serviceId = serviceId,
+                    manager = validManager,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+        }
+        composable(Screen.AlertServiceCreate.route) {
+            manager?.let { validManager ->
+                AlertServiceCreateScreen(
+                    manager = validManager,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+        }
+        composable(Screen.AlertClassesConfig.route) {
+            manager?.let { validManager ->
+                AlertClassesConfigScreen(
+                    manager = validManager,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
         composable(Screen.About.route) {
             manager?.let { validManager ->
