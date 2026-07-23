@@ -66,7 +66,13 @@ class AlertsService(val manager: TrueNASApiManager) {
             resultType = Alerts.AlertClassesEntry::class.java
         )
     }
+    suspend fun listAlertCategoriesWithResult(): ApiResult<List<com.imnotndesh.truehub.data.models.System.AlertCategoriesResponse>> {
+        return manager.system.listCategoriesWithResult()
+    }
 
+    suspend fun listAlertPoliciesWithResult(): ApiResult<List<String>> {
+        return manager.system.listAlertPoliciesWithResult()
+    }
     suspend fun getAlertClassesConfigWithResult(): ApiResult<Alerts.AlertClassesEntry> {
         return manager.callWithResult(
             method = ApiMethods.Alerts.ALERTCLASSES_CONFIG,

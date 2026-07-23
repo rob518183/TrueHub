@@ -1,8 +1,9 @@
-package com.imnotndesh.truehub.ui.homepage.instancesettings.alertsservice
+package com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.imnotndesh.truehub.data.ApiResult
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.Alerts
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +41,7 @@ class AlertServicesListViewModel(private val manager: TrueNASApiManager) : ViewM
                 else it.copy(isRefreshing = true, error = null)
             }
             when (val result = manager.alertsService.listAlertServicesWithResult()) {
-                is com.imnotndesh.truehub.data.ApiResult.Success -> {
+                is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(
                             services = result.data,
@@ -50,7 +51,7 @@ class AlertServicesListViewModel(private val manager: TrueNASApiManager) : ViewM
                         )
                     }
                 }
-                is com.imnotndesh.truehub.data.ApiResult.Error -> {
+                is ApiResult.Error -> {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -59,7 +60,7 @@ class AlertServicesListViewModel(private val manager: TrueNASApiManager) : ViewM
                         )
                     }
                 }
-                is com.imnotndesh.truehub.data.ApiResult.Loading -> { /* no-op */ }
+                is ApiResult.Loading -> { /* no-op */ }
             }
         }
     }

@@ -246,7 +246,7 @@ private fun InstanceConfigCard(item: InstanceConfigItem) {
             if (!item.isLoading) {
                 if (showSwitch) {
                     Switch(
-                        checked = item.isChecked == true,
+                        checked = item.isChecked,
                         onCheckedChange = item.onToggle,
                         modifier = Modifier.clickable(enabled = false) { }
                     )

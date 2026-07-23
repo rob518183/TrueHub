@@ -60,6 +60,7 @@ sealed class Screen(val route:String, val title:String) {
     object AlertServiceDetail : Screen("alert_service_detail/{serviceId}","alert_service_detail/{serviceId}") {
         fun createRoute(serviceId: Int) = "alert_service_detail/$serviceId"
     }
+
     object AlertServiceCreate : Screen("alert_service_create","alert_service_create")
     object AlertClassesConfig : Screen("alert_classes_config","\"alert_classes_config\"")
 

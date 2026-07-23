@@ -49,10 +49,10 @@ import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.ModernToastHost
 import com.imnotndesh.truehub.ui.components.NoInternetScreen
 import com.imnotndesh.truehub.ui.components.ToastManager
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertClassesConfigScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceCreateScreen
-import com.imnotndesh.truehub.ui.homepage.instancesettings.alertsservice.AlertClassesConfigScreen
-import com.imnotndesh.truehub.ui.homepage.instancesettings.alertsservice.AlertServiceDetailScreen
-import com.imnotndesh.truehub.ui.homepage.instancesettings.alertsservice.AlertServicesListScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceDetailScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServicesListScreen
 import com.imnotndesh.truehub.ui.login.LoginScreen
 import com.imnotndesh.truehub.ui.settings.SettingsEvent
 import com.imnotndesh.truehub.ui.settings.SettingsScreen
@@ -339,7 +339,8 @@ private fun AppNavigation(
                     },
                     onNavigateToCreate = {
                         navController.navigate(Screen.AlertServiceCreate.route)
-                    }
+                    },
+                    onNavigateToClassesConfig = { navController.navigate(Screen.AlertClassesConfig.route) }
                 )
             }
         }
@@ -365,9 +366,9 @@ private fun AppNavigation(
             }
         }
         composable(Screen.AlertClassesConfig.route) {
-            manager?.let { validManager ->
+            manager?.let {
                 AlertClassesConfigScreen(
-                    manager = validManager,
+                    manager = manager,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

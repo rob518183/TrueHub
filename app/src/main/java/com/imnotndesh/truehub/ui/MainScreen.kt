@@ -62,6 +62,10 @@ import com.imnotndesh.truehub.ui.homepage.details.DiskInfoScreen
 import com.imnotndesh.truehub.ui.homepage.details.PerformanceScreen
 import com.imnotndesh.truehub.ui.homepage.details.ShareInfoScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.InstanceConfigScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertClassesConfigScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceCreateScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceDetailScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServicesListScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
@@ -114,7 +118,11 @@ fun MainScreen(
             Screen.MarketplaceAppDetails.route,
             Screen.MarketplaceCategory.route,
             Screen.CatalogInstall.route,
-            Screen.SystemUpdateScreen.route
+            Screen.SystemUpdateScreen.route,
+            Screen.AlertClassesConfig.route,
+            Screen.AlertServicesList.route,
+            Screen.AlertServiceDetail.route,
+            Screen.AlertServiceCreate.route,
         )
     }
 
@@ -272,6 +280,9 @@ private fun TrueHubNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToServices = {
                     navController.navigate(Screen.ServicesScreen.route)
+                },
+                onNavigateToAlertSettings = {
+                    navController.navigate(Screen.AlertServicesList.route)
                 }
             )
         }
@@ -303,6 +314,44 @@ private fun TrueHubNavGraph(
                 manager = manager,
                 versions = updateVersions,
                 currentVersion = systemInfo?.version,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.AlertServicesList.route) {
+            AlertServicesListScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDetail = { service ->
+                    navController.navigate(Screen.AlertServiceDetail.createRoute(service.id))
+                },
+                onNavigateToCreate = {
+                    navController.navigate(Screen.AlertServiceCreate.route)
+                },
+                onNavigateToClassesConfig = {
+                    navController.navigate(Screen.AlertClassesConfig.route)
+                }
+            )
+        }
+        composable(
+            route = Screen.AlertServiceDetail.route,
+            arguments = listOf(navArgument("serviceId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val serviceId = backStackEntry.arguments?.getInt("serviceId") ?: 0
+            AlertServiceDetailScreen(
+                serviceId = serviceId,
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.AlertServiceCreate.route) {
+            AlertServiceCreateScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.AlertClassesConfig.route) {
+            AlertClassesConfigScreen(
+                manager = manager,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
