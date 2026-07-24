@@ -66,6 +66,9 @@ import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertCla
 import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceCreateScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceDetailScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServicesListScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyCreateScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyDetailScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyListScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.LocalAdminSetupScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserCreateScreen
@@ -129,8 +132,11 @@ fun MainScreen(
             Screen.AlertServiceCreate.route,
             Screen.UserListScreen.route,
             Screen.UserDetailScreen.route,
-            Screen.UserCreateScreen.route
-        )
+            Screen.UserCreateScreen.route,
+            Screen.ApiKeyListScreen.route,
+            Screen.ApiKeyDetailScreen.route,
+            Screen.ApiKeyCreateScreen.route,
+            )
     }
 
     val navItems = remember {
@@ -299,6 +305,9 @@ private fun TrueHubNavGraph(
                 },
                 onNavigateToUsers = {
                     navController.navigate(Screen.UserListScreen.route)
+                },
+                onNavigateToApiKeys = {
+                    navController.navigate(Screen.ApiKeyListScreen.route)
                 }
             )
         }
@@ -312,6 +321,37 @@ private fun TrueHubNavGraph(
                 onNavigateToCreateUser = {
                     navController.navigate(Screen.UserCreateScreen.route)
                 }
+            )
+        }
+        composable(Screen.ApiKeyListScreen.route) {
+            ApiKeyListScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDetail = { keyId ->
+                    navController.navigate(Screen.ApiKeyDetailScreen.createRoute(keyId))
+                },
+                onNavigateToCreate = {
+                    navController.navigate(Screen.ApiKeyCreateScreen.route)
+                }
+            )
+        }
+
+        composable(
+            route = Screen.ApiKeyDetailScreen.route,
+            arguments = listOf(navArgument("keyId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val keyId = backStackEntry.arguments?.getInt("keyId") ?: 0
+            ApiKeyDetailScreen(
+                keyId = keyId,
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.ApiKeyCreateScreen.route) {
+            ApiKeyCreateScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

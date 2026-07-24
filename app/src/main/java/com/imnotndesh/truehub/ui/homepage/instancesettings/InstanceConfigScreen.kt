@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PowerSettingsNew
@@ -68,7 +69,9 @@ fun InstanceConfigScreen(
     onNavigateToBoot: () -> Unit = {},
     onNavigateToServices: () -> Unit = {},
     onNavigateToAlertSettings: () -> Unit = {},
-    onNavigateToAudit: () -> Unit = {}
+    onNavigateToAudit: () -> Unit = {},
+    onNavigateToApiKeys: () -> Unit = {},
+
 ) {
     Column(
         modifier = Modifier
@@ -140,7 +143,14 @@ fun InstanceConfigScreen(
                         description = "Manage local user accounts",
                         onClick = onNavigateToUsers
                     ),
-                    )
+                    InstanceConfigItem(
+                        icon = Icons.Default.Key,
+                        name = "API Keys",
+                        description = "Manage API key access",
+                        onClick = onNavigateToApiKeys
+                    ),
+
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))

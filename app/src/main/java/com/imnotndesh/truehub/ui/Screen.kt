@@ -69,6 +69,11 @@ sealed class Screen(val route:String, val title:String) {
     }
     object UserCreateScreen : Screen("user_create", "Create User")
     object LocalAdminSetupScreen : Screen("local_admin_setup", "Setup Local Administrator")
+    object ApiKeyListScreen : Screen("api_key_list", "API Keys")
+    object ApiKeyDetailScreen : Screen("api_key_detail/{keyId}", "API Key Details") {
+        fun createRoute(keyId: Int) = "api_key_detail/$keyId"
+    }
+    object ApiKeyCreateScreen : Screen("api_key_create", "Create API Key")
 
 
 }

@@ -744,12 +744,13 @@ object System {
         @field:Json(name = "username") val username: String? = null,
         @field:Json(name = "user_identifier") val user_identifier: Any? = null,
         @field:Json(name = "keyhash") val keyhash: String,
-        @field:Json(name = "created_at") val created_at: String,
-        @field:Json(name = "expires_at") val expires_at: String? = null,
+        @field:Json(name = "created_at") val created_at: MongoDate? = null,
+        @field:Json(name = "expires_at") val expires_at: MongoDate? = null,
         @field:Json(name = "local") val local: Boolean,
         @field:Json(name = "revoked") val revoked: Boolean,
         @field:Json(name = "revoked_reason") val revoked_reason: String? = null
     )
+
     @Suppress("PropertyName")
     @JsonClass(generateAdapter = true)
     data class ApiKeyEntryWithKey(
@@ -758,13 +759,14 @@ object System {
         @field:Json(name = "username") val username: String? = null,
         @field:Json(name = "user_identifier") val user_identifier: Any? = null,
         @field:Json(name = "keyhash") val keyhash: String,
-        @field:Json(name = "created_at") val created_at: String,
-        @field:Json(name = "expires_at") val expires_at: String? = null,
+        @field:Json(name = "created_at") val created_at: MongoDate? = null,
+        @field:Json(name = "expires_at") val expires_at: MongoDate? = null,
         @field:Json(name = "local") val local: Boolean,
         @field:Json(name = "revoked") val revoked: Boolean,
         @field:Json(name = "revoked_reason") val revoked_reason: String? = null,
         @field:Json(name = "key") val key: String
     )
+
     @Suppress("PropertyName")
     @JsonClass(generateAdapter = true)
     data class ApiKeyUpdate(
@@ -773,6 +775,12 @@ object System {
         @field:Json(name = "reset") val reset: Boolean? = null
     )
 
+    fun MongoDate?.formatDate(): String {
+        if (this == null) return "—"
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        sdf.timeZone = java.util.TimeZone.getDefault()
+        return sdf.format(java.util.Date(this.date))
+    }
 
 
 }
