@@ -590,6 +590,7 @@ object System {
         @field:Json(name = "bsdgrp_group") val bsdgrp_group: String? = null
     )
 
+
     /** Options for user.delete. */
     @Suppress("PropertyName")
     @JsonClass(generateAdapter = true)
@@ -631,7 +632,6 @@ object System {
         @field:Json(name = "new_password") val new_password: String
     )
 
-    @Suppress("PropertyName")
     @JsonClass(generateAdapter = true)
     data class UserSetupLocalAdministratorArgs(
         @field:Json(name = "username") val username: String,
@@ -639,7 +639,6 @@ object System {
         @field:Json(name = "options") val options: UserSetupLocalAdministratorOptions? = null
     )
 
-    @Suppress("PropertyName")
     @JsonClass(generateAdapter = true)
     data class UserSetupLocalAdministratorOptions(
         @field:Json(name = "ec2") val ec2: UserSetupLocalAdministratorEC2Options? = null
@@ -725,13 +724,54 @@ object System {
         @field:Json(name = "force_sql_filters") val force_sql_filters: Boolean = false
     )
 
-    @Suppress("PropertyName")
     @JsonClass(generateAdapter = true)
     data class UserShellChoice(
         @field:Json(name = "path") val path: String,
         @field:Json(name = "name") val name: String
     )
-
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class ApiKeyCreate(
+        @field:Json(name = "name") val name: String = "nobody",
+        @field:Json(name = "username") val username: String,
+        @field:Json(name = "expires_at") val expires_at: String? = null
+    )
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class ApiKeyEntry(
+        @field:Json(name = "id") val id: Int,
+        @field:Json(name = "name") val name: String = "nobody",
+        @field:Json(name = "username") val username: String? = null,
+        @field:Json(name = "user_identifier") val user_identifier: Any? = null,
+        @field:Json(name = "keyhash") val keyhash: String,
+        @field:Json(name = "created_at") val created_at: String,
+        @field:Json(name = "expires_at") val expires_at: String? = null,
+        @field:Json(name = "local") val local: Boolean,
+        @field:Json(name = "revoked") val revoked: Boolean,
+        @field:Json(name = "revoked_reason") val revoked_reason: String? = null
+    )
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class ApiKeyEntryWithKey(
+        @field:Json(name = "id") val id: Int,
+        @field:Json(name = "name") val name: String = "nobody",
+        @field:Json(name = "username") val username: String? = null,
+        @field:Json(name = "user_identifier") val user_identifier: Any? = null,
+        @field:Json(name = "keyhash") val keyhash: String,
+        @field:Json(name = "created_at") val created_at: String,
+        @field:Json(name = "expires_at") val expires_at: String? = null,
+        @field:Json(name = "local") val local: Boolean,
+        @field:Json(name = "revoked") val revoked: Boolean,
+        @field:Json(name = "revoked_reason") val revoked_reason: String? = null,
+        @field:Json(name = "key") val key: String
+    )
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class ApiKeyUpdate(
+        @field:Json(name = "name") val name: String? = null,
+        @field:Json(name = "expires_at") val expires_at: String? = null,
+        @field:Json(name = "reset") val reset: Boolean? = null
+    )
 
 
 

@@ -1,5 +1,6 @@
 package com.imnotndesh.truehub.ui.homepage.instancesettings.users
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -23,35 +24,61 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleFloatingActionButton
+import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -61,13 +88,15 @@ import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 
+
 @Composable
 fun UserListScreen(
     manager: TrueNASApiManager,
     onNavigateBack: () -> Unit = {},
     onNavigateToUserDetail: (Int) -> Unit = {},
-    onNavigateToCreateUser: () -> Unit = {}
-) {
+    onNavigateToCreateUser: () -> Unit = {},
+    onNavigateToSetupAdmin: () -> Unit = {},
+    ) {
     val viewModel: UserSettingsViewModel = viewModel(
         factory = UserSettingsViewModel.UserSettingsViewModelFactory(manager)
     )
@@ -102,13 +131,10 @@ fun UserListScreen(
             containerColor = Color.Transparent,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             floatingActionButton = {
-                FloatingActionButton(
-                    onClick = onNavigateToCreateUser,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Create User")
-                }
+                UserFabMenu(
+                    onCreateUserClick = onNavigateToCreateUser,
+                    onSetupAdminClick = onNavigateToSetupAdmin
+                )
             }
         ) { innerPadding ->
             PullToRefreshBox(
@@ -287,6 +313,85 @@ fun UserListScreen(
                 }
             }
         }
+    }
+}
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun UserFabMenu(
+    onCreateUserClick: () -> Unit,
+    onSetupAdminClick: () -> Unit
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val colorScheme = MaterialTheme.colorScheme
+
+    BackHandler(expanded) { expanded = false }
+
+    FloatingActionButtonMenu(
+        expanded = expanded,
+        horizontalAlignment = Alignment.End,
+        button = {
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                    if (expanded) TooltipAnchorPosition.Start else TooltipAnchorPosition.Above
+                ),
+                tooltip = {
+                    PlainTooltip(
+                        modifier = Modifier.semantics {
+                            liveRegion = LiveRegionMode.Assertive
+                            paneTitle = "User creation options"
+                        }
+                    ) {
+                        Text(if (expanded) "Close" else "Add user")
+                    }
+                },
+                state = rememberTooltipState()
+            ) {
+                ToggleFloatingActionButton(
+                    modifier = Modifier
+                        .semantics {
+                            traversalIndex = -1f
+                            stateDescription = if (expanded) "Expanded" else "Collapsed"
+                            contentDescription = "User creation options"
+                        }
+                        .animateFloatingActionButton(
+                            visible = true,
+                            alignment = Alignment.BottomEnd
+                        ),
+                    checked = expanded,
+                    onCheckedChange = { expanded = it },
+                    containerColor = { progress ->
+                        androidx.compose.ui.graphics.lerp(
+                            colorScheme.primaryContainer,
+                            colorScheme.primaryContainer,
+                            progress
+                        )
+                    }
+                ) {
+                    val imageVector by remember {
+                        derivedStateOf {
+                            if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.Add
+                        }
+                    }
+                    Icon(
+                        painter = rememberVectorPainter(imageVector),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.animateIcon({ checkedProgress })
+                    )
+                }
+            }
+        }
+    ) {
+        FloatingActionButtonMenuItem(
+            onClick = { expanded = false; onCreateUserClick() },
+            icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
+            text = { Text("Create User") }
+        )
+        FloatingActionButtonMenuItem(
+            onClick = { expanded = false; onSetupAdminClick() },
+            icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = null) },
+            text = { Text("Setup Local Admin") }
+        )
     }
 }
 

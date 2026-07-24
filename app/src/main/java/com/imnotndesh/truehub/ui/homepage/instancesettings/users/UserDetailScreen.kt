@@ -21,8 +21,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.RemoveModerator
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.AlertDialog
@@ -31,15 +34,18 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -61,6 +67,8 @@ import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserDetailScreen(
     userId: Int,
@@ -81,6 +89,11 @@ fun UserDetailScreen(
     var editShell by remember { mutableStateOf("") }
     var editLocked by remember { mutableStateOf(false) }
     var editPasswordDisabled by remember { mutableStateOf(false) }
+    var showTwoFactorSheet by remember { mutableStateOf(false) }
+    var showPasswordSheet by remember { mutableStateOf(false) }
+    var changePasswordValue by remember { mutableStateOf("") }
+    val sheetState = rememberModalBottomSheetState()
+
 
     fun enterEditMode(user: System.UserCreateUpdateResult) {
         editUsername = user.username
@@ -329,6 +342,37 @@ fun UserDetailScreen(
                             DetailRow("SMB Hash", if (current.smbhash != null && current.smbhash != "") "Present" else "—")
                             DetailRow("SID", current.sid ?: "—")
                         }
+                        if (!current.builtin && !current.password_disabled) {
+                            OutlinedButton(
+                                onClick = { showPasswordSheet = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Key, null, Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Change Password")
+                            }
+                        }
+                        if (current.twofactor_auth_configured) {
+                            SectionCard(
+                                title = "Two-Factor Authentication",
+                                icon = Icons.Default.Security
+                            ) {
+                                Text(
+                                    "2FA is currently configured for this account",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                OutlinedButton(
+                                    onClick = { showTwoFactorSheet = true },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Manage 2FA")
+                                }
+                            }
+                        }
 
                         // Action buttons
                         Row(
@@ -364,6 +408,143 @@ fun UserDetailScreen(
                 }
             }
         }
+        if (showTwoFactorSheet && current != null) {
+            ModalBottomSheet(
+                onDismissRequest = { showTwoFactorSheet = false },
+                sheetState = sheetState
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        "Manage Two-Factor Authentication",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "User: ${current.username}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    HorizontalDivider()
+
+                    Button(
+                        onClick = {
+                            viewModel.renew2faSecret(current.username)
+                        },
+                        enabled = !uiState.isRenewing2fa,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (uiState.isRenewing2fa) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Text("Renew 2FA Secret")
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.unset2faSecret(current.username)
+                        },
+                        enabled = !uiState.isUnsetting2fa,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (uiState.isUnsetting2fa) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.RemoveModerator, null, Modifier.size(18.dp))
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Text("Unset 2FA Secret")
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
+
+        if (showPasswordSheet && current != null) {
+            ModalBottomSheet(
+                onDismissRequest = { showPasswordSheet = false },
+                sheetState = rememberModalBottomSheetState()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        "Change Password",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Set a new password for ${current.username}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    HorizontalDivider()
+
+                    OutlinedTextField(
+                        value = changePasswordValue,
+                        onValueChange = { changePasswordValue = it },
+                        label = { Text("New Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Button(
+                        onClick = {
+                            viewModel.changeUserPassword(current.username, changePasswordValue)
+                        },
+                        enabled = !uiState.isChangingPassword && changePasswordValue.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (uiState.isChangingPassword) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.Key, null, Modifier.size(18.dp))
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Text("Set Password")
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
+
+        // Handle results
+        LaunchedEffect(uiState.passwordChangeResult) {
+            if (uiState.passwordChangeResult == true) {
+                showPasswordSheet = false
+                changePasswordValue = ""
+                viewModel.clearPasswordChangeResult()
+            }
+        }
+        LaunchedEffect(uiState.unset2faResult) {
+            if (uiState.unset2faResult == true) {
+                showTwoFactorSheet = false
+                viewModel.clearUnset2faResult()
+                viewModel.loadUserDetail(userId)
+            }
+        }
+        LaunchedEffect(uiState.renew2faResult) {
+            if (uiState.renew2faResult != null) {
+                showTwoFactorSheet = false
+                viewModel.clearRenew2faResult()
+            }
+        }
+
     }
 
     if (showDeleteDialog) {

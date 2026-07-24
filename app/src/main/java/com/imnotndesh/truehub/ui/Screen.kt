@@ -68,6 +68,7 @@ sealed class Screen(val route:String, val title:String) {
         fun createRoute(userId: Int) = "user_detail/$userId"
     }
     object UserCreateScreen : Screen("user_create", "Create User")
+    object LocalAdminSetupScreen : Screen("local_admin_setup", "Setup Local Administrator")
 
 
 }

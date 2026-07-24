@@ -67,6 +67,7 @@ import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertSer
 import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceDetailScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServicesListScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.users.LocalAdminSetupScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserCreateScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserDetailScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserListScreen
@@ -278,6 +279,12 @@ private fun TrueHubNavGraph(
                 onInstanceConfigClick = {
                     navController.navigate(Screen.InstanceConfigScreen.route)
                 }
+            )
+        }
+        composable(Screen.LocalAdminSetupScreen.route) {
+            LocalAdminSetupScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.InstanceConfigScreen.route) {

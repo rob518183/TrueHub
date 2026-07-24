@@ -75,6 +75,7 @@ android {
 dependencies {
     implementation(libs.androidx.compose.material3.window.size.class1)
     implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.runtime.saveable)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.preview)

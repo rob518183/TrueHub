@@ -147,6 +147,16 @@ object ApiMethods {
          * @see com.imnotndesh.truehub.data.models.System.UserUpdate
          */
         const val USER_UPDATE = "user.update"
+        /**
+         * API Key management (most are self-explanatory)
+         */
+        const val API_KEY_CREATE = "api_key.create"
+        const val API_KEY_DELETE = "api_key.delete"
+        const val API_KEY_GET_INSTANCE = "api_key.get_instance"
+        const val API_KEY_MY_KEYS = "api_key.my_keys"
+        const val API_KEY_QUERY = "api_key.query"
+        const val API_KEY_UPDATE = "api_key.update"
+
     }
     object Apps {
         const val QUERY_APPS = "app.query"

@@ -67,6 +67,12 @@ data class UserListUiState(
 data class UserDetailUiState(
     val isLoading: Boolean = false,
     val isUpdating: Boolean = false,
+    val isChangingPassword: Boolean = false,
+    val passwordChangeResult: Boolean? = null,
+    val isRenewing2fa: Boolean = false,
+    val renew2faResult: System.UserRenew2faSecretResult? = null,
+    val isUnsetting2fa: Boolean = false,
+    val unset2faResult: Boolean? = null,
     val isDeleting: Boolean = false,
     val user: System.UserCreateUpdateResult? = null,
     val updateResult: Boolean? = null,
@@ -76,6 +82,7 @@ data class UserDetailUiState(
 
 data class UserCreateUiState(
     val isLoading: Boolean = false,
+    val setupAdminResult: Boolean? = null,
     val isCreating: Boolean = false,
     val nextUid: Int? = null,
     val shellChoices: Map<String, String> = emptyMap(),
@@ -110,6 +117,29 @@ class UserSettingsViewModel(
             }
         }
     }
+    fun setupLocalAdministrator(username: String, password: String) {
+        viewModelScope.launch {
+            _createState.value = _createState.value.copy(isCreating = true, error = null)
+            when (val result = manager.system.setupLocalAdministratorWithResult(
+                System.UserSetupLocalAdministratorArgs(
+                    username = username,
+                    password = password
+                )
+            )) {
+                is ApiResult.Success -> _createState.value = _createState.value.copy(
+                    isCreating = false, setupAdminResult = true
+                )
+                is ApiResult.Error -> _createState.value = _createState.value.copy(
+                    isCreating = false, error = result.message
+                )
+                is ApiResult.Loading -> {}
+            }
+        }
+    }
+
+    fun clearSetupAdminResult() {
+        _createState.value = _createState.value.copy(setupAdminResult = null)
+    }
 
     fun refreshUsers() {
         viewModelScope.launch {
@@ -139,6 +169,69 @@ class UserSettingsViewModel(
                 is ApiResult.Loading -> { /* no-op */ }
             }
         }
+    }
+    fun changeUserPassword(username: String, newPassword: String) {
+        viewModelScope.launch {
+            _detailState.value = _detailState.value.copy(isChangingPassword = true, error = null)
+            when (val result = manager.system.setUserPasswordWithResult(
+                System.UserSetPasswordArgs(username = username, new_password = newPassword)
+            )) {
+                is ApiResult.Success -> _detailState.value = _detailState.value.copy(
+                    isChangingPassword = false, passwordChangeResult = true
+                )
+                is ApiResult.Error -> _detailState.value = _detailState.value.copy(
+                    isChangingPassword = false, error = result.message
+                )
+                is ApiResult.Loading -> {}
+            }
+        }
+    }
+
+    fun renew2faSecret(username: String) {
+        viewModelScope.launch {
+            _detailState.value = _detailState.value.copy(isRenewing2fa = true, error = null)
+            when (val result = manager.system.renewUser2faSecretWithResult(
+                System.UserRenew2faSecretArgs(
+                    username = username,
+                    twofactor_options = System.UserTwofactorOptions()
+                )
+            )) {
+                is ApiResult.Success -> _detailState.value = _detailState.value.copy(
+                    isRenewing2fa = false, renew2faResult = result.data
+                )
+                is ApiResult.Error -> _detailState.value = _detailState.value.copy(
+                    isRenewing2fa = false, error = result.message
+                )
+                is ApiResult.Loading -> {}
+            }
+        }
+    }
+
+    fun unset2faSecret(username: String) {
+        viewModelScope.launch {
+            _detailState.value = _detailState.value.copy(isUnsetting2fa = true, error = null)
+            when (val result = manager.system.unsetUser2faSecretWithResult(username)) {
+                is ApiResult.Success -> _detailState.value = _detailState.value.copy(
+                    isUnsetting2fa = false, unset2faResult = true
+                )
+                is ApiResult.Error -> _detailState.value = _detailState.value.copy(
+                    isUnsetting2fa = false, error = result.message
+                )
+                is ApiResult.Loading -> {}
+            }
+        }
+    }
+
+    fun clearPasswordChangeResult() {
+        _detailState.value = _detailState.value.copy(passwordChangeResult = null)
+    }
+
+    fun clearRenew2faResult() {
+        _detailState.value = _detailState.value.copy(renew2faResult = null)
+    }
+
+    fun clearUnset2faResult() {
+        _detailState.value = _detailState.value.copy(unset2faResult = null)
     }
 
     fun updateUser(userId: Int, update: System.UserUpdate) {

@@ -456,5 +456,83 @@ class SystemService(val manager: TrueNASApiManager){
             resultType = System.UserCreateUpdateResult::class.java
         )
     }
+    /**
+     * API key management
+     */
+
+    /**
+     * Creates a new API key.
+     */
+    suspend fun createApiKeyWithResult(create: System.ApiKeyCreate): ApiResult<System.ApiKeyEntryWithKey> {
+        return manager.callWithResult(
+            method = ApiMethods.System.API_KEY_CREATE,
+            params = listOf(create),
+            resultType = System.ApiKeyEntryWithKey::class.java
+        )
+    }
+
+    /**
+     * Delete an API key by id.
+     */
+    suspend fun deleteApiKeyWithResult(id: Int): ApiResult<Boolean> {
+        return manager.callWithResult(
+            method = ApiMethods.System.API_KEY_DELETE,
+            params = listOf(id),
+            resultType = Boolean::class.java
+        )
+    }
+
+    /**
+     * Returns a single API key instance matching id.
+     */
+    suspend fun getApiKeyInstanceWithResult(id: Int): ApiResult<System.ApiKeyEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.API_KEY_GET_INSTANCE,
+            params = listOf(id),
+            resultType = System.ApiKeyEntry::class.java
+        )
+    }
+
+    /**
+     * Get the existing API keys for the currently-authenticated user.
+     */
+    suspend fun getMyApiKeysWithResult(): ApiResult<List<System.ApiKeyEntry>> {
+        val resultType = Types.newParameterizedType(List::class.java, System.ApiKeyEntry::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.System.API_KEY_MY_KEYS,
+            params = emptyList(),
+            resultType = resultType
+        )
+    }
+
+    /**
+     * Query API keys with filters and options.
+     */
+    suspend fun queryApiKeysWithResult(
+        filters: List<Any> = emptyList(),
+        options: System.UserQueryOptions = System.UserQueryOptions()
+    ): ApiResult<List<System.ApiKeyEntry>> {
+        val resultType = Types.newParameterizedType(List::class.java, System.ApiKeyEntry::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.System.API_KEY_QUERY,
+            params = listOf(filters, options),
+            resultType = resultType
+        )
+    }
+
+    /**
+     * Update an API key by id.
+     */
+    suspend fun updateApiKeyWithResult(
+        id: Int,
+        update: System.ApiKeyUpdate
+    ): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.API_KEY_UPDATE,
+            params = listOf(id, update),
+            resultType = Any::class.java
+        )
+    }
+
 
 }
