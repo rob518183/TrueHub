@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wifi
@@ -63,6 +64,7 @@ fun InstanceConfigScreen(
     onNavigateToGeneralSettings: () -> Unit = {},
     onNavigateToAdvancedSettings: () -> Unit = {},
     onNavigateToNetwork: () -> Unit = {},
+    onNavigateToUsers: () -> Unit = {},
     onNavigateToBoot: () -> Unit = {},
     onNavigateToServices: () -> Unit = {},
     onNavigateToAlertSettings: () -> Unit = {},
@@ -131,8 +133,14 @@ fun InstanceConfigScreen(
                         name = "Services",
                         description = "Manage and configure running services",
                         onClick = onNavigateToServices
+                    ),
+                    InstanceConfigItem(
+                        icon = Icons.Default.People,
+                        name = "Users",
+                        description = "Manage local user accounts",
+                        onClick = onNavigateToUsers
+                    ),
                     )
-                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))

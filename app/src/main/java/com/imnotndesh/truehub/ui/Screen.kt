@@ -63,5 +63,11 @@ sealed class Screen(val route:String, val title:String) {
 
     object AlertServiceCreate : Screen("alert_service_create","alert_service_create")
     object AlertClassesConfig : Screen("alert_classes_config","\"alert_classes_config\"")
+    object UserListScreen : Screen("user_list", "Users")
+    object UserDetailScreen : Screen("user_detail/{userId}", "User Details") {
+        fun createRoute(userId: Int) = "user_detail/$userId"
+    }
+    object UserCreateScreen : Screen("user_create", "Create User")
+
 
 }

@@ -78,6 +78,75 @@ object ApiMethods {
         const val IS_SERVICE_STARTED = "service.started"
         const val IS_SERVICE_STARTED_OR_ENABLED = "service.started_or_enabled"
         const val UPDATE_SERVICE = "service.update"
+        /**
+         * Create a new user account.
+         * @see com.imnotndesh.truehub.data.models.System.UserCreate
+         */
+        const val USER_CREATE = "user.create"
+
+        /**
+         * Delete a user account by id.
+         * @see com.imnotndesh.truehub.data.models.System.UserDeleteOptions
+         */
+        const val USER_DELETE = "user.delete"
+
+        /**
+         * Returns a single user instance matching id.
+         */
+        const val USER_GET_INSTANCE = "user.get_instance"
+
+        /**
+         * Get the next available/free UID.
+         */
+        const val USER_GET_NEXT_UID = "user.get_next_uid"
+
+        /**
+         * Returns struct passwd info for a user (by username or uid).
+         * @see com.imnotndesh.truehub.data.models.System.UserGetUserObjArgs
+         */
+        const val USER_GET_USER_OBJ = "user.get_user_obj"
+
+        /**
+         * Returns whether a local administrator with a valid password exists.
+         */
+        const val USER_HAS_LOCAL_ADMINISTRATOR_SET_UP = "user.has_local_administrator_set_up"
+
+        /**
+         * Query users with query-filters and query-options.
+         */
+        const val USER_QUERY = "user.query"
+
+        /**
+         * Renew a user's two-factor authentication secret.
+         */
+        const val USER_RENEW_2FA_SECRET = "user.renew_2fa_secret"
+
+        /**
+         * Set the password of a user.
+         * @see com.imnotndesh.truehub.data.models.System.UserSetPasswordArgs
+         */
+        const val USER_SET_PASSWORD = "user.set_password"
+
+        /**
+         * Set up local administrator (no auth required if not already set up).
+         */
+        const val USER_SETUP_LOCAL_ADMINISTRATOR = "user.setup_local_administrator"
+
+        /**
+         * Return available shell choices.
+         */
+        const val USER_SHELL_CHOICES = "user.shell_choices"
+
+        /**
+         * Unset two-factor authentication secret for a user.
+         */
+        const val USER_UNSET_2FA_SECRET = "user.unset_2fa_secret"
+
+        /**
+         * Update attributes of an existing user account.
+         * @see com.imnotndesh.truehub.data.models.System.UserUpdate
+         */
+        const val USER_UPDATE = "user.update"
     }
     object Apps {
         const val QUERY_APPS = "app.query"

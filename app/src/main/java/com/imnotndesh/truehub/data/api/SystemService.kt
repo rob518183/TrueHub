@@ -299,4 +299,162 @@ class SystemService(val manager: TrueNASApiManager){
             Int::class.java
         )
     }
+
+    /**
+     * Create a new user account.
+     */
+    suspend fun createUserWithResult(create: System.UserCreate): ApiResult<System.UserCreateUpdateResult> {
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_CREATE,
+            params = listOf(create),
+            resultType = System.UserCreateUpdateResult::class.java
+        )
+    }
+
+    /**
+     * Delete a user account by id.
+     */
+    suspend fun deleteUserWithResult(id: Int, options: System.UserDeleteOptions = System.UserDeleteOptions()): ApiResult<Int> {
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_DELETE,
+            params = listOf(id, options),
+            resultType = Int::class.java
+        )
+    }
+
+    /**
+     * Returns a single user instance matching id.
+     */
+    suspend fun getUserInstanceWithResult(id: Int): ApiResult<System.UserCreateUpdateResult> {
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_GET_INSTANCE,
+            params = listOf(id),
+            resultType = System.UserCreateUpdateResult::class.java
+        )
+    }
+
+    /**
+     * Get the next available/free UID.
+     */
+    suspend fun getNextUidWithResult(): ApiResult<Int> {
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_GET_NEXT_UID,
+            params = emptyList(),
+            resultType = Int::class.java
+        )
+    }
+
+    /**
+     * Returns struct passwd info for a user by username or uid.
+     */
+    suspend fun getUserObjWithResult(args: System.UserGetUserObjArgs): ApiResult<System.UserGetUserObj> {
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_GET_USER_OBJ,
+            params = listOf(args),
+            resultType = System.UserGetUserObj::class.java
+        )
+    }
+
+    /**
+     * Returns whether a local administrator with a valid password exists.
+     */
+    suspend fun hasLocalAdministratorSetUpWithResult(): ApiResult<Boolean> {
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_HAS_LOCAL_ADMINISTRATOR_SET_UP,
+            params = emptyList(),
+            resultType = Boolean::class.java
+        )
+    }
+
+    /**
+     * Query users with filters and options.
+     */
+    suspend fun queryUsersWithResult(
+        filters: List<Any> = emptyList(),
+        options: System.UserQueryOptions = System.UserQueryOptions()
+    ): ApiResult<List<System.UserCreateUpdateResult>> {
+        val resultType = Types.newParameterizedType(List::class.java, System.UserCreateUpdateResult::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_QUERY,
+            params = listOf(filters, options),
+            resultType = resultType
+        )
+    }
+
+    /**
+     * Renew a user's two-factor authentication secret.
+     */
+    suspend fun renewUser2faSecretWithResult(args: System.UserRenew2faSecretArgs): ApiResult<System.UserRenew2faSecretResult> {
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_RENEW_2FA_SECRET,
+            params = listOf(args.username, args.twofactor_options),
+            resultType = System.UserRenew2faSecretResult::class.java
+        )
+    }
+
+    /**
+     * Set the password of a user.
+     */
+    suspend fun setUserPasswordWithResult(args: System.UserSetPasswordArgs): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_SET_PASSWORD,
+            params = listOf(args),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Set up local administrator (no auth required if not already set up).
+     */
+    suspend fun setupLocalAdministratorWithResult(args: System.UserSetupLocalAdministratorArgs): ApiResult<Any> {
+        val params = if (args.options != null) {
+            listOf(args.username, args.password, args.options)
+        } else {
+            listOf(args.username, args.password)
+        }
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_SETUP_LOCAL_ADMINISTRATOR,
+            params = params,
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Return available shell choices for user.create and user.update.
+     */
+    suspend fun getShellChoicesWithResult(groupIds: List<Int> = emptyList()): ApiResult<Map<String, String>> {
+        val resultType = Types.newParameterizedType(
+            Map::class.java,
+            String::class.java,
+            String::class.java
+        )
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_SHELL_CHOICES,
+            params = listOf(groupIds),
+            resultType = resultType
+        )
+    }
+
+    /**
+     * Unset two-factor authentication secret for a user.
+     */
+    suspend fun unsetUser2faSecretWithResult(username: String): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_UNSET_2FA_SECRET,
+            params = listOf(username),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Update attributes of an existing user account.
+     */
+    suspend fun updateUserWithResult(id: Int, update: System.UserUpdate): ApiResult<System.UserCreateUpdateResult> {
+        return manager.callWithResult(
+            method = ApiMethods.System.USER_UPDATE,
+            params = listOf(id, update),
+            resultType = System.UserCreateUpdateResult::class.java
+        )
+    }
+
 }

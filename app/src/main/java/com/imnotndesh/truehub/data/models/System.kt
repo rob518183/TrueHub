@@ -491,6 +491,248 @@ object System {
         val timeout : Int ?= 120
     )
 
+    /** Configuration for creating a new user account. */
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserCreate(
+        @field:Json(name = "uid") val uid: Int? = null,
+        @field:Json(name = "username") val username: String,
+        @field:Json(name = "home") val home: String = "/var/empty",
+        @field:Json(name = "shell") val shell: String = "/usr/bin/zsh",
+        @field:Json(name = "full_name") val full_name: String,
+        @field:Json(name = "smb") val smb: Boolean = true,
+        @field:Json(name = "userns_idmap") val userns_idmap: Any? = null,
+        @field:Json(name = "group") val group: Int? = null,
+        @field:Json(name = "groups") val groups: List<Int>? = null,
+        @field:Json(name = "password_disabled") val password_disabled: Boolean = false,
+        @field:Json(name = "ssh_password_enabled") val ssh_password_enabled: Boolean = false,
+        @field:Json(name = "sshpubkey") val sshpubkey: String? = null,
+        @field:Json(name = "locked") val locked: Boolean = false,
+        @field:Json(name = "sudo_commands") val sudo_commands: List<String>? = null,
+        @field:Json(name = "sudo_commands_nopasswd") val sudo_commands_nopasswd: List<String>? = null,
+        @field:Json(name = "email") val email: String? = null,
+        @field:Json(name = "group_create") val group_create: Boolean = false,
+        @field:Json(name = "home_create") val home_create: Boolean = false,
+        @field:Json(name = "home_mode") val home_mode: String = "700",
+        @field:Json(name = "password") val password: String? = null,
+        @field:Json(name = "random_password") val random_password: Boolean = false
+    )
+
+    /** Fields that can be updated on an existing user account. */
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserUpdate(
+        @field:Json(name = "username") val username: String? = null,
+        @field:Json(name = "home") val home: String? = null,
+        @field:Json(name = "shell") val shell: String? = null,
+        @field:Json(name = "full_name") val full_name: String? = null,
+        @field:Json(name = "smb") val smb: Boolean? = null,
+        @field:Json(name = "userns_idmap") val userns_idmap: Any? = null,
+        @field:Json(name = "group") val group: Int? = null,
+        @field:Json(name = "groups") val groups: List<Int>? = null,
+        @field:Json(name = "password_disabled") val password_disabled: Boolean? = null,
+        @field:Json(name = "ssh_password_enabled") val ssh_password_enabled: Boolean? = null,
+        @field:Json(name = "sshpubkey") val sshpubkey: String? = null,
+        @field:Json(name = "locked") val locked: Boolean? = null,
+        @field:Json(name = "sudo_commands") val sudo_commands: List<String>? = null,
+        @field:Json(name = "sudo_commands_nopasswd") val sudo_commands_nopasswd: List<String>? = null,
+        @field:Json(name = "email") val email: String? = null,
+        @field:Json(name = "home_create") val home_create: Boolean? = null,
+        @field:Json(name = "home_mode") val home_mode: String? = null,
+        @field:Json(name = "password") val password: String? = null,
+        @field:Json(name = "random_password") val random_password: Boolean? = null
+    )
+
+    /** Result returned by user.create and user.update. */
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserCreateUpdateResult(
+        @field:Json(name = "id") val id: Int ?= null ,
+        @field:Json(name = "uid") val uid: Int,
+        @field:Json(name = "username") val username: String,
+        @field:Json(name = "unixhash") val unixhash: String? = null,
+        @field:Json(name = "smbhash") val smbhash: String? = null,
+        @field:Json(name = "home") val home: String = "/var/empty",
+        @field:Json(name = "shell") val shell: String = "/usr/bin/zsh",
+        @field:Json(name = "full_name") val full_name: String,
+        @field:Json(name = "builtin") val builtin: Boolean,
+        @field:Json(name = "smb") val smb: Boolean = true,
+        @field:Json(name = "userns_idmap") val userns_idmap: Any? = null,
+        @field:Json(name = "group") val group: UserGroupEntry ?= null,
+        @field:Json(name = "groups") val groups: List<Int>,
+        @field:Json(name = "password_disabled") val password_disabled: Boolean = false,
+        @field:Json(name = "ssh_password_enabled") val ssh_password_enabled: Boolean = false,
+        @field:Json(name = "sshpubkey") val sshpubkey: String? = null,
+        @field:Json(name = "locked") val locked: Boolean = false,
+        @field:Json(name = "sudo_commands") val sudo_commands: List<String>? = null,
+        @field:Json(name = "sudo_commands_nopasswd") val sudo_commands_nopasswd: List<String>? = null,
+        @field:Json(name = "email") val email: String? = null,
+        @field:Json(name = "local") val local: Boolean,
+        @field:Json(name = "immutable") val immutable: Boolean,
+        @field:Json(name = "twofactor_auth_configured") val twofactor_auth_configured: Boolean,
+        @field:Json(name = "sid") val sid: String? = null,
+        @field:Json(name = "last_password_change") val last_password_change: MongoDate? = null,
+        @field:Json(name = "password_age") val password_age: Int? = null,
+        @field:Json(name = "password_history") val password_history: List<String>? = null,
+        @field:Json(name = "password_change_required") val password_change_required: Boolean,
+        @field:Json(name = "roles") val roles: List<String>,
+        @field:Json(name = "api_keys") val api_keys: List<Int>,
+        @field:Json(name = "password") val password: String? = null
+    )
+
+
+    /** Primary group info embedded in user entries. */
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserGroupEntry(
+        @field:Json(name = "id") val id: Int ?= null,
+        @field:Json(name = "bsdgrp_gid") val bsdgrp_gid: Int? = null,
+        @field:Json(name = "bsdgrp_group") val bsdgrp_group: String? = null
+    )
+
+    /** Options for user.delete. */
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserDeleteOptions(
+        @field:Json(name = "delete_group") val delete_group: Boolean = true
+    )
+
+    /** Arguments for user.get_user_obj. */
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserGetUserObjArgs(
+        @field:Json(name = "username") val username: String? = null,
+        @field:Json(name = "uid") val uid: Int? = null,
+        @field:Json(name = "get_groups") val get_groups: Boolean = false,
+        @field:Json(name = "sid_info") val sid_info: Boolean = false
+    )
+
+    /** Response from user.get_user_obj (struct passwd info). */
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserGetUserObj(
+        @field:Json(name = "pw_name") val pw_name: String,
+        @field:Json(name = "pw_gecos") val pw_gecos: String,
+        @field:Json(name = "pw_dir") val pw_dir: String,
+        @field:Json(name = "pw_shell") val pw_shell: String,
+        @field:Json(name = "pw_uid") val pw_uid: Int,
+        @field:Json(name = "pw_gid") val pw_gid: Int,
+        @field:Json(name = "grouplist") val grouplist: List<Int>? = null,
+        @field:Json(name = "sid") val sid: String? = null,
+        @field:Json(name = "source") val source: String,
+        @field:Json(name = "local") val local: Boolean
+    )
+
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserSetPasswordArgs(
+        @field:Json(name = "username") val username: String,
+        @field:Json(name = "old_password") val old_password: String? = null,
+        @field:Json(name = "new_password") val new_password: String
+    )
+
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserSetupLocalAdministratorArgs(
+        @field:Json(name = "username") val username: String,
+        @field:Json(name = "password") val password: String,
+        @field:Json(name = "options") val options: UserSetupLocalAdministratorOptions? = null
+    )
+
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserSetupLocalAdministratorOptions(
+        @field:Json(name = "ec2") val ec2: UserSetupLocalAdministratorEC2Options? = null
+    )
+
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserSetupLocalAdministratorEC2Options(
+        @field:Json(name = "instance_id") val instance_id: String
+    )
+
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserRenew2faSecretResult(
+        @field:Json(name = "id") val id: Int?,
+        @field:Json(name = "uid") val uid: Int,
+        @field:Json(name = "username") val username: String,
+        @field:Json(name = "unixhash") val unixhash: String? = null,
+        @field:Json(name = "smbhash") val smbhash: String? = null,
+        @field:Json(name = "home") val home: String = "/var/empty",
+        @field:Json(name = "shell") val shell: String = "/usr/bin/zsh",
+        @field:Json(name = "full_name") val full_name: String,
+        @field:Json(name = "builtin") val builtin: Boolean,
+        @field:Json(name = "smb") val smb: Boolean = true,
+        @field:Json(name = "userns_idmap") val userns_idmap: Any? = null,
+        @field:Json(name = "group") val group: UserGroupEntry,
+        @field:Json(name = "groups") val groups: List<Int>,
+        @field:Json(name = "password_disabled") val password_disabled: Boolean = false,
+        @field:Json(name = "ssh_password_enabled") val ssh_password_enabled: Boolean = false,
+        @field:Json(name = "sshpubkey") val sshpubkey: String? = null,
+        @field:Json(name = "locked") val locked: Boolean = false,
+        @field:Json(name = "sudo_commands") val sudo_commands: List<String>? = null,
+        @field:Json(name = "sudo_commands_nopasswd") val sudo_commands_nopasswd: List<String>? = null,
+        @field:Json(name = "email") val email: String? = null,
+        @field:Json(name = "local") val local: Boolean,
+        @field:Json(name = "immutable") val immutable: Boolean,
+        @field:Json(name = "twofactor_auth_configured") val twofactor_auth_configured: Boolean,
+        @field:Json(name = "sid") val sid: String? = null,
+        @field:Json(name = "last_password_change") val last_password_change: MongoDate? = null,
+        @field:Json(name = "password_age") val password_age: Int? = null,
+        @field:Json(name = "password_history") val password_history: List<String>? = null,
+        @field:Json(name = "password_change_required") val password_change_required: Boolean,
+        @field:Json(name = "roles") val roles: List<String>,
+        @field:Json(name = "api_keys") val api_keys: List<Int>,
+        @field:Json(name = "twofactor_config") val twofactor_config: UserTwofactorConfigEntry
+    )
+
+
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserTwofactorConfigEntry(
+        @field:Json(name = "provisioning_uri") val provisioning_uri: String? = null,
+        @field:Json(name = "secret_configured") val secret_configured: Boolean,
+        @field:Json(name = "interval") val interval: Int,
+        @field:Json(name = "otp_digits") val otp_digits: Int
+    )
+
+    /** Arguments for user.renew_2fa_secret. */
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserRenew2faSecretArgs(
+        @field:Json(name = "username") val username: String,
+        @field:Json(name = "twofactor_options") val twofactor_options: UserTwofactorOptions
+    )
+
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserTwofactorOptions(
+        @field:Json(name = "otp_digits") val otp_digits: Int = 6,
+        @field:Json(name = "interval") val interval: Int = 30
+    )
+
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserQueryOptions(
+        @field:Json(name = "extra") val extra: Map<String, Any>? = null,
+        @field:Json(name = "order_by") val order_by: List<String>? = null,
+        @field:Json(name = "select") val select: List<Any>? = null,
+        @field:Json(name = "count") val count: Boolean = false,
+        @field:Json(name = "get") val get: Boolean = false,
+        @field:Json(name = "offset") val offset: Int = 0,
+        @field:Json(name = "limit") val limit: Int = 0,
+        @field:Json(name = "force_sql_filters") val force_sql_filters: Boolean = false
+    )
+
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class UserShellChoice(
+        @field:Json(name = "path") val path: String,
+        @field:Json(name = "name") val name: String
+    )
+
+
 
 
 }

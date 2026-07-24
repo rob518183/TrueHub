@@ -67,6 +67,9 @@ import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertSer
 import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceDetailScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServicesListScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserCreateScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserDetailScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserListScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
 import com.imnotndesh.truehub.ui.homepage.update.SystemUpdateScreen
@@ -123,6 +126,9 @@ fun MainScreen(
             Screen.AlertServicesList.route,
             Screen.AlertServiceDetail.route,
             Screen.AlertServiceCreate.route,
+            Screen.UserListScreen.route,
+            Screen.UserDetailScreen.route,
+            Screen.UserCreateScreen.route
         )
     }
 
@@ -283,7 +289,41 @@ private fun TrueHubNavGraph(
                 },
                 onNavigateToAlertSettings = {
                     navController.navigate(Screen.AlertServicesList.route)
+                },
+                onNavigateToUsers = {
+                    navController.navigate(Screen.UserListScreen.route)
                 }
+            )
+        }
+        composable(Screen.UserListScreen.route) {
+            UserListScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToUserDetail = { userId ->
+                    navController.navigate(Screen.UserDetailScreen.createRoute(userId))
+                },
+                onNavigateToCreateUser = {
+                    navController.navigate(Screen.UserCreateScreen.route)
+                }
+            )
+        }
+
+        composable(
+            route = Screen.UserDetailScreen.route,
+            arguments = listOf(navArgument("userId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+            UserDetailScreen(
+                userId = userId,
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.UserCreateScreen.route) {
+            UserCreateScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.ServicesScreen.route) {
