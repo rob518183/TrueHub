@@ -95,11 +95,11 @@ fun NetworkConfigScreen(
                     }
                     item {
                         DetailCard(
-                            items = buildList {
-                                add(Pair("Hostname", config.hostname))
-                                config.hostnameLocal?.ifEmpty { "None Configured" }.let { add(Pair("Hostname (local)", it!!)) }
-                                add(Pair("Domain", config.domain))
-                            }
+                            items = listOf(
+                                Pair("Hostname", config.hostname),
+                                Pair("Hostname (local)", config.hostnameLocal.ifEmpty { "Not configured" }),
+                                Pair("Domain", config.domain)
+                            )
                         )
                     }
                     item {
