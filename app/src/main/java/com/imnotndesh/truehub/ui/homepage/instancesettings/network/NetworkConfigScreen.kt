@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -21,19 +20,15 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Router
-import androidx.compose.material.icons.filled.SettingsEthernet
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,15 +36,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
-import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 
@@ -98,21 +90,18 @@ fun NetworkConfigScreen(
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // ── Hostname / Domain ──
                     item {
                         SectionHeader("Identity", Icons.Default.Public)
                     }
                     item {
                         DetailCard(
-                            items = listOf(
-                                Pair("Hostname", config.hostname),
-                                Pair("Hostname (local)", config.hostnameLocal),
-                                Pair("Domain", config.domain)
-                            )
+                            items = buildList {
+                                add(Pair("Hostname", config.hostname))
+                                config.hostnameLocal?.ifEmpty { "None Configured" }.let { add(Pair("Hostname (local)", it!!)) }
+                                add(Pair("Domain", config.domain))
+                            }
                         )
                     }
-
-                    // ── Gateways ──
                     item {
                         SectionHeader("Gateways", Icons.Default.Router)
                     }
@@ -140,12 +129,12 @@ fun NetworkConfigScreen(
                     }
 
                     // ── HTTP Proxy ──
-                    if (config.httpProxy.isNotBlank()) {
+                    if (!config.httpProxy.isNullOrBlank()) {
                         item {
                             SectionHeader("HTTP Proxy", Icons.Default.Visibility)
                         }
                         item {
-                            DetailCard(items = listOf(Pair("Proxy URL", config.httpProxy)))
+                            DetailCard(items = listOf(Pair("Proxy URL", config.httpProxy ?: "")))
                         }
                     }
 
@@ -179,13 +168,17 @@ fun NetworkConfigScreen(
                     }
                     item {
                         val sa = config.serviceAnnouncement
-                        DetailCard(
-                            items = listOf(
-                                Pair("NetBIOS", if (sa.netbios == true) "Enabled" else "Disabled"),
-                                Pair("mDNS", if (sa.mdns == true) "Enabled" else "Disabled"),
-                                Pair("WSD", if (sa.wsd == true) "Enabled" else "Disabled")
+                        if (sa != null) {
+                            DetailCard(
+                                items = listOf(
+                                    Pair("NetBIOS", if (sa.netbios == true) "Enabled" else "Disabled"),
+                                    Pair("mDNS", if (sa.mdns == true) "Enabled" else "Disabled"),
+                                    Pair("WSD", if (sa.wsd == true) "Enabled" else "Disabled")
+                                )
                             )
-                        )
+                        } else {
+                            DetailCard(items = listOf(Pair("Service Announcement", "Not available")))
+                        }
                     }
 
                     // ── Activity ──
@@ -208,12 +201,11 @@ fun NetworkConfigScreen(
                             SectionHeader("HA Hostnames", Icons.Default.Public)
                         }
                         item {
-                            DetailCard(
-                                items = listOfNotNull(
-                                    config.hostnameB?.let { Pair("Hostname B", it) },
-                                    config.hostnameVirtual?.let { Pair("Virtual Hostname", it) }
-                                )
+                            val haItems: List<Pair<String, String>?> = listOf(
+                                config.hostnameB?.let { Pair("Hostname B", it) },
+                                config.hostnameVirtual?.let { Pair("Virtual Hostname", it) }
                             )
+                            DetailCard(items = haItems.filterNotNull())
                         }
                     }
 
@@ -223,16 +215,15 @@ fun NetworkConfigScreen(
                     }
                     item {
                         val state = config.state
-                        DetailCard(
-                            items = listOfNotNull(
-                                Pair("IPv4 Gateway", state.ipv4Gateway ?: "Not set"),
-                                Pair("IPv6 Gateway", state.ipv6Gateway ?: "Not set"),
-                                Pair("Nameserver 1", state.nameserver1 ?: "Not set"),
-                                Pair("Nameserver 2", state.nameserver2 ?: "Not set"),
-                                Pair("Nameserver 3", state.nameserver3 ?: "Not set"),
-                                if (state.hosts.isNotEmpty()) Pair("Hosts", "${state.hosts.size} entries") else null
-                            )
+                        val stateItems: List<Pair<String, String>?> = listOf(
+                            Pair("IPv4 Gateway", state.ipv4Gateway ?: "Not set"),
+                            Pair("IPv6 Gateway", state.ipv6Gateway ?: "Not set"),
+                            Pair("Nameserver 1", state.nameserver1 ?: "Not set"),
+                            Pair("Nameserver 2", state.nameserver2 ?: "Not set"),
+                            Pair("Nameserver 3", state.nameserver3 ?: "Not set"),
+                            if (state.hosts.isNotEmpty()) Pair("Hosts", "\${state.hosts.size} entries") else null
                         )
+                        DetailCard(items = stateItems.filterNotNull())
                     }
 
                     // ── Edit button ──
