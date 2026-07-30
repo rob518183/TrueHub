@@ -73,6 +73,8 @@ fun InstanceConfigScreen(
     onNavigateToGeneralSystemSettings: () -> Unit = {},
     onNavigateToAuditConfig: () -> Unit = {},
     onNavigateToAuditLogs: () -> Unit = {},
+    onNavigateToNetworkSummary: () -> Unit = {},
+    onNavigateToNetworkConfig: () -> Unit = {},
 
 ) {
     Column(
@@ -123,9 +125,15 @@ fun InstanceConfigScreen(
                     ),
                     InstanceConfigItem(
                         icon = Icons.Default.Wifi,
-                        name = "Network",
+                        name = "Network Summary",
                         description = "Interfaces, routes, and DNS",
-                        onClick = onNavigateToNetwork
+                        onClick = onNavigateToNetworkSummary
+                    ),
+                    InstanceConfigItem(
+                        icon = Icons.Default.Wifi,
+                        name = "Network Config",
+                        description = "Hostname, gateways, and announcements",
+                        onClick = onNavigateToNetworkConfig
                     ),
                     InstanceConfigItem(
                         icon = Icons.Default.PowerSettingsNew,

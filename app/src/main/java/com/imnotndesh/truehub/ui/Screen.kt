@@ -80,5 +80,7 @@ sealed class Screen(val route:String, val title:String) {
     object AdvancedSystemSettingsEditScreen : Screen("advanced_system_settings_edit", "Edit Advanced Settings")
     object AuditConfigScreen : Screen("audit_config", "Audit Configuration")
     object AuditLogsScreen : Screen("audit_logs", "Audit Logs")
+    object NetworkSummaryScreen : Screen("network_summary", "Network Summary")
+    object NetworkConfigScreen : Screen("network_config", "Network Configuration")
 
 }
