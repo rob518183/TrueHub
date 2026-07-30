@@ -16,6 +16,7 @@ data class NetworkConfigUiState(
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val config: System.NetworkConfigurationEntry? = null,
+    val summary: System.NetworkGeneralSummaryResult? = null,
     val activityChoices: List<List<String>> = emptyList(),
     val error: String? = null,
     val saveSuccess: Boolean = false
@@ -32,6 +33,9 @@ class NetworkConfigViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
+                val summaryResult = manager.system.networkGeneralSummary()
+                val summary = if (summaryResult is ApiResult.Success) summaryResult.data else null
+
                 val configResult = manager.system.networkConfigurationConfig()
                 if (configResult is ApiResult.Error) {
                     _uiState.update { it.copy(isLoading = false, error = configResult.message) }
@@ -43,7 +47,7 @@ class NetworkConfigViewModel(
                 val choices = if (choicesResult is ApiResult.Success) choicesResult.data else emptyList()
 
                 _uiState.update {
-                    it.copy(isLoading = false, config = config, activityChoices = choices)
+                    it.copy(isLoading = false, config = config, summary = summary, activityChoices = choices)
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unexpected error") }

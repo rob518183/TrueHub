@@ -77,9 +77,9 @@ import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditLogsScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditLogsViewModel
 import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsEditScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsScreen
-import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkConfigScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkConfigViewModel
-import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkSummaryScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkEditScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.LocalAdminSetupScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserCreateScreen
@@ -153,8 +153,8 @@ fun MainScreen(
             Screen.AdvancedSystemSettingsEditScreen.route,
             Screen.AuditConfigScreen.route,
             Screen.AuditLogsScreen.route,
-            Screen.NetworkSummaryScreen.route,
-            Screen.NetworkConfigScreen.route,
+            Screen.NetworkScreen.route,
+            Screen.NetworkEditScreen.route,
             )
     }
 
@@ -340,22 +340,22 @@ private fun TrueHubNavGraph(
                 onNavigateToAuditLogs = {
                     navController.navigate(Screen.AuditLogsScreen.route)
                 },
-                onNavigateToNetworkSummary = {
-                    navController.navigate(Screen.NetworkSummaryScreen.route)
-                },
-                onNavigateToNetworkConfig = {
-                    navController.navigate(Screen.NetworkConfigScreen.route)
+                onNavigateToNetwork = {
+                    navController.navigate(Screen.NetworkScreen.route)
                 }
             )
         }
-        composable(Screen.NetworkSummaryScreen.route) {
-            NetworkSummaryScreen(
+        composable(Screen.NetworkScreen.route) {
+            NetworkScreen(
                 manager = manager,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = {
+                    navController.navigate(Screen.NetworkEditScreen.route)
+                }
             )
         }
-        composable(Screen.NetworkConfigScreen.route) {
-            NetworkConfigScreen(
+        composable(Screen.NetworkEditScreen.route) {
+            NetworkEditScreen(
                 manager = manager,
                 onNavigateBack = { navController.popBackStack() }
             )
