@@ -69,9 +69,10 @@ fun InstanceConfigScreen(
     onNavigateToBoot: () -> Unit = {},
     onNavigateToServices: () -> Unit = {},
     onNavigateToAlertSettings: () -> Unit = {},
-    onNavigateToAudit: () -> Unit = {},
     onNavigateToApiKeys: () -> Unit = {},
     onNavigateToGeneralSystemSettings: () -> Unit = {},
+    onNavigateToAuditConfig: () -> Unit = {},
+    onNavigateToAuditLogs: () -> Unit = {},
 
 ) {
     Column(
@@ -118,7 +119,7 @@ fun InstanceConfigScreen(
                         icon = Icons.Default.Bolt,
                         name = "Advanced settings",
                         description = "Sysctl, tunables, and developer options",
-                        onClick = onNavigateToGeneralSettings
+                        onClick = onNavigateToAdvancedSettings
                     ),
                     InstanceConfigItem(
                         icon = Icons.Default.Wifi,
@@ -167,9 +168,15 @@ fun InstanceConfigScreen(
                     ),
                     InstanceConfigItem(
                         icon = Icons.Default.FactCheck,
-                        name = "Audit",
-                        description = "Audit logging and retention",
-                        onClick = onNavigateToAudit
+                        name = "Audit config",
+                        description = "Audit logging and retention settings",
+                        onClick = onNavigateToAuditConfig
+                    ),
+                    InstanceConfigItem(
+                        icon = Icons.Default.FactCheck,
+                        name = "Audit logs",
+                        description = "View and export audit entries",
+                        onClick = onNavigateToAuditLogs
                     )
                 )
             )

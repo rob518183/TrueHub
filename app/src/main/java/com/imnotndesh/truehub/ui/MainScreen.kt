@@ -69,6 +69,12 @@ import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertSer
 import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyCreateScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyDetailScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyListScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.AdvancedSystemSettingsEditScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.AdvancedSystemSettingsScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditConfigScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditConfigViewModel
+import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditLogsScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditLogsViewModel
 import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsEditScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
@@ -140,6 +146,10 @@ fun MainScreen(
             Screen.ApiKeyCreateScreen.route,
             Screen.GeneralSystemSettingsScreen.route,
             Screen.GeneralSystemSettingsEditScreen.route,
+            Screen.AdvancedSystemSettingsScreen.route,
+            Screen.AdvancedSystemSettingsEditScreen.route,
+            Screen.AuditConfigScreen.route,
+            Screen.AuditLogsScreen.route,
             )
     }
 
@@ -304,6 +314,9 @@ private fun TrueHubNavGraph(
                 onNavigateToGeneralSystemSettings = {
                     navController.navigate(Screen.GeneralSystemSettingsScreen.route)
                 },
+                onNavigateToAdvancedSettings = {
+                    navController.navigate(Screen.AdvancedSystemSettingsScreen.route)
+                },
                 onNavigateToServices = {
                     navController.navigate(Screen.ServicesScreen.route)
                 },
@@ -315,7 +328,29 @@ private fun TrueHubNavGraph(
                 },
                 onNavigateToApiKeys = {
                     navController.navigate(Screen.ApiKeyListScreen.route)
+                },
+                onNavigateToAuditConfig = {
+                    navController.navigate(Screen.AuditConfigScreen.route)
+                },
+                onNavigateToAuditLogs = {
+                    navController.navigate(Screen.AuditLogsScreen.route)
                 }
+            )
+        }
+        composable(Screen.AuditConfigScreen.route) {
+            val vm: AuditConfigViewModel = viewModel(factory = AuditConfigViewModel.AuditConfigViewModelFactory(manager))
+            AuditConfigScreen(
+                manager = manager,
+                viewModel = vm,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.AuditLogsScreen.route) {
+            val vm: AuditLogsViewModel = viewModel(factory = AuditLogsViewModel.AuditLogsViewModelFactory(manager))
+            AuditLogsScreen(
+                manager = manager,
+                viewModel = vm,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.UserListScreen.route) {
@@ -379,6 +414,23 @@ private fun TrueHubNavGraph(
                 onCheckinNavigateBack = {
                     navController.popBackStack()
                 }
+            )
+        }
+
+        composable(Screen.AdvancedSystemSettingsScreen.route) {
+            AdvancedSystemSettingsScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = {
+                    navController.navigate(Screen.AdvancedSystemSettingsEditScreen.route)
+                }
+            )
+        }
+
+        composable(Screen.AdvancedSystemSettingsEditScreen.route) {
+            AdvancedSystemSettingsEditScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

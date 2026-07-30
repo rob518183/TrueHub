@@ -76,5 +76,9 @@ sealed class Screen(val route:String, val title:String) {
     object ApiKeyCreateScreen : Screen("api_key_create", "Create API Key")
     object GeneralSystemSettingsScreen : Screen("general_system_settings", "General System Settings")
     object GeneralSystemSettingsEditScreen : Screen("general_system_settings_edit", "Edit General System Settings")
+    object AdvancedSystemSettingsScreen : Screen("advanced_system_settings", "Advanced System Settings")
+    object AdvancedSystemSettingsEditScreen : Screen("advanced_system_settings_edit", "Edit Advanced Settings")
+    object AuditConfigScreen : Screen("audit_config", "Audit Configuration")
+    object AuditLogsScreen : Screen("audit_logs", "Audit Logs")
 
 }

@@ -170,6 +170,22 @@ object ApiMethods {
         const val GENERAL_UI_RESTART = "system.general.ui_restart"
         const val GENERAL_UI_V6ADDRESS_CHOICES = "system.general.ui_v6address_choices"
         const val GENERAL_UPDATE = "system.general.update"
+        // Advanced Stuff
+        const val GET_ADVANCED_CONFIG = "system.advanced.config"
+        const val GET_GPU_PCI_CHOICES = "system.advanced.get_gpu_pci_choices"
+        const val GET_LOGIN_BANNER = "system.advanced.login_banner"
+        const val GET_SED_GLOBAL_PASSWORD = "system.advanced.sed_global_password"
+        const val GET_SED_GLOBAL_PASSWORD_IS_SET = "system.advanced.sed_global_password_is_set"
+        const val GET_SERIAL_PORT_CHOICES = "system.advanced.serial_port_choices"
+        const val GET_SYSLOG_CERTIFICATE_AUTHORITY_CHOICES = "system.advanced.syslog_certificate_authority_choices"
+        const val GET_SYSLOG_CERTIFICATE_CHOICES = "system.advanced.syslog_certificate_choices"
+        const val UPDATE_ADVANCED_CONFIG = "system.advanced.update"
+        const val UPDATE_GPU_PCI_IDS = "system.advanced.update_gpu_pci_ids"
+        // Network Stuff
+        const val NETWORK_GENERAL_SUMMARY = "network.general.summary"
+        const val NETWORK_CONFIGURATION_ACTIVITY_CHOICES = "network.configuration.activity_choices"
+        const val NETWORK_CONFIGURATION_CONFIG = "network.configuration.config"
+        const val NETWORK_CONFIGURATION_UPDATE = "network.configuration.update"
 
 
     }
@@ -224,6 +240,13 @@ object ApiMethods {
         const val GET_VM_STATUS = "vm.status"
         // TODO : maybe implement this in a webview?
         const val GET_DISPLAY_URL = "vm.get_display_web_uri"
+    }
+    object Audit {
+        const val CONFIG = "audit.config"
+        const val DOWNLOAD_REPORT = "audit.download_report"
+        const val EXPORT = "audit.export"
+        const val QUERY = "audit.query"
+        const val UPDATE = "audit.update"
     }
     object Shares{
         const val GET_NFS_SHARES = "sharing.nfs.query"

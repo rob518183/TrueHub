@@ -465,6 +465,112 @@ object System {
         val profile : String
     )
 
+    // ──────────────────────────────────────────────
+    // audit.* models
+    // ──────────────────────────────────────────────
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class AuditEntry(
+        @field:Json(name = "id") val id: Int,
+        @field:Json(name = "retention") val retention: Int,
+        @field:Json(name = "reservation") val reservation: Int,
+        @field:Json(name = "quota") val quota: Int,
+        @field:Json(name = "quota_fill_warning") val quotaFillWarning: Int,
+        @field:Json(name = "quota_fill_critical") val quotaFillCritical: Int,
+        @field:Json(name = "remote_logging_enabled") val remoteLoggingEnabled: Boolean,
+        @field:Json(name = "space") val space: AuditEntrySpace,
+        @field:Json(name = "enabled_services") val enabledServices: AuditEntryEnabledServices
+    )
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class AuditEntrySpace(
+        @field:Json(name = "used") val used: Long,
+        @field:Json(name = "used_by_dataset") val usedByDataset: Long,
+        @field:Json(name = "used_by_reservation") val usedByReservation: Long,
+        @field:Json(name = "used_by_snapshots") val usedBySnapshots: Long,
+        @field:Json(name = "available") val available: Long
+    )
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class AuditEntryEnabledServices(
+        @field:Json(name = "MIDDLEWARE") val middleware: List<Any> = emptyList(),
+        @field:Json(name = "SMB") val smb: List<Any> = emptyList(),
+        @field:Json(name = "SUDO") val sudo: List<String> = emptyList()
+    )
+
+    /** Parameters for audit.update */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class AuditUpdateArgs(
+        @field:Json(name = "retention") val retention: Int? = null,
+        @field:Json(name = "reservation") val reservation: Int? = null,
+        @field:Json(name = "quota") val quota: Int? = null,
+        @field:Json(name = "quota_fill_warning") val quotaFillWarning: Int? = null,
+        @field:Json(name = "quota_fill_critical") val quotaFillCritical: Int? = null
+    )
+
+    /** Parameters for audit.export and audit.query */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class AuditQueryArgs(
+        @field:Json(name = "services") val services: List<String>? = listOf("MIDDLEWARE"),
+        @field:Json(name = "query-filters") val queryFilters: List<Any>? = emptyList(),
+        @field:Json(name = "query-options") val queryOptions: AuditQueryOptions? = null,
+        @field:Json(name = "remote_controller") val remoteController: Boolean? = false
+    )
+
+    /** Parameters for audit.export only */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class AuditExportArgs(
+        @field:Json(name = "services") val services: List<String>? = listOf("MIDDLEWARE"),
+        @field:Json(name = "query-filters") val queryFilters: List<Any>? = emptyList(),
+        @field:Json(name = "query-options") val queryOptions: AuditQueryOptions? = null,
+        @field:Json(name = "remote_controller") val remoteController: Boolean? = false,
+        @field:Json(name = "export_format") val exportFormat: String? = "JSON"
+    )
+
+    /** Query options shared by audit.query and audit.export */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class AuditQueryOptions(
+        @field:Json(name = "extra") val extra: Map<String, Any>? = null,
+        @field:Json(name = "order_by") val orderBy: List<String>? = null,
+        @field:Json(name = "select") val select: List<Any>? = null,
+        @field:Json(name = "count") val count: Boolean = false,
+        @field:Json(name = "get") val get: Boolean = false,
+        @field:Json(name = "offset") val offset: Int = 0,
+        @field:Json(name = "limit") val limit: Int = 0,
+        @field:Json(name = "force_sql_filters") val forceSqlFilters: Boolean = false
+    )
+
+    /** Single result item from audit.query */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class AuditQueryResultItem(
+        @field:Json(name = "audit_id") val auditId: Any? = null,
+        @field:Json(name = "message_timestamp") val messageTimestamp: Long? = null,
+        @field:Json(name = "timestamp") val timestamp: String? = null,
+        @field:Json(name = "address") val address: String? = null,
+        @field:Json(name = "username") val username: String? = null,
+        @field:Json(name = "session") val session: Any? = null,
+        @field:Json(name = "service") val service: String? = null,
+        @field:Json(name = "service_data") val serviceData: Any? = null,
+        @field:Json(name = "event") val event: String? = null,
+        @field:Json(name = "event_data") val eventData: Any? = null,
+        @field:Json(name = "success") val success: Boolean? = null
+    )
+
+    /** Parameters for audit.download_report */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class AuditDownloadReportArgs(
+        @field:Json(name = "report_name") val reportName: String
+    )
+
     // Service structs
     @JsonClass(generateAdapter = true)
     data class ServiceQueryResponse(
@@ -813,9 +919,167 @@ object System {
         @field:Json(name = "ds_auth")
         val dsAuth: Boolean ?= false
     )
+    // ──────────────────────────────────────────────
+// system.advanced.* models
+// ──────────────────────────────────────────────
 
-    @Suppress("PropertyName")
     @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class SystemAdvancedEntry(
+        @field:Json(name = "id") val id: Int,
+        @field:Json(name = "advancedmode") val advancedmode: Boolean,
+        @field:Json(name = "autotune") val autotune: Boolean,
+        @field:Json(name = "kdump_enabled") val kdump_enabled: Boolean,
+        @field:Json(name = "boot_scrub") val boot_scrub: Int,
+        @field:Json(name = "consolemenu") val consolemenu: Boolean,
+        @field:Json(name = "consolemsg") val consolemsg: Boolean,
+        @field:Json(name = "debugkernel") val debugkernel: Boolean,
+        @field:Json(name = "fqdn_syslog") val fqdn_syslog: Boolean,
+        @field:Json(name = "motd") val motd: String,
+        @field:Json(name = "login_banner") val login_banner: String,
+        @field:Json(name = "powerdaemon") val powerdaemon: Boolean,
+        @field:Json(name = "serialconsole") val serialconsole: Boolean,
+        @field:Json(name = "serialport") val serialport: String,
+        @field:Json(name = "serialspeed") val serialspeed: String,
+        @field:Json(name = "anonstats_token") val anonstats_token: String,
+        @field:Json(name = "overprovision") val overprovision: Int? = null,
+        @field:Json(name = "traceback") val traceback: Boolean,
+        @field:Json(name = "uploadcrash") val uploadcrash: Boolean,
+        @field:Json(name = "anonstats") val anonstats: Boolean,
+        @field:Json(name = "sed_user") val sed_user: String,
+        @field:Json(name = "sysloglevel") val sysloglevel: String,
+        @field:Json(name = "syslogservers") val syslogservers: List<SyslogServer>? = null,
+        @field:Json(name = "syslog_audit") val syslog_audit: Boolean? = null,
+        @field:Json(name = "isolated_gpu_pci_ids") val isolated_gpu_pci_ids: List<String>,
+        @field:Json(name = "kernel_extra_options") val kernel_extra_options: String
+    )
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class SyslogServer(
+        @field:Json(name = "host") val host: String,
+        @field:Json(name = "transport") val transport: String? = "UDP",
+        @field:Json(name = "tls_certificate") val tls_certificate: Int? = null
+    )
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class SystemAdvancedUpdateArgs(
+        @field:Json(name = "advancedmode") val advancedmode: Boolean? = null,
+        @field:Json(name = "autotune") val autotune: Boolean? = null,
+        @field:Json(name = "kdump_enabled") val kdump_enabled: Boolean? = null,
+        @field:Json(name = "boot_scrub") val boot_scrub: Int? = null,
+        @field:Json(name = "consolemenu") val consolemenu: Boolean? = null,
+        @field:Json(name = "consolemsg") val consolemsg: Boolean? = null,
+        @field:Json(name = "debugkernel") val debugkernel: Boolean? = null,
+        @field:Json(name = "fqdn_syslog") val fqdn_syslog: Boolean? = null,
+        @field:Json(name = "motd") val motd: String? = null,
+        @field:Json(name = "login_banner") val login_banner: String? = null,
+        @field:Json(name = "powerdaemon") val powerdaemon: Boolean? = null,
+        @field:Json(name = "serialconsole") val serialconsole: Boolean? = null,
+        @field:Json(name = "serialport") val serialport: String? = null,
+        @field:Json(name = "serialspeed") val serialspeed: String? = null,
+        @field:Json(name = "overprovision") val overprovision: Int? = null,
+        @field:Json(name = "traceback") val traceback: Boolean? = null,
+        @field:Json(name = "uploadcrash") val uploadcrash: Boolean? = null,
+        @field:Json(name = "anonstats") val anonstats: Boolean? = null,
+        @field:Json(name = "sed_user") val sed_user: String? = null,
+        @field:Json(name = "sed_passwd") val sed_passwd: String? = null,
+        @field:Json(name = "sysloglevel") val sysloglevel: String? = null,
+        @field:Json(name = "syslogservers") val syslogservers: List<SyslogServer>? = null,
+        @field:Json(name = "syslog_audit") val syslog_audit: Boolean? = null,
+        @field:Json(name = "kernel_extra_options") val kernel_extra_options: String? = null
+    )
+
+    // ──────────────────────────────────────────────
+    // network.general.* / network.configuration.* models
+    // ──────────────────────────────────────────────
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class NetworkGeneralSummaryResult(
+        @field:Json(name = "ips") val ips: Map<String, NetworkGeneralSummaryIP>,
+        @field:Json(name = "default_routes") val defaultRoutes: List<String>,
+        @field:Json(name = "nameservers") val nameservers: List<String>
+    )
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class NetworkGeneralSummaryIP(
+        @field:Json(name = "IPV4") val ipv4: List<String>? = null,
+        @field:Json(name = "IPV6") val ipv6: List<String>? = null
+    )
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class NetworkConfigurationEntry(
+        @field:Json(name = "id") val id: Int,
+        @field:Json(name = "hostname") val hostname: String,
+        @field:Json(name = "domain") val domain: String,
+        @field:Json(name = "ipv4gateway") val ipv4Gateway: String?,
+        @field:Json(name = "ipv6gateway") val ipv6Gateway: String?,
+        @field:Json(name = "nameserver1") val nameserver1: String?,
+        @field:Json(name = "nameserver2") val nameserver2: String?,
+        @field:Json(name = "nameserver3") val nameserver3: String?,
+        @field:Json(name = "httpproxy") val httpProxy: String,
+        @field:Json(name = "hosts") val hosts: List<String>,
+        @field:Json(name = "domains") val domains: List<String>,
+        @field:Json(name = "service_announcement") val serviceAnnouncement: NetworkConfigurationServiceAnnouncement,
+        @field:Json(name = "activity") val activity: NetworkConfigurationActivity,
+        @field:Json(name = "hostname_local") val hostnameLocal: String,
+        @field:Json(name = "hostname_b") val hostnameB: String? = null,
+        @field:Json(name = "hostname_virtual") val hostnameVirtual: String? = null,
+        @field:Json(name = "state") val state: NetworkConfigurationState
+    )
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class NetworkConfigurationServiceAnnouncement(
+        @field:Json(name = "netbios") val netbios: Boolean? = false,
+        @field:Json(name = "mdns") val mdns: Boolean? = false,
+        @field:Json(name = "wsd") val wsd: Boolean? = false
+    )
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class NetworkConfigurationActivity(
+        @field:Json(name = "type") val type: String,
+        @field:Json(name = "activities") val activities: List<String> = emptyList()
+    )
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class NetworkConfigurationState(
+        @field:Json(name = "ipv4gateway") val ipv4Gateway: String?,
+        @field:Json(name = "ipv6gateway") val ipv6Gateway: String?,
+        @field:Json(name = "nameserver1") val nameserver1: String?,
+        @field:Json(name = "nameserver2") val nameserver2: String?,
+        @field:Json(name = "nameserver3") val nameserver3: String?,
+        @field:Json(name = "hosts") val hosts: List<String>
+    )
+
+    /** Arguments for network.configuration.update */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class NetworkConfigurationUpdateArgs(
+        @field:Json(name = "hostname") val hostname: String? = null,
+        @field:Json(name = "domain") val domain: String? = null,
+        @field:Json(name = "ipv4gateway") val ipv4Gateway: String? = null,
+        @field:Json(name = "ipv6gateway") val ipv6Gateway: String? = null,
+        @field:Json(name = "nameserver1") val nameserver1: String? = null,
+        @field:Json(name = "nameserver2") val nameserver2: String? = null,
+        @field:Json(name = "nameserver3") val nameserver3: String? = null,
+        @field:Json(name = "httpproxy") val httpProxy: String? = null,
+        @field:Json(name = "hosts") val hosts: List<String>? = null,
+        @field:Json(name = "domains") val domains: List<String>? = null,
+        @field:Json(name = "service_announcement") val serviceAnnouncement: NetworkConfigurationServiceAnnouncement? = null,
+        @field:Json(name = "activity") val activity: NetworkConfigurationActivity? = null,
+        @field:Json(name = "hostname_b") val hostnameB: String? = null,
+        @field:Json(name = "hostname_virtual") val hostnameVirtual: String? = null
+    )
+
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
     data class SystemGeneralUpdateArgs(
         @field:Json(name = "ui_certificate")
         val uiCertificate: Any? = null,

@@ -745,5 +745,224 @@ class SystemService(val manager: TrueNASApiManager){
         )
     }
 
+    // system.advanced.* calls
+    suspend fun advancedConfig(): ApiResult<System.SystemAdvancedEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.GET_ADVANCED_CONFIG,
+            params = emptyList(),
+            resultType = System.SystemAdvancedEntry::class.java
+        )
+    }
+
+    suspend fun advancedGpuPciChoices(): ApiResult<Map<String, String>> {
+        val result = Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.System.GET_GPU_PCI_CHOICES,
+            params = emptyList(),
+            resultType = result
+        )
+    }
+
+    suspend fun advancedLoginBanner(): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.GET_LOGIN_BANNER,
+            params = emptyList(),
+            resultType = String::class.java
+        )
+    }
+
+    suspend fun advancedSedGlobalPassword(): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.GET_SED_GLOBAL_PASSWORD,
+            params = emptyList(),
+            resultType = String::class.java
+        )
+    }
+
+    suspend fun advancedSedGlobalPasswordIsSet(): ApiResult<Boolean> {
+        return manager.callWithResult(
+            method = ApiMethods.System.GET_SED_GLOBAL_PASSWORD_IS_SET,
+            params = emptyList(),
+            resultType = Boolean::class.java
+        )
+    }
+
+    suspend fun advancedSerialPortChoices(): ApiResult<Map<String, String>> {
+        val result = Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.System.GET_SERIAL_PORT_CHOICES,
+            params = emptyList(),
+            resultType = result
+        )
+    }
+
+    suspend fun advancedSyslogCertificateAuthorityChoices(): ApiResult<Map<String, String>> {
+        val result = Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.System.GET_SYSLOG_CERTIFICATE_AUTHORITY_CHOICES,
+            params = emptyList(),
+            resultType = result
+        )
+    }
+
+    suspend fun advancedSyslogCertificateChoices(): ApiResult<Map<String, String>> {
+        val result = Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.System.GET_SYSLOG_CERTIFICATE_CHOICES,
+            params = emptyList(),
+            resultType = result
+        )
+    }
+
+    suspend fun advancedUpdate(data: System.SystemAdvancedUpdateArgs): ApiResult<System.SystemAdvancedEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.UPDATE_ADVANCED_CONFIG,
+            params = listOf(data),
+            resultType = System.SystemAdvancedEntry::class.java
+        )
+    }
+
+    // ──────────────────────────────────────────────
+    // audit.* service methods
+    // ──────────────────────────────────────────────
+
+    /**
+     * Get the current audit configuration.
+     * Required role: SYSTEM_AUDIT_READ
+     */
+    suspend fun auditConfig(): ApiResult<System.AuditEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.Audit.CONFIG,
+            params = emptyList(),
+            resultType = System.AuditEntry::class.java
+        )
+    }
+
+    /**
+     * Update default audit settings.
+     * Required role: SYSTEM_AUDIT_WRITE
+     *
+     * Note: `space`, `remote_logging_enabled`, and `enabled_services` are
+     * read-only fields returned in the response but ignored on input.
+     */
+    suspend fun auditUpdate(data: System.AuditUpdateArgs): ApiResult<System.AuditEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.Audit.UPDATE,
+            params = listOf(data),
+            resultType = System.AuditEntry::class.java
+        )
+    }
+
+    /**
+     * Query audit database contents by service.
+     * Required role: SYSTEM_AUDIT_READ
+     *
+     * Returns either a count (Int), a single result (List<AuditQueryResultItem>),
+     * or a list of results depending on query-options (count, get).
+     */
+    suspend fun auditQuery(data: System.AuditQueryArgs): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.Audit.QUERY,
+            params = listOf(data),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Generate an audit report. Returns a local filesystem path to the report.
+     * Required role: SYSTEM_AUDIT_READ
+     *
+     * Supported export_formats: "CSV", "JSON", "YAML"
+     * This method is a job — use with core.download to retrieve the file.
+     */
+    suspend fun auditExport(data: System.AuditExportArgs): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.Audit.EXPORT,
+            params = listOf(data),
+            resultType = String::class.java
+        )
+    }
+
+    /**
+     * Download an audit report by name.
+     * Required role: SYSTEM_AUDIT_READ
+     *
+     * This method is a job. Users can only download reports they generated.
+     * MUST be used with core.download.
+     */
+    suspend fun auditDownloadReport(data: System.AuditDownloadReportArgs): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.Audit.DOWNLOAD_REPORT,
+            params = listOf(data),
+            resultType = Any::class.java
+        )
+    }
+
+    suspend fun advancedUpdateGpuPciIds(pciIds: List<String>): ApiResult<Unit> {
+        return manager.callWithResult(
+            method = ApiMethods.System.UPDATE_GPU_PCI_IDS,
+            params = listOf(pciIds),
+            resultType = Unit::class.java
+        )
+    }
+
+    // ──────────────────────────────────────────────
+    // network.general.* / network.configuration.* service methods
+    // ──────────────────────────────────────────────
+
+    /**
+     * Retrieve general network information (IPs, default routes, nameservers).
+     * Required role: NETWORK_GENERAL_READ
+     */
+    suspend fun networkGeneralSummary(): ApiResult<System.NetworkGeneralSummaryResult> {
+        return manager.callWithResult(
+            method = ApiMethods.System.NETWORK_GENERAL_SUMMARY,
+            params = emptyList(),
+            resultType = System.NetworkGeneralSummaryResult::class.java
+        )
+    }
+
+    /**
+     * Returns allowed/forbidden network activity choices.
+     * Required role: NETWORK_GENERAL_READ | READONLY_ADMIN
+     */
+    suspend fun networkConfigurationActivityChoices(): ApiResult<List<List<String>>> {
+        val type = Types.newParameterizedType(
+            List::class.java,
+            Types.newParameterizedType(List::class.java, String::class.java)
+        )
+        return manager.callWithResult(
+            method = ApiMethods.System.NETWORK_CONFIGURATION_ACTIVITY_CHOICES,
+            params = emptyList(),
+            resultType = type
+        )
+    }
+
+    /**
+     * Get the current network configuration.
+     * Required role: NETWORK_GENERAL_READ
+     */
+    suspend fun networkConfigurationConfig(): ApiResult<System.NetworkConfigurationEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.NETWORK_CONFIGURATION_CONFIG,
+            params = emptyList(),
+            resultType = System.NetworkConfigurationEntry::class.java
+        )
+    }
+
+    /**
+     * Update network configuration.
+     * Required role: NETWORK_GENERAL_WRITE
+     *
+     * @param data The fields to update (all optional, only provided fields are changed).
+     * @return The updated network configuration.
+     */
+    suspend fun networkConfigurationUpdate(data: System.NetworkConfigurationUpdateArgs): ApiResult<System.NetworkConfigurationEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.NETWORK_CONFIGURATION_UPDATE,
+            params = listOf(data),
+            resultType = System.NetworkConfigurationEntry::class.java
+        )
+    }
 
 }
