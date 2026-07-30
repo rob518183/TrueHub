@@ -774,6 +774,83 @@ object System {
         @field:Json(name = "expires_at") val expires_at: String? = null,
         @field:Json(name = "reset") val reset: Boolean? = null
     )
+    // System General Settings
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class SystemGeneralEntry(
+        @field:Json(name = "id")
+        val id: Int,
+        @field:Json(name = "ui_certificate")
+        val uiCertificate: Any? = null,
+        @field:Json(name = "ui_httpsport")
+        val uiHttpsPort: Int? = null,
+        @field:Json(name = "ui_httpsredirect")
+        val uiHttpsRedirect: Boolean? = null,
+        @field:Json(name = "ui_httpsprotocols")
+        val uiHttpsProtocols: List<String>? = emptyList(),
+        @field:Json(name = "ui_port")
+        val uiPort: Int? = null,
+        @field:Json(name = "ui_address")
+        val uiAddress: List<String>? = emptyList(),
+        @field:Json(name = "ui_v6address")
+        val uiV6Address: List<String> ?= emptyList(),
+        @field:Json(name = "ui_allowlist")
+        val uiAllowlist: List<String> ?= emptyList(),
+        @field:Json(name = "ui_consolemsg")
+        val uiConsoleMsg: Boolean ?= false,
+        @field:Json(name = "ui_x_frame_options")
+        val uiXFrameOptions: String ? = null,
+        @field:Json(name = "kbdmap")
+        val kbdMap: String ?= null,
+        @field:Json(name = "timezone")
+        val timezone: String ?= "Not Configured",
+        @field:Json(name = "usage_collection")
+        val usageCollection: Any? = null,
+        @field:Json(name = "wizardshown")
+        val wizardShown: Boolean ?= null,
+        @field:Json(name = "usage_collection_is_set")
+        val usageCollectionIsSet: Boolean ?= false,
+        @field:Json(name = "ds_auth")
+        val dsAuth: Boolean ?= false
+    )
+
+    @Suppress("PropertyName")
+    @JsonClass(generateAdapter = true)
+    data class SystemGeneralUpdateArgs(
+        @field:Json(name = "ui_certificate")
+        val uiCertificate: Any? = null,
+        @field:Json(name = "ui_httpsport")
+        val uiHttpsPort: Int? = null,
+        @field:Json(name = "ui_httpsredirect")
+        val uiHttpsRedirect: Boolean? = null,
+        @field:Json(name = "ui_httpsprotocols")
+        val uiHttpsProtocols: List<String>? = null,
+        @field:Json(name = "ui_port")
+        val uiPort: Int? = null,
+        @field:Json(name = "ui_address")
+        val uiAddress: List<String>? = null,
+        @field:Json(name = "ui_v6address")
+        val uiV6Address: List<String>? = null,
+        @field:Json(name = "ui_allowlist")
+        val uiAllowlist: List<String>? = null,
+        @field:Json(name = "ui_consolemsg")
+        val uiConsoleMsg: Boolean? = null,
+        @field:Json(name = "ui_x_frame_options")
+        val uiXFrameOptions: String? = null,
+        @field:Json(name = "kbdmap")
+        val kbdMap: String? = null,
+        @field:Json(name = "timezone")
+        val timezone: String? = null,
+        @field:Json(name = "usage_collection")
+        val usageCollection: Any? = null,
+        @field:Json(name = "ds_auth")
+        val dsAuth: Boolean? = null,
+        @field:Json(name = "ui_restart_delay")
+        val uiRestartDelay: Any? = null,
+        @field:Json(name = "rollback_timeout")
+        val rollbackTimeout: Any? = null
+    )
+
 
     fun MongoDate?.formatDate(): String {
         if (this == null) return "—"

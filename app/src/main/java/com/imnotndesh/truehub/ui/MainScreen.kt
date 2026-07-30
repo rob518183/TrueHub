@@ -69,6 +69,8 @@ import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertSer
 import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyCreateScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyDetailScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyListScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsEditScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.LocalAdminSetupScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserCreateScreen
@@ -136,6 +138,8 @@ fun MainScreen(
             Screen.ApiKeyListScreen.route,
             Screen.ApiKeyDetailScreen.route,
             Screen.ApiKeyCreateScreen.route,
+            Screen.GeneralSystemSettingsScreen.route,
+            Screen.GeneralSystemSettingsEditScreen.route,
             )
     }
 
@@ -297,6 +301,9 @@ private fun TrueHubNavGraph(
             InstanceConfigScreen(
                 manager = manager,
                 onNavigateBack = { navController.popBackStack() },
+                onNavigateToGeneralSystemSettings = {
+                    navController.navigate(Screen.GeneralSystemSettingsScreen.route)
+                },
                 onNavigateToServices = {
                     navController.navigate(Screen.ServicesScreen.route)
                 },
@@ -352,6 +359,26 @@ private fun TrueHubNavGraph(
             ApiKeyCreateScreen(
                 manager = manager,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.GeneralSystemSettingsScreen.route) {
+            GeneralSystemSettingsScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = {
+                    navController.navigate(Screen.GeneralSystemSettingsEditScreen.route)
+                }
+            )
+        }
+
+        composable(Screen.GeneralSystemSettingsEditScreen.route) {
+            GeneralSystemSettingsEditScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onCheckinNavigateBack = {
+                    navController.popBackStack()
+                }
             )
         }
 

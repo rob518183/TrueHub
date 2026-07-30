@@ -519,10 +519,221 @@ class SystemService(val manager: TrueNASApiManager){
             resultType = resultType
         )
     }
+    // ──────────────────────────────────────────────
+    // System General Settings
+    // ──────────────────────────────────────────────
 
     /**
-     * Update an API key by id.
+     * Check-in UI settings changes to prevent automatic rollback.
+     * Must be called within the rollback_timeout after updating settings.
+     * Returns null on success.
      */
+    suspend fun generalCheckin(): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.GENERAL_CHECKIN,
+            params = listOf(),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Returns the number of seconds before an automatic rollback,
+     * or null if no rollback is pending.
+     */
+    suspend fun generalCheckinWaiting(): ApiResult<Int?> {
+        // checkin_waiting can legitimately return null (no pending rollback).
+        // The RPC layer throws on null for non-Unit types, so we catch that
+        // and return a success with null.
+        return try {
+            manager.callWithResult<Int>(
+                method = ApiMethods.System.GENERAL_CHECKIN_WAITING,
+                params = listOf(),
+                resultType = Int::class.java
+            ).let { result ->
+                @Suppress("UNCHECKED_CAST")
+                result as ApiResult<Int?>
+            }
+        } catch (e: Exception) {
+            val msg = e.message ?: ""
+            if (msg.contains("null result", ignoreCase = true)) {
+                ApiResult.Success(null)
+            } else {
+                ApiResult.Error(msg, e)
+            }
+        }
+    }
+
+    /**
+     * Get the current system general configuration.
+     */
+    suspend fun generalConfig(): ApiResult<System.SystemGeneralEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.GENERAL_CONFIG,
+            params = listOf(),
+            resultType = System.SystemGeneralEntry::class.java
+        )
+    }
+
+    /**
+     * Returns a dictionary of country codes (ISO 3166-1 alpha-2) to country names.
+     */
+    suspend fun generalCountryChoices(): ApiResult<Map<String, String>> {
+        val type = Types.newParameterizedType(
+            Map::class.java,
+            String::class.java,
+            String::class.java
+        )
+        return manager.callWithResult(
+            method = ApiMethods.System.GENERAL_COUNTRY_CHOICES,
+            params = listOf(),
+            resultType = type
+        )
+    }
+
+    /**
+     * Returns keyboard map choices.
+     */
+    suspend fun generalKbdmapChoices(): ApiResult<Map<String, String>> {
+        val type = Types.newParameterizedType(
+            Map::class.java,
+            String::class.java,
+            String::class.java
+        )
+        return manager.callWithResult(
+            method = ApiMethods.System.GENERAL_KBDMAP_CHOICES,
+            params = listOf(),
+            resultType = type
+        )
+    }
+
+    /**
+     * Returns the configured local URL in the format of protocol://host:port.
+     */
+    suspend fun generalLocalUrl(): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.GENERAL_LOCAL_URL,
+            params = listOf(),
+            resultType = String::class.java
+        )
+    }
+
+    /**
+     * Returns available timezone choices.
+     */
+    suspend fun generalTimezoneChoices(): ApiResult<Map<String, String>> {
+        val type = Types.newParameterizedType(
+            Map::class.java,
+            String::class.java,
+            String::class.java
+        )
+        return manager.callWithResult(
+            method = ApiMethods.System.GENERAL_TIMEZONE_CHOICES,
+            params = listOf(),
+            resultType = type
+        )
+    }
+
+    /**
+     * Returns network interfaces with statically configured IPv4 addresses
+     * that can be used to bind the UI server.
+     */
+    suspend fun generalUiAddressChoices(): ApiResult<Map<String, String>> {
+        val type = Types.newParameterizedType(
+            Map::class.java,
+            String::class.java,
+            String::class.java
+        )
+        return manager.callWithResult(
+            method = ApiMethods.System.GENERAL_UI_ADDRESS_CHOICES,
+            params = listOf(),
+            resultType = type
+        )
+    }
+
+    /**
+     * Returns available certificates that may be used to bind the webserver
+     * when connecting via HTTPS.
+     */
+    suspend fun generalUiCertificateChoices(): ApiResult<Map<String, String>> {
+        val type = Types.newParameterizedType(
+            Map::class.java,
+            String::class.java,
+            String::class.java
+        )
+        return manager.callWithResult(
+            method = ApiMethods.System.GENERAL_UI_CERTIFICATE_CHOICES,
+            params = listOf(),
+            resultType = type
+        )
+    }
+
+    /**
+     * Returns available HTTPS protocol choices.
+     */
+    suspend fun generalUiHttpsProtocolsChoices(): ApiResult<Map<String, String>> {
+        val type = Types.newParameterizedType(
+            Map::class.java,
+            String::class.java,
+            String::class.java
+        )
+        return manager.callWithResult(
+            method = ApiMethods.System.GENERAL_UI_HTTPSPROTOCOLS_CHOICES,
+            params = listOf(),
+            resultType = type
+        )
+    }
+
+    /**
+     * Restart the HTTP server to apply latest UI settings.
+     * @param delay Seconds to wait before restart (default: 3, minimum: 0)
+     */
+    suspend fun generalUiRestart(delay: Int = 3): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.GENERAL_UI_RESTART,
+            params = listOf(delay),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Returns network interfaces with statically configured IPv6 addresses
+     * that can be used to bind the UI server.
+     */
+    suspend fun generalUiV6AddressChoices(): ApiResult<Map<String, String>> {
+        val type = Types.newParameterizedType(
+            Map::class.java,
+            String::class.java,
+            String::class.java
+        )
+        return manager.callWithResult(
+            method = ApiMethods.System.GENERAL_UI_V6ADDRESS_CHOICES,
+            params = listOf(),
+            resultType = type
+        )
+    }
+
+    /**
+     * Update the system general service configuration.
+     *
+     * UI configuration is not applied automatically. Use [generalUiRestart]
+     * or specify [uiRestartDelay] in the args to apply changes.
+     *
+     * If incorrect UI config is applied, specify [rollbackTimeout] to enable
+     * automatic rollback. Call [generalCheckin] within that window to confirm.
+     *
+     * @param settings The general settings to update.
+     * @return The updated system general configuration.
+     */
+    suspend fun generalUpdate(
+        settings: System.SystemGeneralUpdateArgs
+    ): ApiResult<System.SystemGeneralEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.GENERAL_UPDATE,
+            params = listOf(settings),
+            resultType = System.SystemGeneralEntry::class.java
+        )
+    }
+
     suspend fun updateApiKeyWithResult(
         id: Int,
         update: System.ApiKeyUpdate

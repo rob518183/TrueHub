@@ -71,6 +71,7 @@ fun InstanceConfigScreen(
     onNavigateToAlertSettings: () -> Unit = {},
     onNavigateToAudit: () -> Unit = {},
     onNavigateToApiKeys: () -> Unit = {},
+    onNavigateToGeneralSystemSettings: () -> Unit = {},
 
 ) {
     Column(
@@ -111,13 +112,13 @@ fun InstanceConfigScreen(
                         icon = Icons.Default.Tune,
                         name = "General settings",
                         description = "Hostname, timezone, and base options",
-                        onClick = onNavigateToGeneralSettings
+                        onClick = onNavigateToGeneralSystemSettings
                     ),
                     InstanceConfigItem(
                         icon = Icons.Default.Bolt,
                         name = "Advanced settings",
                         description = "Sysctl, tunables, and developer options",
-                        onClick = onNavigateToAdvancedSettings
+                        onClick = onNavigateToGeneralSettings
                     ),
                     InstanceConfigItem(
                         icon = Icons.Default.Wifi,

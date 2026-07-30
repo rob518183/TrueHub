@@ -156,6 +156,21 @@ object ApiMethods {
         const val API_KEY_MY_KEYS = "api_key.my_keys"
         const val API_KEY_QUERY = "api_key.query"
         const val API_KEY_UPDATE = "api_key.update"
+        // System General Settings
+        const val GENERAL_CHECKIN = "system.general.checkin"
+        const val GENERAL_CHECKIN_WAITING = "system.general.checkin_waiting"
+        const val GENERAL_CONFIG = "system.general.config"
+        const val GENERAL_COUNTRY_CHOICES = "system.general.country_choices"
+        const val GENERAL_KBDMAP_CHOICES = "system.general.kbdmap_choices"
+        const val GENERAL_LOCAL_URL = "system.general.local_url"
+        const val GENERAL_TIMEZONE_CHOICES = "system.general.timezone_choices"
+        const val GENERAL_UI_ADDRESS_CHOICES = "system.general.ui_address_choices"
+        const val GENERAL_UI_CERTIFICATE_CHOICES = "system.general.ui_certificate_choices"
+        const val GENERAL_UI_HTTPSPROTOCOLS_CHOICES = "system.general.ui_httpsprotocols_choices"
+        const val GENERAL_UI_RESTART = "system.general.ui_restart"
+        const val GENERAL_UI_V6ADDRESS_CHOICES = "system.general.ui_v6address_choices"
+        const val GENERAL_UPDATE = "system.general.update"
+
 
     }
     object Apps {

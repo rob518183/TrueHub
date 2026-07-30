@@ -74,6 +74,7 @@ sealed class Screen(val route:String, val title:String) {
         fun createRoute(keyId: Int) = "api_key_detail/$keyId"
     }
     object ApiKeyCreateScreen : Screen("api_key_create", "Create API Key")
-
+    object GeneralSystemSettingsScreen : Screen("general_system_settings", "General System Settings")
+    object GeneralSystemSettingsEditScreen : Screen("general_system_settings_edit", "Edit General System Settings")
 
 }
