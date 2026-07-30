@@ -60,8 +60,8 @@ class AuditConfigViewModel(private val manager: TrueNASApiManager) : ViewModel()
         retention: Int?,
         reservation: Int?,
         quota: Int?,
-        fillWarning: Int?,
-        fillCritical: Int?
+        quotaFillWarning: Int?,
+        quotaFillCritical: Int?
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, saveResult = null) }
@@ -70,8 +70,8 @@ class AuditConfigViewModel(private val manager: TrueNASApiManager) : ViewModel()
                 retention = retention,
                 reservation = reservation,
                 quota = quota,
-                fillWarning = fillWarning,
-                fillCritical = fillCritical
+                quotaFillWarning = quotaFillWarning,
+                quotaFillCritical = quotaFillCritical
             )
 
             when (val result = manager.system.auditUpdate(args)) {

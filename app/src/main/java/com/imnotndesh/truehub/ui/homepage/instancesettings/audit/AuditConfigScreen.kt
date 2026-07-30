@@ -1,11 +1,9 @@
 package com.imnotndesh.truehub.ui.homepage.instancesettings.audit
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,13 +16,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Dataset
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.HardDrive
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.SdStorage
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -45,7 +42,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,15 +49,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
-import com.imnotndesh.truehub.data.models.System
-import kotlinx.coroutines.launch
 
 /**
  * Displays the current audit configuration and allows editing the mutable fields
@@ -160,7 +153,7 @@ fun AuditConfigScreen(
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    Icons.Default.HardDrive,
+                                    Icons.Default.SdStorage,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
@@ -247,7 +240,7 @@ fun AuditConfigScreen(
                             value = quota,
                             onValueChange = { quota = it },
                             label = "Quota (GiB)",
-                            icon = Icons.Default.HardDrive,
+                            icon = Icons.Default.SdStorage,
                             supportingText = "0 – 100"
                         )
                         EditableField(
@@ -294,8 +287,8 @@ fun AuditConfigScreen(
                                     retention = retention.toIntOrNull(),
                                     reservation = reservation.toIntOrNull(),
                                     quota = quota.toIntOrNull(),
-                                    fillWarning = fillWarning.toIntOrNull(),
-                                    fillCritical = fillCritical.toIntOrNull()
+                                    quotaFillWarning = fillWarning.toIntOrNull(),
+                                    quotaFillCritical = fillCritical.toIntOrNull()
                                 )
                             },
                             modifier = Modifier.weight(1f)

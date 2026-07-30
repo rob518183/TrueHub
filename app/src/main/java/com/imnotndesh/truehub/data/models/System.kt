@@ -999,7 +999,7 @@ object System {
     @Suppress("PropertyName")
     data class NetworkGeneralSummaryResult(
         @field:Json(name = "ips") val ips: Map<String, NetworkGeneralSummaryIP>,
-        @field:Json(name = "default_routes") val defaultRoutes: List<String>,
+        @field:Json(name = "default_routes") val defaultRoutes: List<String> ?= emptyList(),
         @field:Json(name = "nameservers") val nameservers: List<String>
     )
 
@@ -1011,7 +1011,6 @@ object System {
     )
 
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class NetworkConfigurationEntry(
         @field:Json(name = "id") val id: Int,
         @field:Json(name = "hostname") val hostname: String,
@@ -1021,19 +1020,18 @@ object System {
         @field:Json(name = "nameserver1") val nameserver1: String?,
         @field:Json(name = "nameserver2") val nameserver2: String?,
         @field:Json(name = "nameserver3") val nameserver3: String?,
-        @field:Json(name = "httpproxy") val httpProxy: String,
+        @field:Json(name = "httpproxy") val httpProxy: String? ,
         @field:Json(name = "hosts") val hosts: List<String>,
         @field:Json(name = "domains") val domains: List<String>,
-        @field:Json(name = "service_announcement") val serviceAnnouncement: NetworkConfigurationServiceAnnouncement,
+        @field:Json(name = "service_announcement") val serviceAnnouncement: NetworkConfigurationServiceAnnouncement?,
         @field:Json(name = "activity") val activity: NetworkConfigurationActivity,
-        @field:Json(name = "hostname_local") val hostnameLocal: String,
+        @field:Json(name = "hostname_local") val hostnameLocal: String?,
         @field:Json(name = "hostname_b") val hostnameB: String? = null,
         @field:Json(name = "hostname_virtual") val hostnameVirtual: String? = null,
         @field:Json(name = "state") val state: NetworkConfigurationState
     )
 
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class NetworkConfigurationServiceAnnouncement(
         @field:Json(name = "netbios") val netbios: Boolean? = false,
         @field:Json(name = "mdns") val mdns: Boolean? = false,

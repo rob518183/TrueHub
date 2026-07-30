@@ -64,7 +64,6 @@ fun InstanceConfigScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToGeneralSettings: () -> Unit = {},
     onNavigateToAdvancedSettings: () -> Unit = {},
-    onNavigateToNetwork: () -> Unit = {},
     onNavigateToUsers: () -> Unit = {},
     onNavigateToBoot: () -> Unit = {},
     onNavigateToServices: () -> Unit = {},
