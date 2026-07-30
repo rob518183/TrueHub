@@ -97,7 +97,7 @@ fun NetworkConfigScreen(
                         DetailCard(
                             items = listOf(
                                 Pair("Hostname", config.hostname),
-                                Pair("Hostname (local)", config.hostnameLocal.ifEmpty { "Not configured" }),
+                                Pair("Hostname (local)", config.hostnameLocal?.ifEmpty { "Not configured" } ?: "Not configured"),
                                 Pair("Domain", config.domain)
                             )
                         )
