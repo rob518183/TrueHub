@@ -109,7 +109,7 @@ fun HomeScreen(
             title = "Dashboard",
             subtitle = "Welcome back",
             isLoading = uiState is HomeUiState.Loading,
-            isRefreshing = isRefreshing,
+            isRefreshing = false,
             error = null,
             onRefresh = { viewModel.refresh() },
             onDismissError = { viewModel.refresh() },
@@ -378,99 +378,138 @@ private fun SystemOverviewCard(
     systemUpdateVersions: List<System.UpdateAvailableVersionsResponse> = emptyList(),
     onUpdateClick: () -> Unit = {},
     onInstanceConfigClick: () -> Unit = {}
-){
+) {
+    val statusColor = if (isConnectedStatus) {
+        Color(0xFF2E7D32)
+    } else {
+        Color(0xFFF57C00)
+    }
+
     WavyGradientBackground {
         Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
             shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp)
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier.size(64.dp).clip(RoundedCornerShape(20.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
+            Column(modifier = Modifier.padding(20.dp)) {
+
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.Default.Computer, null,
-                            modifier = Modifier.size(36.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(20.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(systemInfo.hostname, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(systemInfo.version, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("Uptime: ${systemInfo.uptime.toShortUptime()}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-
-                    Column(horizontalAlignment = Alignment.End) {
-                        val statusColor by animateColorAsState(if (isConnectedStatus) Color(0xFF2E7D32) else Color(0xFFF57C00), label = "statusColor")
-                        Surface(color = statusColor.copy(alpha = 0.12f), shape = RoundedCornerShape(100.dp)) {
-                            Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(statusColor))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(if (isConnectedStatus) "Online" else "Offline", style = MaterialTheme.typography.labelMedium, color = statusColor, fontWeight = FontWeight.Bold)
-                            }
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Computer, null,
+                                modifier = Modifier.size(36.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.width(20.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                systemInfo.hostname,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                systemInfo.version,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                "Uptime: ${systemInfo.uptime.toShortUptime()}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+
+                    Surface(
+                        color = statusColor,
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(10.dp)
+                    ) {}
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Surface(
+                        onClick = onInstanceConfigClick,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(50)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Tune,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "Instance config",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    if (systemUpdateVersions.isNotEmpty()) {
                         Surface(
-                            onClick = onInstanceConfigClick,
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = RoundedCornerShape(100.dp)
+                            onClick = onUpdateClick,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(50)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Filled.Tune,
+                                    imageVector = Icons.Filled.SystemUpdateAlt,
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurface
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Instance config",
+                                    "Update (${systemUpdateVersions.size})",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = FontWeight.SemiBold
                                 )
-                            }
-                        }
-
-                        if (systemUpdateVersions.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Surface(
-                                onClick = onUpdateClick,
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                shape = RoundedCornerShape(100.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.SystemUpdateAlt,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Update (${systemUpdateVersions.size})",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
                             }
                         }
                     }
@@ -518,7 +557,7 @@ private fun LoadAveragesGrid(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     LoadingStatCard("CPU", Icons.Default.Memory, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                    LoadingStatCard("Memory", Icons.Default.Storage, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
+                    LoadingStatCard("Memory", Icons.Default.Memory, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 LoadingStatCard("Temperature", Icons.Default.Thermostat, Color(0xFF2E7D32), Modifier.fillMaxWidth())
@@ -541,7 +580,7 @@ private fun LoadAveragesGrid(
                         title = "Memory",
                         value = loadAveragesState.memoryAverage?.let { DecimalFormat("#.##").format(it) + "%" } ?: "N/A",
                         subtitle = "Usage",
-                        icon = Icons.Default.Storage,
+                        icon = Icons.Default.Memory,
                         color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.weight(1f),
                         onClick = onMemoryClick
@@ -600,7 +639,7 @@ private fun SystemStatsSection(
     Column(modifier = modifier) {
         Text("System Stats", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp))
         StatCard(title = "CPU Cores", value = "${systemInfo.cores.toInt()} Total (${systemInfo.physical_cores ?: 0} Physical)", icon = Icons.Default.Memory, color = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), subtitle = "Processing units")
-        StatCard(title = "Memory", value = "${DecimalFormat("#.#").format(systemInfo.physmem / (1024.0 * 1024.0 * 1024.0))} GB ${if (systemInfo.ecc_memory) "(ECC)" else "(Non-ECC)"}", subtitle = "Total system memory", icon = Icons.Default.Storage, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp))
+        StatCard(title = "Memory", value = "${DecimalFormat("#.#").format(systemInfo.physmem / (1024.0 * 1024.0 * 1024.0))} GB ${if (systemInfo.ecc_memory) "(ECC)" else "(Non-ECC)"}", subtitle = "Total system memory", icon = Icons.Default.Memory, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp))
         StatCard(title = "Disks", value = "$diskCount ${if (diskCount == 1) "Disk" else "Disks"}", subtitle = poolDetails?.let { if (it.healthy) "All pools healthy" else "Pool issues detected" } ?: "No pools configured", icon = Icons.Default.Storage, color = poolDetails?.let { pool -> if (pool.healthy) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error } ?: MaterialTheme.colorScheme.outline, modifier = Modifier.fillMaxWidth(), onClick = onDiskClick)
     }
 }
@@ -641,8 +680,6 @@ private fun StorageCard(modifier: Modifier = Modifier, pool: System.Pool, onClic
         return "${DecimalFormat("#.#").format(size)} ${units[unitIndex]}"
     }
 
-    // Lowkey band-aid solution due to discrepancy in 25.04.x and 25.10.x API
-    // TODO : Find some way of using version from system.details to determine what versions of responses i need to use (lots of work)
     Card(onClick = onClick, shape = RoundedCornerShape(24.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
