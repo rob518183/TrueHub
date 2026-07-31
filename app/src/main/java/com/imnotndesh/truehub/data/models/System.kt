@@ -470,27 +470,25 @@ object System {
     // ──────────────────────────────────────────────
 
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class AuditEntry(
-        @field:Json(name = "id") val id: Int,
-        @field:Json(name = "retention") val retention: Int,
-        @field:Json(name = "reservation") val reservation: Int,
-        @field:Json(name = "quota") val quota: Int,
-        @field:Json(name = "quota_fill_warning") val quotaFillWarning: Int,
-        @field:Json(name = "quota_fill_critical") val quotaFillCritical: Int,
-        @field:Json(name = "remote_logging_enabled") val remoteLoggingEnabled: Boolean,
-        @field:Json(name = "space") val space: AuditEntrySpace,
-        @field:Json(name = "enabled_services") val enabledServices: AuditEntryEnabledServices
+        @Json(name = "id") val id: Int,
+        @Json(name = "retention") val retention: Int,
+        @Json(name = "reservation") val reservation: Int,
+        @Json(name = "quota") val quota: Int,
+        @Json(name = "quota_fill_warning") val quotaFillWarning: Int,
+        @Json(name = "quota_fill_critical") val quotaFillCritical: Int,
+        @Json(name = "remote_logging_enabled") val remoteLoggingEnabled: Boolean,
+        @Json(name = "space") val space: AuditEntrySpace,
+        @Json(name = "enabled_services") val enabledServices: AuditEntryEnabledServices
     )
 
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class AuditEntrySpace(
-        @field:Json(name = "used") val used: Long,
-        @field:Json(name = "used_by_dataset") val usedByDataset: Long,
-        @field:Json(name = "used_by_reservation") val usedByReservation: Long,
-        @field:Json(name = "used_by_snapshots") val usedBySnapshots: Long,
-        @field:Json(name = "available") val available: Long
+        @Json(name = "used") val used: Long,
+        @Json(name = "used_by_dataset") val usedByDataset: Long,
+        @Json(name = "used_by_reservation") val usedByReservation: Long,
+        @Json(name = "used_by_snapshots") val usedBySnapshots: Long,
+        @Json(name = "available") val available: Long
     )
 
     @JsonClass(generateAdapter = true)

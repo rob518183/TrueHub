@@ -1,7 +1,7 @@
 package com.imnotndesh.truehub.ui.homepage.instancesettings.audit
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,42 +10,36 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Dataset
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SdStorage
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,14 +49,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.ui.components.LoadingScreen
+import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
+import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.ExpressiveInfoCard
+import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.ExpressiveSection
 
-/**
- * Displays the current audit configuration and allows editing the mutable fields
- * (retention, reservation, quota, quota_fill_warning, quota_fill_critical).
- *
- * Read-only fields (space, remote_logging_enabled, enabled_services) are shown
- * for information only.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuditConfigScreen(
@@ -71,17 +62,16 @@ fun AuditConfigScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Field state for edit mode, initialised from the loaded config
+
     var retention by remember { mutableStateOf("") }
     var reservation by remember { mutableStateOf("") }
     var quota by remember { mutableStateOf("") }
     var fillWarning by remember { mutableStateOf("") }
     var fillCritical by remember { mutableStateOf("") }
 
-    // Once config loads, populate the fields
+
     LaunchedEffect(uiState.config) {
         uiState.config?.let { cfg ->
             retention = cfg.retention.toString()
@@ -92,7 +82,7 @@ fun AuditConfigScreen(
         }
     }
 
-    // Show snackbar on save result
+
     LaunchedEffect(uiState.saveResult) {
         when (val result = uiState.saveResult) {
             is AuditSaveResult.Success -> {
@@ -107,179 +97,41 @@ fun AuditConfigScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Audit Configuration") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+            UnifiedScreenHeader(
+                title = "Audit Configuration",
+                subtitle = "ZFS dataset, quotas & retention",
+                isLoading = uiState.isLoading && uiState.config == null,
+                isRefreshing = false,
+                error = null,
+                onDismissError = {},
+                manager = manager,
+                onBackPressed = onNavigateBack
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
-        if (uiState.isLoading && uiState.config == null) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                CircularProgressIndicator()
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Loading audit configuration…", style = MaterialTheme.typography.bodyMedium)
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // ── Space usage card (read-only) ──
-                uiState.config?.space?.let { space ->
-                    Card(
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.SdStorage,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "ZFS Dataset Space",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            SpaceRow("Used", formatBytes(space.used))
-                            SpaceRow("Used by dataset", formatBytes(space.usedByDataset))
-                            SpaceRow("Used by reservation", formatBytes(space.usedByReservation))
-                            SpaceRow("Used by snapshots", formatBytes(space.usedBySnapshots))
-                            SpaceRow("Available", formatBytes(space.available))
-                        }
-                    }
-                }
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
 
-                // ── Read-only service info ──
-                uiState.config?.let { cfg ->
-                    Card(
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.Cloud,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "Remote logging: ${if (cfg.remoteLoggingEnabled) "Enabled" else "Disabled"}",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                "Enabled services: ${cfg.enabledServices.middleware.size + cfg.enabledServices.smb.size + cfg.enabledServices.sudo.size} configured",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // ── Editable fields ──
-                Card(
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    modifier = Modifier.fillMaxWidth()
+            if (uiState.config != null && !uiState.isLoading) {
+                Surface(
+                    shadowElevation = 8.dp,
+                    color = MaterialTheme.colorScheme.surface
                 ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            "Settings",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        HorizontalDivider()
-
-                        EditableField(
-                            value = retention,
-                            onValueChange = { retention = it },
-                            label = "Retention (days)",
-                            icon = Icons.Default.Schedule,
-                            supportingText = "1 – 30"
-                        )
-                        EditableField(
-                            value = reservation,
-                            onValueChange = { reservation = it },
-                            label = "Reservation (GiB)",
-                            icon = Icons.Default.Dataset,
-                            supportingText = "0 – 100"
-                        )
-                        EditableField(
-                            value = quota,
-                            onValueChange = { quota = it },
-                            label = "Quota (GiB)",
-                            icon = Icons.Default.SdStorage,
-                            supportingText = "0 – 100"
-                        )
-                        EditableField(
-                            value = fillWarning,
-                            onValueChange = { fillWarning = it },
-                            label = "Quota fill warning (%)",
-                            icon = Icons.Default.Warning,
-                            supportingText = "5 – 80"
-                        )
-                        EditableField(
-                            value = fillCritical,
-                            onValueChange = { fillCritical = it },
-                            label = "Quota fill critical (%)",
-                            icon = Icons.Default.Warning,
-                            supportingText = "50 – 95"
-                        )
-                    }
-                }
-
-                // ── Action buttons ──
-                if (uiState.isSaving) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         OutlinedButton(
                             onClick = onNavigateBack,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).height(56.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            enabled = !uiState.isSaving
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Discard")
+                            Icon(Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Discard", fontWeight = FontWeight.SemiBold)
                         }
                         Button(
                             onClick = {
@@ -291,29 +143,120 @@ fun AuditConfigScreen(
                                     quotaFillCritical = fillCritical.toIntOrNull()
                                 )
                             },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).height(56.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            enabled = !uiState.isSaving
                         ) {
-                            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Save")
+                            if (uiState.isSaving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Save Changes", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
-
-                Spacer(Modifier.height(16.dp))
             }
         }
-    }
-}
+    ) { innerPadding ->
+        when {
+            uiState.isLoading && uiState.config == null -> LoadingScreen("Loading audit configuration…")
+            uiState.config != null -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = innerPadding.calculateTopPadding())
+                        .padding(bottom = innerPadding.calculateBottomPadding()),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
 
-@Composable
-private fun SpaceRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                    val space = uiState.config!!.space
+                    if (space != null) {
+                        item {
+                            ExpressiveSection(title = "ZFS Dataset Space", icon = Icons.Default.SdStorage) {
+                                ExpressiveInfoCard {
+                                    InfoRow("Used", formatBytes(space.used))
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    InfoRow("Used by dataset", formatBytes(space.usedByDataset))
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    InfoRow("Used by reservation", formatBytes(space.usedByReservation))
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    InfoRow("Used by snapshots", formatBytes(space.usedBySnapshots))
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    InfoRow("Available", formatBytes(space.available))
+                                }
+                            }
+                        }
+                    }
+
+
+                    item {
+                        ExpressiveSection(title = "Remote Logging", icon = Icons.Default.Cloud) {
+                            ExpressiveInfoCard {
+                                val cfg = uiState.config!!
+                                InfoRow("Remote logging enabled", if (cfg.remoteLoggingEnabled) "Yes" else "No")
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                val svcCount = cfg.enabledServices.middleware.size + cfg.enabledServices.smb.size + cfg.enabledServices.sudo.size
+                                InfoRow("Enabled services", "$svcCount configured")
+                            }
+                        }
+                    }
+
+
+                    item {
+                        ExpressiveSection(title = "Settings", icon = Icons.Default.Tune) {
+                            ExpressiveInfoCard {
+                                EditableField(
+                                    value = retention,
+                                    onValueChange = { retention = it },
+                                    label = "Retention (days)",
+                                    icon = Icons.Default.Schedule,
+                                    supportingText = "1 – 30"
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                EditableField(
+                                    value = reservation,
+                                    onValueChange = { reservation = it },
+                                    label = "Reservation (GiB)",
+                                    icon = Icons.Default.Dataset,
+                                    supportingText = "0 – 100"
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                EditableField(
+                                    value = quota,
+                                    onValueChange = { quota = it },
+                                    label = "Quota (GiB)",
+                                    icon = Icons.Default.SdStorage,
+                                    supportingText = "0 – 100"
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                EditableField(
+                                    value = fillWarning,
+                                    onValueChange = { fillWarning = it },
+                                    label = "Quota fill warning (%)",
+                                    icon = Icons.Default.Warning,
+                                    supportingText = "5 – 80"
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                EditableField(
+                                    value = fillCritical,
+                                    onValueChange = { fillCritical = it },
+                                    label = "Quota fill critical (%)",
+                                    icon = Icons.Default.Warning,
+                                    supportingText = "50 – 95"
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -336,6 +279,29 @@ private fun EditableField(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp)
     )
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(0.4f)
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(0.6f)
+        )
+    }
 }
 
 private fun formatBytes(bytes: Long): String {

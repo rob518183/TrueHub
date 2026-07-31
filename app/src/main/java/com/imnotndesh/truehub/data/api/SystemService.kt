@@ -822,10 +822,7 @@ class SystemService(val manager: TrueNASApiManager){
         )
     }
 
-    // ──────────────────────────────────────────────
     // audit.* service methods
-    // ──────────────────────────────────────────────
-
     /**
      * Get the current audit configuration.
      * Required role: SYSTEM_AUDIT_READ
