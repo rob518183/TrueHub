@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.DeveloperBoard
 import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Mail
@@ -32,7 +31,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.ui.components.ExpressiveFAB
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 
@@ -61,6 +60,8 @@ fun AdvancedSystemSettingsScreen(
         factory = AdvancedSystemSettingsViewModel.ViewModelFactory(manager)
     )
     val uiState by vm.uiState.collectAsState()
+    val scrollState = rememberScrollState()
+    val isFabVisible = !scrollState.isScrollInProgress
 
     LaunchedEffect(Unit) { vm.loadAll() }
 
@@ -77,7 +78,15 @@ fun AdvancedSystemSettingsScreen(
                 onBackPressed = onNavigateBack
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        floatingActionButton = {
+            ExpressiveFAB(
+                onClick = onNavigateToEdit,
+                visible = isFabVisible,
+                initiallyExpanded = true,
+                expandedDurationMillis = 2500
+            )
+        }
     ) { innerPadding ->
         when {
             uiState.isLoading -> LoadingScreen("Loading advanced settings...")
@@ -86,9 +95,9 @@ fun AdvancedSystemSettingsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
+                        .padding(top = innerPadding.calculateTopPadding())
+                        .verticalScroll(scrollState)
+                        .padding(start = 16.dp, end = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     if (config.login_banner.isNotBlank() || config.motd.isNotBlank()) {
@@ -109,7 +118,7 @@ fun AdvancedSystemSettingsScreen(
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             InfoRow(label = "Serial Speed", value = config.serialspeed.ifEmpty { "—" })
                         }
-                        SectionEditButton(onClick = onNavigateToEdit)
+                        // ❌ SectionEditButton removed
                     }
 
                     ExpressiveSection(title = "Kernel & Debug", icon = Icons.Default.BugReport) {
@@ -124,7 +133,6 @@ fun AdvancedSystemSettingsScreen(
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             InfoRow(label = "Extra Kernel Options", value = config.kernel_extra_options.ifEmpty { "None" })
                         }
-                        SectionEditButton(onClick = onNavigateToEdit)
                     }
 
                     ExpressiveSection(title = "Syslog", icon = Icons.Default.Dns) {
@@ -145,7 +153,6 @@ fun AdvancedSystemSettingsScreen(
                             val serverCount = config.syslogservers?.size ?: 0
                             InfoRow(label = "Syslog Servers", value = if (serverCount > 0) "$serverCount configured" else "None")
                         }
-                        SectionEditButton(onClick = onNavigateToEdit)
                     }
 
                     ExpressiveSection(title = "Crash Reporting", icon = Icons.Default.Report) {
@@ -156,7 +163,6 @@ fun AdvancedSystemSettingsScreen(
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             InfoRow(label = "Anonymous Stats", value = if (config.anonstats) "Enabled" else "Disabled")
                         }
-                        SectionEditButton(onClick = onNavigateToEdit)
                     }
 
                     ExpressiveSection(title = "GPU Isolation", icon = Icons.Default.DeveloperBoard) {
@@ -164,7 +170,6 @@ fun AdvancedSystemSettingsScreen(
                             val gpuCount = config.isolated_gpu_pci_ids.size
                             InfoRow(label = "Isolated GPUs", value = if (gpuCount > 0) "$gpuCount GPU(s) isolated" else "None")
                         }
-                        SectionEditButton(onClick = onNavigateToEdit)
                     }
 
                     ExpressiveSection(title = "Power", icon = Icons.Default.PowerSettingsNew) {
@@ -173,7 +178,6 @@ fun AdvancedSystemSettingsScreen(
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             InfoRow(label = "Boot Scrub", value = "${config.boot_scrub}")
                         }
-                        SectionEditButton(onClick = onNavigateToEdit)
                     }
 
                     ExpressiveSection(title = "SED", icon = Icons.Default.Key) {
@@ -188,10 +192,8 @@ fun AdvancedSystemSettingsScreen(
                         ExpressiveInfoCard {
                             InfoRow(label = "Overprovision", value = config.overprovision?.toString() ?: "Not set")
                         }
-                        SectionEditButton(onClick = onNavigateToEdit)
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(64.dp))
                 }
             }
         }
@@ -199,34 +201,23 @@ fun AdvancedSystemSettingsScreen(
 }
 
 @Composable
-private fun SectionEditButton(onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.width(8.dp))
-        Text("Edit", fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
 private fun MessageBannerCard(loginBanner: String, motd: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f))
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+        )
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (loginBanner.isNotBlank()) {
                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(
                         Icons.Default.Info, null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(18.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
@@ -234,12 +225,12 @@ private fun MessageBannerCard(loginBanner: String, motd: String) {
                             "Login Banner",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
                             loginBanner,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                         )
                     }
                 }
@@ -248,7 +239,7 @@ private fun MessageBannerCard(loginBanner: String, motd: String) {
                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(
                         Icons.Default.Mail, null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(18.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
@@ -256,12 +247,12 @@ private fun MessageBannerCard(loginBanner: String, motd: String) {
                             "Message of the Day",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
                             motd,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                         )
                     }
                 }
