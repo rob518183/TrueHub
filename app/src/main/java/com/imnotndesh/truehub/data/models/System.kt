@@ -510,41 +510,34 @@ object System {
         @field:Json(name = "quota_fill_critical") val quotaFillCritical: Int? = null
     )
 
-    /** Parameters for audit.export and audit.query */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class AuditQueryArgs(
-        @field:Json(name = "services") val services: List<String>? = listOf("MIDDLEWARE"),
-        @field:Json(name = "query-filters") val queryFilters: List<Any>? = emptyList(),
-        @field:Json(name = "query-options") val queryOptions: AuditQueryOptions? = null,
-        @field:Json(name = "remote_controller") val remoteController: Boolean? = false
+        @Json(name = "services") val services: List<String>? = listOf("MIDDLEWARE"),
+        @Json(name = "query-filters") val queryFilters: List<Any>? = emptyList(),
+        @Json(name = "query-options") val queryOptions: AuditQueryOptions? = null,
+        @Json(name = "remote_controller") val remoteController: Boolean? = false
     )
 
-    /** Parameters for audit.export only */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class AuditExportArgs(
-        @field:Json(name = "services") val services: List<String>? = listOf("MIDDLEWARE"),
-        @field:Json(name = "query-filters") val queryFilters: List<Any>? = emptyList(),
-        @field:Json(name = "query-options") val queryOptions: AuditQueryOptions? = null,
-        @field:Json(name = "remote_controller") val remoteController: Boolean? = false,
-        @field:Json(name = "export_format") val exportFormat: String? = "JSON"
+        @Json(name = "services") val services: List<String>? = listOf("MIDDLEWARE"),
+        @Json(name = "query-filters") val queryFilters: List<Any>? = emptyList(),
+        @Json(name = "query-options") val queryOptions: AuditQueryOptions? = null,
+        @Json(name = "remote_controller") val remoteController: Boolean? = false,
+        @Json(name = "export_format") val exportFormat: String? = "JSON"
     )
 
-    /** Query options shared by audit.query and audit.export */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class AuditQueryOptions(
-        @field:Json(name = "extra") val extra: Map<String, Any>? = null,
-        @field:Json(name = "order_by") val orderBy: List<String>? = null,
-        @field:Json(name = "select") val select: List<Any>? = null,
-        @field:Json(name = "count") val count: Boolean = false,
-        @field:Json(name = "get") val get: Boolean = false,
-        @field:Json(name = "offset") val offset: Int = 0,
-        @field:Json(name = "limit") val limit: Int = 0,
-        @field:Json(name = "force_sql_filters") val forceSqlFilters: Boolean = false
+        @Json(name = "extra") val extra: Map<String, Any>? = null,
+        @Json(name = "order_by") val orderBy: List<String>? = null,
+        @Json(name = "select") val select: List<Any>? = null,
+        @Json(name = "count") val count: Boolean = false,
+        @Json(name = "get") val get: Boolean = false,
+        @Json(name = "offset") val offset: Int = 0,
+        @Json(name = "limit") val limit: Int = 0,
+        @Json(name = "force_sql_filters") val forceSqlFilters: Boolean = false
     )
-
     /** Single result item from audit.query */
     @JsonClass(generateAdapter = true)
     @Suppress("PropertyName")
