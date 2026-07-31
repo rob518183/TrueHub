@@ -1,41 +1,39 @@
 package com.imnotndesh.truehub.ui.homepage.instancesettings.general
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SettingsEthernet
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MaterialTheme.colorScheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,18 +41,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GeneralSystemSettingsScreen(
     manager: TrueNASApiManager,
@@ -68,223 +64,116 @@ fun GeneralSystemSettingsScreen(
 
     LaunchedEffect(Unit) { vm.loadAll() }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        colorScheme.surface,
-                        colorScheme.surfaceContainer
-                    )
-                )
+    Scaffold(
+        topBar = {
+            UnifiedScreenHeader(
+                title = "General Settings",
+                subtitle = "System general configuration",
+                isLoading = uiState.isLoading,
+                isRefreshing = false,
+                error = uiState.error,
+                onDismissError = { vm.clearError() },
+                manager = manager,
+                onBackPressed = onNavigateBack
             )
-    ) {
-        UnifiedScreenHeader(
-            title = "General Settings",
-            subtitle = "System general configuration",
-            isLoading = uiState.isLoading,
-            isRefreshing = false,
-            error = uiState.error,
-            onDismissError = { vm.clearError() },
-            manager = manager,
-            onBackPressed = onNavigateBack
-        )
-
-        Scaffold(
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            containerColor = Color.Transparent
-        ) { innerPadding ->
-            when {
-                uiState.isLoading -> LoadingScreen("Loading system settings...")
-                uiState.config != null -> {
-                    val config = uiState.config!!
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // ── Rollback waiting banner ──
-                        uiState.checkinWaiting?.let { seconds ->
-                            item {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(20.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-                                    )
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .clip(CircleShape)
-                                                .background(colorScheme.tertiaryContainer),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Timer, null,
-                                                tint = colorScheme.onTertiaryContainer,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                "Rollback pending",
-                                                style = MaterialTheme.typography.titleSmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = colorScheme.onTertiaryContainer
-                                            )
-                                            Text(
-                                                "Automatic rollback in ${seconds}s. Check in to confirm changes.",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
-                                            )
-                                        }
-                                        OutlinedButton(
-                                            onClick = { vm.doCheckin() },
-                                            shape = RoundedCornerShape(12.dp)
-                                        ) {
-                                            Icon(Icons.Default.CheckCircle, null, Modifier.size(16.dp))
-                                            Spacer(Modifier.width(4.dp))
-                                            Text("Check in", style = MaterialTheme.typography.labelSmall)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // ── Local URL card ──
-                        uiState.localUrl?.let { url ->
-                            item {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(20.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = colorScheme.surfaceContainerLow
-                                    ),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(20.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(14.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .clip(CircleShape)
-                                                .background(colorScheme.primaryContainer),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Link, null,
-                                                tint = colorScheme.onPrimaryContainer,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                        Column {
-                                            Text(
-                                                "Local URL",
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                url,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                fontWeight = FontWeight.Medium,
-                                                color = colorScheme.onSurface
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // ── Web Interface section ──
-                        item {
-                            SectionCard(
-                                title = "Web Interface",
-                                icon = Icons.Default.Visibility
-                            ) {
-                                DetailRow("HTTP Port", config.uiPort.toString())
-                                DetailRow("HTTPS Port", config.uiHttpsPort.toString())
-                                DetailRow("HTTPS Redirect", if (config.uiHttpsRedirect == true) "Enabled" else "Disabled")
-                                DetailRow("HTTPS Protocols", config.uiHttpsProtocols?.joinToString(", ")
-                                    .orEmpty().ifEmpty { "Default" })
-                                DetailRow("Console Messages", if (config.uiConsoleMsg == true) "Enabled" else "Disabled")
-                                DetailRow("X-Frame-Options", config.uiXFrameOptions ?: "SAMEORIGIN")
-                            }
-                        }
-
-                        // ── Network Addresses section ──
-                        item {
-                            SectionCard(
-                                title = "Network Addresses",
-                                icon = Icons.Default.SettingsEthernet
-                            ) {
-                                DetailRow(
-                                    "IPv4 Addresses",
-                                    config.uiAddress?.joinToString(", ").orEmpty().ifEmpty { "All (0.0.0.0)" }
-                                )
-                                DetailRow(
-                                    "IPv6 Addresses",
-                                    config.uiV6Address?.joinToString(", ").orEmpty().ifEmpty { "All (::)" }
-                                )
-                                DetailRow(
-                                    "Allow List",
-                                    config.uiAllowlist?.joinToString(", ").orEmpty().ifEmpty { "None" }
-                                )
-                            }
-                        }
-
-                        // ── Localization section ──
-                        item {
-                            SectionCard(
-                                title = "Localization",
-                                icon = Icons.Default.Language
-                            ) {
-                                DetailRow("Timezone", config.timezone.orEmpty().ifEmpty { "Not Configured" })
-                                DetailRow("Keyboard Map", config.kbdMap.orEmpty().ifEmpty { "Not Configured" })
-                            }
-                        }
-
-                        // ── Other section ──
-                        item {
-                            SectionCard(
-                                title = "Other",
-                                icon = Icons.Default.Shield
-                            ) {
-                                DetailRow("Wizard Shown", if (config.wizardShown == true) "Yes" else "No")
-                                DetailRow("DS Auth", if (config.dsAuth == true) "Enabled" else "Disabled")
-                                DetailRow(
-                                    "Usage Collection",
-                                    if (config.usageCollectionIsSet == true) "Configured" else "Not configured"
-                                )
-                            }
-                        }
-
-                        // ── Edit button ──
-                        item {
-                            Button(
-                                onClick = onNavigateToEdit,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Edit Settings", fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-
-                        item { Spacer(modifier = Modifier.height(8.dp)) }
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        when {
+            uiState.isLoading -> LoadingScreen("Loading system settings...")
+            uiState.config != null -> {
+                val config = uiState.config!!
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    uiState.checkinWaiting?.let { seconds ->
+                        RollbackWaitingCard(seconds = seconds, onCheckIn = { vm.doCheckin() })
                     }
+                    ExpressiveSection(title = "Web Interface", icon = Icons.Default.Visibility) {
+                        ExpressiveInfoCard {
+                            InfoRow(label = "HTTP Port", value = config.uiPort.toString())
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRow(label = "HTTPS Port", value = config.uiHttpsPort.toString())
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRow(label = "HTTPS Redirect", value = if (config.uiHttpsRedirect == true) "Enabled" else "Disabled")
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRow(label = "HTTPS Protocols", value = config.uiHttpsProtocols?.joinToString(", ").orEmpty().ifEmpty { "Default" })
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRow(label = "Console Messages", value = if (config.uiConsoleMsg == true) "Enabled" else "Disabled")
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRow(label = "X-Frame-Options", value = config.uiXFrameOptions ?: "SAMEORIGIN")
+                        }
+                        SectionEditButton(onClick = onNavigateToEdit)
+                    }
+
+                    ExpressiveSection(title = "Network Addresses", icon = Icons.Default.SettingsEthernet) {
+                        ExpressiveInfoCard {
+                            InfoRow(label = "IPv4 Addresses", value = config.uiAddress?.joinToString(", ").orEmpty().ifEmpty { "All (0.0.0.0)" })
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRow(label = "IPv6 Addresses", value = config.uiV6Address?.joinToString(", ").orEmpty().ifEmpty { "All (::)" })
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRow(label = "Allow List", value = config.uiAllowlist?.joinToString(", ").orEmpty().ifEmpty { "None" })
+                        }
+                        SectionEditButton(onClick = onNavigateToEdit)
+                    }
+
+                    uiState.localUrl?.let { url ->
+                        ExpressiveSection(title = "Local URL", icon = Icons.Default.Link) {
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
+                                shape = RoundedCornerShape(20.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Public,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = url,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    ExpressiveSection(title = "Localization", icon = Icons.Default.Language) {
+                        ExpressiveInfoCard {
+                            InfoRow(label = "Timezone", value = config.timezone.orEmpty().ifEmpty { "Not Configured" })
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRow(label = "Keyboard Map", value = config.kbdMap.orEmpty().ifEmpty { "Not Configured" })
+                        }
+                        SectionEditButton(onClick = onNavigateToEdit)
+                    }
+
+                    ExpressiveSection(title = "Other", icon = Icons.Default.Security) {
+                        ExpressiveInfoCard {
+                            InfoRow(label = "Wizard Shown", value = if (config.wizardShown == true) "Yes" else "No")
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRow(label = "DS Auth", value = if (config.dsAuth == true) "Enabled" else "Disabled")
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            InfoRow(label = "Usage Collection", value = if (config.usageCollectionIsSet == true) "Configured" else "Not configured")
+                        }
+                        SectionEditButton(onClick = onNavigateToEdit)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
@@ -292,75 +181,130 @@ fun GeneralSystemSettingsScreen(
 }
 
 @Composable
-internal fun SectionCard(
+private fun SectionEditButton(onClick: () -> Unit) {
+    androidx.compose.material3.OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(8.dp))
+        Text("Edit", fontWeight = FontWeight.SemiBold)
+    }
+}
+@Composable
+private fun RollbackWaitingCard(seconds: Int, onCheckIn: () -> Unit) {
+    ExpressiveSection(title = "Rollback Pending", icon = Icons.Default.Timer) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)),
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.fillMaxWidth(),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Automatic rollback in ${seconds}s. Check in to confirm these changes.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    textAlign = TextAlign.Center
+                )
+                Button(
+                    onClick = onCheckIn,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Check In", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun ExpressiveSection(
     title: String,
     icon: ImageVector,
-    content: @Composable () -> Unit
+    content: @Composable ColumnScope.() -> Unit
 ) {
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        Column(content = content)
+    }
+}
+
+@Composable
+internal fun ExpressiveInfoCard(content: @Composable ColumnScope.() -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        icon, null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        Column(modifier = Modifier.padding(20.dp)) {
             content()
         }
     }
 }
 
 @Composable
-internal fun DetailRow(label: String, value: String) {
+internal fun InfoRow(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
         Text(
-            label,
-            style = MaterialTheme.typography.bodySmall,
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(0.4f)
         )
         Text(
-            value,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(0.6f),
-            maxLines = 1
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(0.6f)
         )
     }
 }

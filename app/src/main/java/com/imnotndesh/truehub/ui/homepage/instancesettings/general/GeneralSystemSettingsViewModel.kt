@@ -28,11 +28,36 @@ data class GeneralSystemSettingsUiState(
     val error: String? = null,
     val saveSuccess: Boolean = false
 )
-// TODO: FIGURE OUT PERFORMANCE IMPROVEMENT FOR KEYBOARD MAP AND OTHER CHOICES SINCE IT IS SLOW to show for users
 class GeneralSystemSettingsViewModel(
     private val manager: TrueNASApiManager
 ) : ViewModel() {
+    init {
+        prefetchChoices()
+    }
 
+    private fun prefetchChoices() {
+        if (cachedTimezoneChoices != null) return
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            cachedTimezoneChoices = (manager.system.generalTimezoneChoices() as? ApiResult.Success)?.data
+            cachedKbdmapChoices = (manager.system.generalKbdmapChoices() as? ApiResult.Success)?.data
+            cachedUiAddressChoices = (manager.system.generalUiAddressChoices() as? ApiResult.Success)?.data
+            cachedUiV6AddressChoices = (manager.system.generalUiV6AddressChoices() as? ApiResult.Success)?.data
+            cachedUiCertificateChoices = (manager.system.generalUiCertificateChoices() as? ApiResult.Success)?.data
+            cachedUiHttpsProtocolsChoices = (manager.system.generalUiHttpsProtocolsChoices() as? ApiResult.Success)?.data
+            cachedCountryChoices = (manager.system.generalCountryChoices() as? ApiResult.Success)?.data
+            _uiState.update {
+                it.copy(
+                    timezoneChoices = cachedTimezoneChoices ?: emptyMap(),
+                    kbdmapChoices = cachedKbdmapChoices ?: emptyMap(),
+                    uiAddressChoices = cachedUiAddressChoices ?: emptyMap(),
+                    uiV6AddressChoices = cachedUiV6AddressChoices ?: emptyMap(),
+                    uiCertificateChoices = cachedUiCertificateChoices ?: emptyMap(),
+                    uiHttpsProtocolsChoices = cachedUiHttpsProtocolsChoices ?: emptyMap(),
+                    countryChoices = cachedCountryChoices ?: emptyMap()
+                )
+            }
+        }
+    }
     private val _uiState = MutableStateFlow(GeneralSystemSettingsUiState())
     val uiState: StateFlow<GeneralSystemSettingsUiState> = _uiState.asStateFlow()
 
@@ -101,18 +126,19 @@ class GeneralSystemSettingsViewModel(
                 // Always-fresh data
                 val localUrlResult = manager.system.generalLocalUrl()
                 val checkinResult = manager.system.generalCheckinWaiting()
+                if (cachedTimezoneChoices == null) prefetchChoices()
 
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         config = (configResult as? ApiResult.Success)?.data,
-                        timezoneChoices = cachedTimezoneChoices ?: emptyMap(),
-                        kbdmapChoices = cachedKbdmapChoices ?: emptyMap(),
-                        uiAddressChoices = cachedUiAddressChoices ?: emptyMap(),
-                        uiV6AddressChoices = cachedUiV6AddressChoices ?: emptyMap(),
-                        uiCertificateChoices = cachedUiCertificateChoices ?: emptyMap(),
-                        uiHttpsProtocolsChoices = cachedUiHttpsProtocolsChoices ?: emptyMap(),
-                        countryChoices = cachedCountryChoices ?: emptyMap(),
+                        timezoneChoices = cachedTimezoneChoices ?: it.timezoneChoices,
+                        kbdmapChoices = cachedKbdmapChoices ?: it.kbdmapChoices,
+                        uiAddressChoices = cachedUiAddressChoices ?: it.uiAddressChoices,
+                        uiV6AddressChoices = cachedUiV6AddressChoices ?: it.uiV6AddressChoices,
+                        uiCertificateChoices = cachedUiCertificateChoices ?: it.uiCertificateChoices,
+                        uiHttpsProtocolsChoices = cachedUiHttpsProtocolsChoices ?: it.uiHttpsProtocolsChoices,
+                        countryChoices = cachedCountryChoices ?: it.countryChoices,
                         localUrl = (localUrlResult as? ApiResult.Success)?.data,
                         checkinWaiting = (checkinResult as? ApiResult.Success)?.data
                     )
