@@ -13,6 +13,8 @@ import okhttp3.OkHttpClient
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import java.lang.reflect.Type
+import java.net.URI
+import java.net.URISyntaxException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.ConcurrentHashMap
@@ -60,28 +62,54 @@ class TrueNASClient(private val config: ClientConfig) {
 
         _connectionState.value = ConnectionState.Connecting
 
+        val candidateUrls = buildConnectionCandidates(config.serverUrl)
+        var lastError: Throwable? = null
+
+        candidateUrls.forEachIndexed { index, url ->
+            val isFallback = index > 0
+            if (isFallback) {
+                TrueHubLogger.e(logName, "Retrying connection with fallback URL: $url")
+            }
+
+            val result = tryConnectToUrl(url)
+            if (result) {
+                return true
+            }
+
+            val state = _connectionState.value
+            if (state is ConnectionState.Error) {
+                lastError = state.throwable
+            }
+        }
+
+        _connectionState.value = ConnectionState.Error("Failed to connect", lastError)
+        return false
+    }
+
+    private suspend fun tryConnectToUrl(url: String): Boolean {
         return try {
-            val request = wsRequest.Builder().url(config.serverUrl).build()
+            val request = wsRequest.Builder().url(url).build()
             val connectionDeferred = CompletableDeferred<Boolean>()
 
             webSocket = client.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
                     super.onOpen(webSocket, response)
                     _connectionState.value = ConnectionState.Connected
-                    TrueHubLogger.e(logName,"Connected to ${config.serverUrl}")
+                    TrueHubLogger.e(logName, "Connected to $url")
                     connectionDeferred.complete(true)
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     super.onMessage(webSocket, text)
-                    TrueHubLogger.e(logName,"Received message: $text")
+                    TrueHubLogger.e(logName, "Received message: $text")
                     handleMessage(text)
                 }
+
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: okhttp3.Response?) {
                     super.onFailure(webSocket, t, response)
                     val errorMsg = "Connection failed: ${t.message}"
                     _connectionState.value = ConnectionState.Error(errorMsg, t)
-                    TrueHubLogger.e(logName,errorMsg, t)
+                    TrueHubLogger.e(logName, "$errorMsg (url=$url)", t)
 
                     pendingRequests.values.forEach { it.completeExceptionally(t) }
                     pendingRequests.clear()
@@ -94,15 +122,66 @@ class TrueNASClient(private val config: ClientConfig) {
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     super.onClosed(webSocket, code, reason)
                     _connectionState.value = ConnectionState.Disconnected
-                    TrueHubLogger.e(logName,"Connection closed: $code - $reason")
+                    TrueHubLogger.e(logName, "Connection closed: $code - $reason")
                 }
             })
 
             connectionDeferred.await()
         } catch (e: Exception) {
             _connectionState.value = ConnectionState.Error("Failed to connect", e)
-            TrueHubLogger.e(logName,"Connection error", e)
+            TrueHubLogger.e(logName, "Connection error", e)
             false
+        }
+    }
+
+    private fun buildConnectionCandidates(serverUrl: String): List<String> {
+        val normalized = normalizeUrl(serverUrl)
+        val candidates = linkedSetOf(normalized)
+
+        try {
+            val uri = URI(normalized)
+            val hasExplicitPort = uri.port != -1
+            val host = uri.host
+            val path = if (uri.path.isNullOrBlank()) "/api/current" else uri.path
+
+            if (
+                uri.scheme.equals("ws", ignoreCase = true) &&
+                !hasExplicitPort &&
+                !host.isNullOrBlank()
+            ) {
+                val fallback = URI("wss", uri.userInfo, host, 443, path, uri.query, uri.fragment)
+                candidates.add(fallback.toString())
+            }
+        } catch (_: Exception) {
+            // Keep normalized URL only when parsing fails.
+        }
+
+        return candidates.toList()
+    }
+
+    private fun normalizeUrl(serverUrl: String): String {
+        var url = serverUrl.trim()
+
+        if (url.startsWith("http://", ignoreCase = true)) {
+            url = "ws://${url.removePrefix("http://").removePrefix("HTTP://")}"
+        } else if (url.startsWith("https://", ignoreCase = true)) {
+            url = "wss://${url.removePrefix("https://").removePrefix("HTTPS://")}"
+        }
+
+        if (!url.contains("://")) {
+            url = "ws://$url"
+        }
+
+        return try {
+            val uri = URI(url)
+            val path = if (uri.path.isNullOrBlank() || uri.path == "/") "/api/current" else uri.path
+            URI(uri.scheme, uri.userInfo, uri.host, uri.port, path, uri.query, uri.fragment).toString()
+        } catch (_: URISyntaxException) {
+            if (!url.contains("/api/current")) {
+                "$url/api/current"
+            } else {
+                url
+            }
         }
     }
 

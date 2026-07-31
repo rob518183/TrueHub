@@ -3,8 +3,10 @@ package com.imnotndesh.truehub.ui.setup
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.imnotndesh.truehub.data.ConnectionState
 import com.imnotndesh.truehub.data.TrueNASClient
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.data.helpers.ConnectionErrorFormatter
 import com.imnotndesh.truehub.data.helpers.Prefs
 import com.imnotndesh.truehub.data.models.Config.ClientConfig
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -105,7 +107,18 @@ class SetupScreenViewModel : ViewModel() {
                             setupComplete = true
                         )
                     } else {
-                        throw Exception("Unable to establish connection")
+                        val errorMessage = when (val state = client.getCurrentConnectionState()) {
+                            is ConnectionState.Error -> ConnectionErrorFormatter.toUserMessage(
+                                throwable = state.throwable,
+                                serverUrl = formattedUrl
+                            )
+
+                            else -> "Unable to establish connection. Check your server URL and network."
+                        }
+                        _uiState.value = _uiState.value.copy(
+                            isConfiguring = false,
+                            connectionError = errorMessage
+                        )
                     }
                 }
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
@@ -114,9 +127,14 @@ class SetupScreenViewModel : ViewModel() {
                     connectionError = "Connection timeout. Please check the server URL and your network."
                 )
             } catch (e: Exception) {
+                val formattedUrl = formatUrl(currentState.serverUrl)
                 _uiState.value = _uiState.value.copy(
                     isConfiguring = false,
-                    connectionError = "Connection failed: ${e.message ?: "Unknown error"}"
+                    connectionError = ConnectionErrorFormatter.toUserMessage(
+                        throwable = e,
+                        serverUrl = formattedUrl,
+                        fallback = "Connection failed"
+                    )
                 )
             } finally {
                 // Clean up temporary resources

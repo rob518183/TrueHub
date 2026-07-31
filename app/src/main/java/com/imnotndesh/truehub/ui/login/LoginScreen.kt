@@ -74,6 +74,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.imnotndesh.truehub.data.TrueNASClient
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.data.helpers.ConnectionErrorFormatter
 import com.imnotndesh.truehub.data.helpers.Prefs
 import com.imnotndesh.truehub.data.models.Auth.LoginMode
 import com.imnotndesh.truehub.data.models.Config
@@ -132,11 +133,27 @@ fun LoginScreen(
                         ToastManager.showSuccess("Connected to server!")
                         showSetupSheet = false
                     } else {
-                        ToastManager.showError("Initial connection failed: Could not reach server.")
+                        val state = client.getCurrentConnectionState()
+                        val message = if (state is com.imnotndesh.truehub.data.ConnectionState.Error) {
+                            ConnectionErrorFormatter.toUserMessage(
+                                throwable = state.throwable,
+                                serverUrl = savedUrl,
+                                fallback = "Initial connection failed"
+                            )
+                        } else {
+                            "Initial connection failed: Could not reach server."
+                        }
+                        ToastManager.showError(message)
                         showSetupSheet = true
                     }
                 } catch (e: Exception) {
-                    ToastManager.showError("Connection failed: ${e.message}")
+                    ToastManager.showError(
+                        ConnectionErrorFormatter.toUserMessage(
+                            throwable = e,
+                            serverUrl = savedUrl,
+                            fallback = "Connection failed"
+                        )
+                    )
                     showSetupSheet = true
                 }
             }
@@ -226,12 +243,28 @@ fun LoginScreen(
                                 showSetupSheet = false
                                 ToastManager.showSuccess("Connected successfully!")
                             } else {
-                                ToastManager.showError("Failed to connect: Could not reach server with provided details.")
+                                val state = client.getCurrentConnectionState()
+                                val message = if (state is com.imnotndesh.truehub.data.ConnectionState.Error) {
+                                    ConnectionErrorFormatter.toUserMessage(
+                                        throwable = state.throwable,
+                                        serverUrl = url,
+                                        fallback = "Failed to connect"
+                                    )
+                                } else {
+                                    "Failed to connect: Could not reach server with provided details."
+                                }
+                                ToastManager.showError(message)
                                 showSetupSheet = true
                             }
 
                         } catch (e: Exception) {
-                            ToastManager.showError("Failed to connect: ${e.message}")
+                            ToastManager.showError(
+                                ConnectionErrorFormatter.toUserMessage(
+                                    throwable = e,
+                                    serverUrl = url,
+                                    fallback = "Failed to connect"
+                                )
+                            )
                         }
                     }
                 },

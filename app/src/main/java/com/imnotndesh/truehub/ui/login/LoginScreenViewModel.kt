@@ -6,8 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.imnotndesh.truehub.data.ApiResult
+import com.imnotndesh.truehub.data.ConnectionState
 import com.imnotndesh.truehub.data.api.AuthService
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.data.helpers.ConnectionErrorFormatter
 import com.imnotndesh.truehub.data.helpers.EncryptedPrefs
 import com.imnotndesh.truehub.data.helpers.MultiAccountPrefs
 import com.imnotndesh.truehub.data.helpers.Prefs
@@ -150,17 +152,40 @@ class LoginScreenViewModel(
                     if (manager?.isConnected() == true) {
                         _uiState.update { it.copy(connectionStatus = ConnectionStatus.Connected) }
                     } else {
-                        manager?.connect()
-                        _uiState.update { it.copy(connectionStatus = ConnectionStatus.Connected) }
+                        val connected = manager?.connect() == true
+                        if (connected) {
+                            _uiState.update { it.copy(connectionStatus = ConnectionStatus.Connected) }
+                        } else {
+                            val connectionError = when (val state = manager?.getCurrentConnectionState()) {
+                                is ConnectionState.Error -> ConnectionErrorFormatter.toUserMessage(
+                                    throwable = state.throwable,
+                                    serverUrl = Prefs.load(application).first,
+                                    fallback = "Connection failed"
+                                )
+
+                                else -> "Connection failed. Please check your server configuration."
+                            }
+
+                            _uiState.update {
+                                it.copy(connectionStatus = ConnectionStatus.Error(connectionError))
+                            }
+                            ToastManager.showError(connectionError)
+                        }
                     }
                 }
             } catch (e: Exception) {
+                val savedServerUrl = Prefs.load(application).first
+                val message = ConnectionErrorFormatter.toUserMessage(
+                    throwable = e,
+                    serverUrl = savedServerUrl,
+                    fallback = "Connection failed"
+                )
                 _uiState.update {
                     it.copy(
-                        connectionStatus = ConnectionStatus.Error(e.message ?: "Connection failed")
+                        connectionStatus = ConnectionStatus.Error(message)
                     )
                 }
-                ToastManager.showError("Connection failed: ${e.message ?: "Unknown error"}")
+                ToastManager.showError(message)
             }
         }
     }
