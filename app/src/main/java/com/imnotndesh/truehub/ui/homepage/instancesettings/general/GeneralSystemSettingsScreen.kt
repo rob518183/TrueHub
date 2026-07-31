@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Public
@@ -48,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.ui.components.ExpressiveFAB
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 
@@ -61,6 +61,8 @@ fun GeneralSystemSettingsScreen(
         factory = GeneralSystemSettingsViewModel.ViewModelFactory(manager)
     )
     val uiState by vm.uiState.collectAsState()
+    val scrollState = rememberScrollState()
+    val isFabVisible = !scrollState.isScrollInProgress
 
     LaunchedEffect(Unit) { vm.loadAll() }
 
@@ -77,6 +79,15 @@ fun GeneralSystemSettingsScreen(
                 onBackPressed = onNavigateBack
             )
         },
+        floatingActionButton = {
+            ExpressiveFAB(
+                modifier = Modifier.offset(y = (-20).dp),
+                onClick = onNavigateToEdit,
+                visible = isFabVisible,
+                initiallyExpanded = true,
+                expandedDurationMillis = 2500
+            )
+        },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         when {
@@ -86,9 +97,9 @@ fun GeneralSystemSettingsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
+                        .padding(top = innerPadding.calculateTopPadding())
                         .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
+                        .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     uiState.checkinWaiting?.let { seconds ->
@@ -108,7 +119,7 @@ fun GeneralSystemSettingsScreen(
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             InfoRow(label = "X-Frame-Options", value = config.uiXFrameOptions ?: "SAMEORIGIN")
                         }
-                        SectionEditButton(onClick = onNavigateToEdit)
+
                     }
 
                     ExpressiveSection(title = "Network Addresses", icon = Icons.Default.SettingsEthernet) {
@@ -119,7 +130,7 @@ fun GeneralSystemSettingsScreen(
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             InfoRow(label = "Allow List", value = config.uiAllowlist?.joinToString(", ").orEmpty().ifEmpty { "None" })
                         }
-                        SectionEditButton(onClick = onNavigateToEdit)
+
                     }
 
                     uiState.localUrl?.let { url ->
@@ -159,7 +170,7 @@ fun GeneralSystemSettingsScreen(
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             InfoRow(label = "Keyboard Map", value = config.kbdMap.orEmpty().ifEmpty { "Not Configured" })
                         }
-                        SectionEditButton(onClick = onNavigateToEdit)
+
                     }
 
                     ExpressiveSection(title = "Other", icon = Icons.Default.Security) {
@@ -170,28 +181,11 @@ fun GeneralSystemSettingsScreen(
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             InfoRow(label = "Usage Collection", value = if (config.usageCollectionIsSet == true) "Configured" else "Not configured")
                         }
-                        SectionEditButton(onClick = onNavigateToEdit)
-                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SectionEditButton(onClick: () -> Unit) {
-    androidx.compose.material3.OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 12.dp),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.width(8.dp))
-        Text("Edit", fontWeight = FontWeight.SemiBold)
     }
 }
 @Composable

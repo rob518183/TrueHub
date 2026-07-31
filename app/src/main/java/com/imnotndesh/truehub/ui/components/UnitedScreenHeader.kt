@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.ui.alerts.AlertsBellButton
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun UnifiedScreenHeader(
@@ -80,7 +81,7 @@ fun UnifiedScreenHeader(
     LaunchedEffect(subtitle) {
         isSubtitleVisible = true
         if (subtitle.contains("Welcome back", ignoreCase = true)) {
-            delay(4000)
+            delay(4000.milliseconds)
             isSubtitleVisible = false
         }
     }
@@ -115,7 +116,7 @@ fun UnifiedScreenHeader(
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        // Title Animation
+
                         AnimatedContent(
                             targetState = title,
                             transitionSpec = {
@@ -134,7 +135,7 @@ fun UnifiedScreenHeader(
                             )
                         }
 
-                        // Subtitle Animation (Visibility + Content)
+
                         AnimatedVisibility(
                             visible = isSubtitleVisible && subtitle.isNotEmpty(),
                             enter = expandVertically() + fadeIn(),
