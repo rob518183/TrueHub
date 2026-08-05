@@ -62,6 +62,8 @@ import com.imnotndesh.truehub.ui.homepage.details.DiskInfoScreen
 import com.imnotndesh.truehub.ui.homepage.details.PerformanceScreen
 import com.imnotndesh.truehub.ui.homepage.details.ShareInfoScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.InstanceConfigScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.AdvancedSystemSettingsEditScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.AdvancedSystemSettingsScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertClassesConfigScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceCreateScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceDetailScreen
@@ -69,15 +71,12 @@ import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertSer
 import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyCreateScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyDetailScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyListScreen
-import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.AdvancedSystemSettingsEditScreen
-import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.AdvancedSystemSettingsScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditConfigScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditConfigViewModel
 import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditLogsScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditLogsViewModel
 import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsEditScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsScreen
-import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkConfigViewModel
 import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkEditScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
@@ -155,6 +154,9 @@ fun MainScreen(
             Screen.AuditLogsScreen.route,
             Screen.NetworkScreen.route,
             Screen.NetworkEditScreen.route,
+            Screen.InstanceConfigScreen.route,
+            Screen.ServicesScreen.route,
+            Screen.ServicesDetailScreen.route
             )
     }
 

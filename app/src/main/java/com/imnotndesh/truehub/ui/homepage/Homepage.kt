@@ -5,6 +5,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -74,6 +76,7 @@ import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.Shares
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.background.WavyGradientBackground
+import com.imnotndesh.truehub.ui.components.HalfCircleGauge
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.homepage.details.MetricType
@@ -385,16 +388,38 @@ private fun SystemOverviewCard(
         Color(0xFFF57C00)
     }
 
+    val glassContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)
+    val glassBorderBrush = remember {
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.3f),
+                Color.White.copy(alpha = 0.05f)
+            )
+        )
+    }
+
+    val themeAdaptiveBorderBrush = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+        )
+    )
+
     WavyGradientBackground {
         Card(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp),
+                .padding(horizontal = 4.dp)
+                .border(
+                    width = 1.dp,
+                    brush = themeAdaptiveBorderBrush,
+                    shape = RoundedCornerShape(24.dp)
+                ),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.08f)
+                containerColor = glassContainerColor
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
 
@@ -407,7 +432,8 @@ private fun SystemOverviewCard(
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(RoundedCornerShape(20.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer),
+                                // Making the icon box also slightly transparent for a cohesive look
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -457,14 +483,13 @@ private fun SystemOverviewCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Surface(
                         onClick = onInstanceConfigClick,
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(50)
                     ) {
                         Row(
@@ -490,7 +515,7 @@ private fun SystemOverviewCard(
                     if (systemUpdateVersions.isNotEmpty()) {
                         Surface(
                             onClick = onUpdateClick,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             shape = RoundedCornerShape(50)
                         ) {
                             Row(
@@ -544,86 +569,93 @@ private fun LoadAveragesGrid(
     Column(modifier = modifier) {
         Text(
             text = "System Metrics",
-            fontSize = 22.sp,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp)
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
         )
 
-        when (loadAveragesState) {
-            is LoadAveragesState.Loading -> {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    LoadingStatCard("CPU", Icons.Default.Memory, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                    LoadingStatCard("Memory", Icons.Default.Memory, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                LoadingStatCard("Temperature", Icons.Default.Thermostat, Color(0xFF2E7D32), Modifier.fillMaxWidth())
-            }
-            is LoadAveragesState.Success -> {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    StatCard(
-                        title = "CPU",
-                        value = loadAveragesState.cpuAverage?.let { DecimalFormat("#.##").format(it) + "%" } ?: "N/A",
-                        subtitle = "Usage",
-                        icon = Icons.Default.Memory,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f),
-                        onClick = onCpuClick
-                    )
-                    StatCard(
-                        title = "Memory",
-                        value = loadAveragesState.memoryAverage?.let { DecimalFormat("#.##").format(it) + "%" } ?: "N/A",
-                        subtitle = "Usage",
-                        icon = Icons.Default.Memory,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.weight(1f),
-                        onClick = onMemoryClick
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                StatCard(
-                    title = "Temperature",
-                    value = loadAveragesState.tempAverage?.let { DecimalFormat("#.#").format(it) + "°C" } ?: "N/A",
-                    subtitle = "CPU thermal",
-                    icon = Icons.Default.Thermostat,
-                    color = Color(0xFF2E7D32),
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = onTempClick
-                )
-            }
-            is LoadAveragesState.Error -> {
-                Card(
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            when (loadAveragesState) {
+                is LoadAveragesState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Error, null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                        Text("Failed to load metrics", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.5.dp
+                        )
+                    }
+                }
+                is LoadAveragesState.Success -> {
+                    val cpuVal = loadAveragesState.cpuAverage
+                    val memVal = loadAveragesState.memoryAverage
+                    val tempVal = loadAveragesState.tempAverage
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HalfCircleGauge(
+                            progress = cpuVal?.let { (it / 100.0).toFloat() } ?: 0f,
+                            valueText = cpuVal?.let { "${DecimalFormat("#.#").format(it)}%" } ?: "N/A",
+                            label = "CPU",
+                            icon = Icons.Default.Memory,
+                            gaugeColor = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f),
+                            onClick = onCpuClick
+                        )
+
+                        HalfCircleGauge(
+                            progress = memVal?.let { (it / 100.0).toFloat() } ?: 0f,
+                            valueText = memVal?.let { "${DecimalFormat("#.#").format(it)}%" } ?: "N/A",
+                            label = "Memory",
+                            icon = Icons.Default.Memory,
+                            gaugeColor = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.weight(1f),
+                            onClick = onMemoryClick
+                        )
+
+                        HalfCircleGauge(
+                            progress = tempVal?.let { (it / 100.0).toFloat() } ?: 0f,
+                            valueText = tempVal?.let { "${DecimalFormat("#.#").format(it)}°C" } ?: "N/A",
+                            label = "Temperature",
+                            icon = Icons.Default.Thermostat,
+                            gaugeColor = if ((tempVal ?: 0.0) > 75.0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.weight(1f),
+                            onClick = onTempClick
+                        )
+                    }
+                }
+                is LoadAveragesState.Error -> {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Error,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "Failed to load metrics",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun LoadingStatCard(title: String, icon: ImageVector, color: Color, modifier: Modifier = Modifier) {
-    Card(shape = RoundedCornerShape(24.dp), elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), modifier = modifier) {
-        Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.Start) {
-            Icon(icon, null, modifier = Modifier.size(24.dp), tint = color.copy(alpha = 0.6f))
-            Spacer(modifier = Modifier.height(12.dp))
-            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = color, strokeWidth = 2.dp)
         }
     }
 }
