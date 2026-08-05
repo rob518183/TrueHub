@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -118,11 +117,11 @@ fun TrueNasConnectScreen(
                                     InfoCard {
                                         InfoRow("Status", config.status)
                                         HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                                        InfoRow("Account Base URL", config.accountServiceBaseUrl)
+                                        InfoRow("Account Base URL", config.accountServiceBaseUrl!!)
                                         HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                                        InfoRow("TNC Base URL", config.tncBaseUrl)
+                                        InfoRow("TNC Base URL", config.tncBaseUrl!!)
                                         HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                                        InfoRow("Heartbeat URL", config.heartbeatUrl)
+                                        InfoRow("Heartbeat URL", config.heartbeatUrl!!)
                                     }
                                 }
                             }
@@ -131,7 +130,7 @@ fun TrueNasConnectScreen(
                                 item {
                                     ExpressiveSection(title = "Interfaces", icon = Icons.Default.Share) {
                                         InfoCard {
-                                            InfoRow("Use All Interfaces", if (config.useAllInterfaces) "Yes" else "No")
+                                            InfoRow("Use All Interfaces", if (config.useAllInterfaces!!) "Yes" else "No")
                                             HorizontalDivider(Modifier.padding(vertical = 12.dp))
                                             InfoRow("Interfaces", config.interfaces.joinToString(", "))
                                             if (config.interfacesIps.isNotEmpty()) {
@@ -186,20 +185,6 @@ fun TrueNasConnectScreen(
                                 }
                             }
                         }
-
-                        item {
-                            OutlinedButton(
-                                onClick = { vm.refresh() },
-                                modifier = Modifier.fillMaxWidth().height(52.dp),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Refresh", fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-
-                        item { Spacer(Modifier.height(8.dp)) }
                     }
                 }
         }

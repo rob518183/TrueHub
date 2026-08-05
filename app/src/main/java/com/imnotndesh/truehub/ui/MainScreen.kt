@@ -83,6 +83,8 @@ import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootEnvironmentD
 import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootEnvironmentsScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootPoolScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.HardwareInformationScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.SoftwareInformationScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.SystemInformationScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.TrueCommandScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.TrueNasConnectScreen
@@ -166,6 +168,8 @@ fun MainScreen(
             Screen.BootEnvironmentsScreen.route,
             Screen.BootEnvironmentDetailScreen.route,
             Screen.SystemInformationScreen.route,
+            Screen.SoftwareInformationScreen.route,
+            Screen.HardwareInformationScreen.route,
             Screen.TrueNasConnectScreen.route,
             Screen.TrueCommandScreen.route,
             Screen.InstanceConfigScreen.route,
@@ -378,6 +382,24 @@ private fun TrueHubNavGraph(
         }
         composable(Screen.SystemInformationScreen.route) {
             SystemInformationScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSoftwareInformation = {
+                    navController.navigate(Screen.SoftwareInformationScreen.route)
+                },
+                onNavigateToHardwareInformation = {
+                    navController.navigate(Screen.HardwareInformationScreen.route)
+                }
+            )
+        }
+        composable(Screen.SoftwareInformationScreen.route) {
+            SoftwareInformationScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.HardwareInformationScreen.route) {
+            HardwareInformationScreen(
                 manager = manager,
                 onNavigateBack = { navController.popBackStack() }
             )

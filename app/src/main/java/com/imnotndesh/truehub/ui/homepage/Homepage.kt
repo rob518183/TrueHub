@@ -291,14 +291,6 @@ private fun HomeContent(
                 onTempClick = { AppDataHolder.temperatureData = state.temperatureData;onNavigateToPerformance(MetricType.TEMPERATURE) }
             )
 
-            SystemStatsSection(
-                systemInfo = state.systemInfo,
-                poolDetails = state.poolDetails.firstOrNull(),
-                diskCount = state.diskDetails.size,
-                modifier = Modifier.padding(bottom = 16.dp),
-                onDiskClick = { AppDataHolder.disks = state.diskDetails; onDiskClick() }
-            )
-
             if (state.poolDetails.isNotEmpty()) {
                 state.poolDetails.forEach { pool ->
                     StorageCard(pool = pool, modifier = Modifier.padding(bottom = 16.dp), onClick = { onPoolClick(pool) })
@@ -335,7 +327,6 @@ private fun AdaptiveGridLayout(
 
     val sections = buildList {
         add(SectionItem.LoadAverages(loadAveragesState, onCpuClick, onMemoryClick, onLoadClick, onTempClick))
-        add(SectionItem.SystemStats(state.systemInfo, state.poolDetails.firstOrNull(), state.diskDetails.size, onDiskClick))
         if (state.poolDetails.isNotEmpty()) {
             state.poolDetails.forEach { pool -> add(SectionItem.StoragePool(pool, onPoolClick)) }
         } else {
@@ -358,12 +349,6 @@ private fun AdaptiveGridLayout(
                         onCpuClick = section.onCpuClick,
                         onMemoryClick = section.onMemoryClick,
                         onTempClick = section.onTempClick
-                    )
-                    is SectionItem.SystemStats -> SystemStatsSection(
-                        systemInfo = section.systemInfo,
-                        poolDetails = section.poolDetails,
-                        diskCount = section.diskCount,
-                        onDiskClick = section.onDiskClick
                     )
                     is SectionItem.StoragePool -> StorageCard(pool = section.pool, onClick = { section.onPoolClick(section.pool) })
                     is SectionItem.NoStorage -> NoStorageCard()
@@ -694,48 +679,6 @@ private fun LoadAveragesGrid(
 }
 
 @Composable
-private fun SystemStatsSection(
-    systemInfo: System.SystemInfo,
-    poolDetails: System.Pool?,
-    diskCount: Int,
-    modifier: Modifier = Modifier,
-    onDiskClick: () -> Unit,
-) {
-    Column(modifier = modifier) {
-        Text("System Stats", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp))
-        StatCard(title = "CPU Cores", value = "${systemInfo.cores.toInt()} Total (${systemInfo.physical_cores ?: 0} Physical)", icon = Icons.Default.Memory, color = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), subtitle = "Processing units")
-        StatCard(title = "Memory", value = "${DecimalFormat("#.#").format(systemInfo.physmem / (1024.0 * 1024.0 * 1024.0))} GB ${if (systemInfo.ecc_memory) "(ECC)" else "(Non-ECC)"}", subtitle = "Total system memory", icon = Icons.Default.Memory, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp))
-        StatCard(title = "Disks", value = "$diskCount ${if (diskCount == 1) "Disk" else "Disks"}", subtitle = poolDetails?.let { if (it.healthy) "All pools healthy" else "Pool issues detected" } ?: "No pools configured", icon = Icons.Default.Storage, color = poolDetails?.let { pool -> if (pool.healthy) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error } ?: MaterialTheme.colorScheme.outline, modifier = Modifier.fillMaxWidth(), onClick = onDiskClick)
-    }
-}
-
-@Composable
-private fun StatCard(
-    title: String,
-    value: String,
-    subtitle: String,
-    icon: ImageVector,
-    color: Color,
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null
-) {
-    Card(onClick = { onClick?.invoke() }, shape = RoundedCornerShape(24.dp), elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), modifier = modifier) {
-        Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Surface(color = color.copy(alpha = 0.1f), shape = RoundedCornerShape(16.dp), modifier = Modifier.size(48.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, null, modifier = Modifier.size(24.dp), tint = color)
-                }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
-                Text(value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-            }
-        }
-    }
-}
-
-@Composable
 private fun StorageCard(modifier: Modifier = Modifier, pool: System.Pool, onClick: () -> Unit) {
     fun formatBytes(bytes: Long): String {
         val units = arrayOf("B", "KB", "MB", "GB", "TB")
@@ -970,7 +913,6 @@ fun ShutdownDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
 
 private sealed class SectionItem {
     data class LoadAverages(val state: LoadAveragesState, val onCpuClick: () -> Unit, val onMemoryClick: () -> Unit, val onLoadClick: () -> Unit, val onTempClick: () -> Unit) : SectionItem()
-    data class SystemStats(val systemInfo: System.SystemInfo, val poolDetails: System.Pool?, val diskCount: Int, val onDiskClick: () -> Unit) : SectionItem()
     data class StoragePool(val pool: System.Pool, val onPoolClick: (System.Pool) -> Unit) : SectionItem()
     object NoStorage : SectionItem()
     data class Shares(val smbShares: List<Shares.SmbShare>, val nfsShares: List<Shares.NfsShare>, val onSmbShareClick: (Shares.SmbShare) -> Unit, val onNfsShareClick: (Shares.NfsShare) -> Unit) : SectionItem()

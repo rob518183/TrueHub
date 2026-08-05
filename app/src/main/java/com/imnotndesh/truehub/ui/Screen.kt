@@ -89,6 +89,8 @@ sealed class Screen(val route:String, val title:String) {
         fun createRoute(environmentId: String) = "boot_environment/$environmentId"
     }
     object SystemInformationScreen : Screen("system_information", "System Information")
+    object SoftwareInformationScreen : Screen("software_information", "Software Information")
+    object HardwareInformationScreen : Screen("hardware_information", "Hardware Information")
     object TrueNasConnectScreen : Screen("truenas_connect", "TrueNAS Connect")
     object TrueCommandScreen : Screen("truecommand", "TrueCommand")
 

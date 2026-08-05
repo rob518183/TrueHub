@@ -1,6 +1,9 @@
 package com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,206 +12,136 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Hardware
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
-import com.imnotndesh.truehub.ui.components.LoadingScreen
-import com.imnotndesh.truehub.ui.components.PullToRefreshContent
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
-import com.imnotndesh.truehub.ui.homepage.instancesettings.general.ExpressiveSection
 
 /**
- * Read-only view of the TrueNAS system: operating system details, identifiers,
- * hardware/chassis info, feature flags, and release notes. Uses the various
- * system.* and truenas.* read APIs.
+ * Landing page that splits system information into software and hardware details.
  */
 @Composable
 fun SystemInformationScreen(
     manager: TrueNASApiManager,
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onNavigateToSoftwareInformation: () -> Unit = {},
+    onNavigateToHardwareInformation: () -> Unit = {}
 ) {
-    val vm: SystemInformationViewModel = viewModel(
-        factory = SystemInformationViewModel.ViewModelFactory(manager)
-    )
-    val uiState by vm.uiState.collectAsState()
-
-    LaunchedEffect(Unit) { vm.refresh() }
-
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             UnifiedScreenHeader(
                 title = "System Information",
-                subtitle = "Identifiers, state and features",
-                isLoading = uiState.isLoading,
+                subtitle = "Software and hardware details",
+                isLoading = false,
                 isRefreshing = false,
-                error = uiState.error,
-                onDismissError = { vm.clearError() },
+                error = null,
+                onDismissError = {},
                 manager = manager,
                 onBackPressed = onNavigateBack
             )
         }
     ) { innerPadding ->
-        PullToRefreshContent(
-            isRefreshing = uiState.isRefreshing,
-            onRefresh = { vm.refresh() },
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = innerPadding.calculateTopPadding())
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                item {
-                    ExpressiveSection(title = "Operating System", icon = Icons.Default.Build) {
-                        InfoCard {
-                            InfoRow("Version", uiState.versionShort ?: uiState.version ?: "—")
-                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow("Full Version", uiState.version ?: "—")
-                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow("Product Type", uiState.productType ?: "—")
-                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow("State", uiState.state ?: "—")
-                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow("Ready", booleanLabel(uiState.ready))
-                        }
-                    }
-                }
-
-                item {
-                    ExpressiveSection(title = "System Identity", icon = Icons.Default.Fingerprint) {
-                        InfoCard {
-                            InfoRow("Host ID", uiState.hostId ?: "—")
-                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow("Boot ID", uiState.bootId ?: "—")
-                        }
-                    }
-                }
-
-                item {
-                    ExpressiveSection(title = "Hardware", icon = Icons.Default.Hardware) {
-                        InfoCard {
-                            InfoRow("Chassis", uiState.chassisHardware ?: "—")
-                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow("iX Systems Hardware", booleanLabel(uiState.isIxHardware))
-                        }
-                    }
-                }
-
-                item {
-                    ExpressiveSection(title = "System Status", icon = Icons.Default.Verified) {
-                        InfoCard {
-                            InfoRow("Production", booleanLabel(uiState.isProduction))
-                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow("Managed by TrueCommand", booleanLabel(uiState.managedByTruecommand))
-                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow("EULA Accepted", booleanLabel(uiState.isEulaAccepted))
-                        }
-                    }
-                }
-
-                item {
-                    ExpressiveSection(title = "Features", icon = Icons.Default.Build) {
-                        InfoCard {
-                            InfoRow("Deduplication", booleanLabel(uiState.dedupEnabled))
-                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow("Fibre Channel", booleanLabel(uiState.fibreChannelEnabled))
-                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow("Virtual Machines", booleanLabel(uiState.vmEnabled))
-                        }
-                    }
-                }
-
-                item {
-                    ExpressiveSection(title = "Release Notes", icon = Icons.Default.Link) {
-                        InfoCard {
-                            InfoText(uiState.releaseNotesUrl ?: "—")
-                        }
-                    }
-                }
-
-                item { Spacer(Modifier.height(8.dp)) }
-            }
+            InfoEntryCard(
+                icon = Icons.Default.Build,
+                title = "Software Information",
+                subtitle = "Version, features, product type and release notes",
+                onClick = onNavigateToSoftwareInformation
+            )
+            InfoEntryCard(
+                icon = Icons.Default.Hardware,
+                title = "Hardware Information",
+                subtitle = "CPU, memory, storage, chassis and identifiers",
+                onClick = onNavigateToHardwareInformation
+            )
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
 
 @Composable
-private fun InfoCard(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+private fun InfoEntryCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
     Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) { content() }
-    }
-}
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(0.4f)
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
         )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(0.6f),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
-}
-
-@Composable
-private fun InfoText(value: String) {
-    Text(
-        text = value,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurface,
-        maxLines = 3,
-        overflow = TextOverflow.Ellipsis
-    )
-}
-
-private fun booleanLabel(value: Boolean?): String = when (value) {
-    true -> "Yes"
-    false -> "No"
-    null -> "—"
 }
