@@ -401,7 +401,10 @@ private fun TrueHubNavGraph(
         composable(Screen.HardwareInformationScreen.route) {
             HardwareInformationScreen(
                 manager = manager,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDisks = {
+                    navController.navigate(Screen.DiskInfo.route)
+                }
             )
         }
         composable(Screen.TrueNasConnectScreen.route) {

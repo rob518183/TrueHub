@@ -40,11 +40,13 @@ import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.PullToRefreshContent
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.homepage.instancesettings.general.ExpressiveSection
+import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppDataHolder
 
 @Composable
 fun HardwareInformationScreen(
     manager: TrueNASApiManager,
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onNavigateToDisks: () -> Unit = {}
 ) {
     val vm: HardwareInformationViewModel = viewModel(
         factory = HardwareInformationViewModel.ViewModelFactory(manager)
@@ -116,6 +118,20 @@ fun HardwareInformationScreen(
                             InfoRow("Disks", uiState.diskCount.toString())
                             HorizontalDivider(Modifier.padding(vertical = 12.dp))
                             InfoRow("Pools", if (uiState.poolsHealthy == null) "—" else if (uiState.poolsHealthy == true) "Healthy" else "Issues detected")
+                            Spacer(Modifier.height(16.dp))
+                            androidx.compose.material3.OutlinedButton(
+                                onClick = {
+                                    AppDataHolder.disks = uiState.disks
+                                    onNavigateToDisks()
+                                },
+                                enabled = uiState.disks.isNotEmpty(),
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Icon(Icons.Default.Storage, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.padding(start = 6.dp))
+                                Text("View Disks", fontWeight = FontWeight.SemiBold)
+                            }
                         }
                     }
                 }

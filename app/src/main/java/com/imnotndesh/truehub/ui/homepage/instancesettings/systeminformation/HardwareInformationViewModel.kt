@@ -24,6 +24,7 @@ data class HardwareInformationUiState(
     val isIxHardware: Boolean? = null,
     val model: String? = null,
     val diskCount: Int = 0,
+    val disks: List<System.DiskDetails> = emptyList(),
     val poolsHealthy: Boolean? = null,
     val error: String? = null
 )
@@ -71,6 +72,7 @@ class HardwareInformationViewModel(private val manager: TrueNASApiManager) : Vie
                     isIxHardware = ixHardware ?: it.isIxHardware,
                     model = systemInfo?.model ?: it.model,
                     diskCount = disks.size,
+                    disks = disks,
                     poolsHealthy = pools.firstOrNull()?.healthy
                 )
             }
