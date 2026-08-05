@@ -75,20 +75,20 @@ import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditConfigScre
 import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditConfigViewModel
 import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditLogsScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditLogsViewModel
-import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsEditScreen
-import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsScreen
-import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkEditScreen
-import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootEnvironmentDetailScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootEnvironmentsScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootPoolScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsEditScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkEditScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.HardwareInformationScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.SoftwareInformationScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.SystemInformationScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.TrueCommandScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.TrueNasConnectScreen
-import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.LocalAdminSetupScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserCreateScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserDetailScreen
@@ -174,7 +174,8 @@ fun MainScreen(
             Screen.TrueCommandScreen.route,
             Screen.InstanceConfigScreen.route,
             Screen.ServicesScreen.route,
-            Screen.ServicesDetailScreen.route
+            Screen.ServicesDetailScreen.route,
+            Screen.DiskInfo.route
             )
     }
 

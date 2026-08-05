@@ -945,7 +945,6 @@ object System {
         @field:Json(name = "reset") val reset: Boolean? = null
     )
     // System General Settings
-    @Suppress("PropertyName")
     @JsonClass(generateAdapter = true)
     data class SystemGeneralEntry(
         @field:Json(name = "id")
@@ -1060,7 +1059,6 @@ object System {
     // ──────────────────────────────────────────────
 
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class NetworkGeneralSummaryResult(
         @field:Json(name = "ips") val ips: Map<String, NetworkGeneralSummaryIP>,
         @field:Json(name = "default_routes") val defaultRoutes: List<String> ?= emptyList(),
@@ -1068,7 +1066,6 @@ object System {
     )
 
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class NetworkGeneralSummaryIP(
         @field:Json(name = "IPV4") val ipv4: List<String>? = null,
         @field:Json(name = "IPV6") val ipv6: List<String>? = null
@@ -1103,14 +1100,12 @@ object System {
     )
 
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class NetworkConfigurationActivity(
         @field:Json(name = "type") val type: String,
         @field:Json(name = "activities") val activities: List<String> = emptyList()
     )
 
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class NetworkConfigurationState(
         @field:Json(name = "ipv4gateway") val ipv4Gateway: String?,
         @field:Json(name = "ipv6gateway") val ipv6Gateway: String?,
@@ -1122,7 +1117,6 @@ object System {
 
     /** Arguments for network.configuration.update */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class NetworkConfigurationUpdateArgs(
         @field:Json(name = "hostname") val hostname: String? = null,
         @field:Json(name = "domain") val domain: String? = null,
@@ -1141,7 +1135,6 @@ object System {
     )
 
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class SystemGeneralUpdateArgs(
         @field:Json(name = "ui_certificate")
         val uiCertificate: Any? = null,
@@ -1192,7 +1185,6 @@ object System {
      * Current state and configuration of the boot pool returned by boot.get_state.
      */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class BootGetState(
         @field:Json(name = "name") val name: String,
         @field:Json(name = "status") val status: String,
@@ -1221,7 +1213,6 @@ object System {
 
     /** Information about an active scrub or resilver operation. */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class BootScan(
         @field:Json(name = "bytes_issued") val bytesIssued: Long? = null,
         @field:Json(name = "bytes_processed") val bytesProcessed: Long? = null,
@@ -1238,7 +1229,6 @@ object System {
 
     /** Information about an active pool expansion operation. */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class BootExpand(
         @field:Json(name = "bytes_reflowed") val bytesReflowed: Long? = null,
         @field:Json(name = "bytes_to_reflow") val bytesToReflow: Long? = null,
@@ -1253,7 +1243,6 @@ object System {
 
     /** Auto-trim configuration for the pool. */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class BootAutotrim(
         @field:Json(name = "parsed") val parsed: String? = null,
         @field:Json(name = "rawvalue") val rawValue: String? = null,
@@ -1263,7 +1252,6 @@ object System {
 
     /** Physical topology and structure of the pool including vdevs. */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class BootPoolTopology(
         @field:Json(name = "data") val data: List<Any> = emptyList(),
         @field:Json(name = "log") val log: List<Any> = emptyList(),
@@ -1279,7 +1267,6 @@ object System {
 
     /** Base query options shared across query methods. */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class BootEnvironmentQueryOptions(
         @field:Json(name = "extra") val extra: Map<String, Any?> = emptyMap(),
         @field:Json(name = "order_by") val orderBy: List<String> = emptyList(),
@@ -1293,14 +1280,12 @@ object System {
 
     /** Arguments for boot.environment.activate. */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class BootEnvironmentActivateArgs(
         @field:Json(name = "id") val id: String
     )
 
     /** Arguments for boot.environment.clone. */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class BootEnvironmentCloneArgs(
         @field:Json(name = "id") val id: String,
         @field:Json(name = "target") val target: String
@@ -1308,14 +1293,12 @@ object System {
 
     /** Arguments for boot.environment.destroy. */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class BootEnvironmentDestroyArgs(
         @field:Json(name = "id") val id: String
     )
 
     /** Arguments for boot.environment.keep. */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class BootEnvironmentKeepArgs(
         @field:Json(name = "id") val id: String,
         @field:Json(name = "value") val value: Boolean
@@ -1325,7 +1308,6 @@ object System {
      * A boot environment entry returned by boot.environment.* methods.
      */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class BootEnvironmentEntry(
         @field:Json(name = "id") val id: String,
         @field:Json(name = "dataset") val dataset: String,
@@ -1342,7 +1324,6 @@ object System {
      * A boot environment entry returned by boot.environment.query.
      */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class BootEnvironmentQueryResultItem(
         @field:Json(name = "id") val id: String?,
         @field:Json(name = "dataset") val dataset: String?,
@@ -1363,7 +1344,6 @@ object System {
      * Configuration entry returned by tn_connect.config and tn_connect.update.
      */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class TNCEntry(
         @field:Json(name = "id") val id: Int,
         @field:Json(name = "enabled") val enabled: Boolean,
@@ -1371,21 +1351,20 @@ object System {
         @field:Json(name = "ips") val ips: List<String> = emptyList(),
         @field:Json(name = "interfaces") val interfaces: List<String> = emptyList(),
         @field:Json(name = "interfaces_ips") val interfacesIps: List<String> = emptyList(),
-        @field:Json(name = "use_all_interfaces") val useAllInterfaces: Boolean,
+        @field:Json(name = "use_all_interfaces") val useAllInterfaces: Boolean ?= false,
         @field:Json(name = "status") val status: String,
-        @field:Json(name = "status_reason") val statusReason: String,
+        @field:Json(name = "status_reason") val statusReason: String?= "Missing",
         @field:Json(name = "certificate") val certificate: Int? = null,
-        @field:Json(name = "account_service_base_url") val accountServiceBaseUrl: String,
-        @field:Json(name = "leca_service_base_url") val lecaServiceBaseUrl: String,
-        @field:Json(name = "tnc_base_url") val tncBaseUrl: String,
-        @field:Json(name = "heartbeat_url") val heartbeatUrl: String
+        @field:Json(name = "account_service_base_url") val accountServiceBaseUrl: String ?= "Not Configured",
+        @field:Json(name = "leca_service_base_url") val lecaServiceBaseUrl: String ?= "Not Configured",
+        @field:Json(name = "tnc_base_url") val tncBaseUrl: String ?= "Not Configured",
+        @field:Json(name = "heartbeat_url") val heartbeatUrl: String ?= "Not Configured"
     )
 
     /**
      * Parameters for tn_connect.update.
      */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class TNConnectUpdateArgs(
         @field:Json(name = "enabled") val enabled: Boolean? = null,
         @field:Json(name = "ips") val ips: List<String>? = null,
@@ -1401,7 +1380,6 @@ object System {
      * Configuration entry returned by truecommand.config and truecommand.update.
      */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class TruecommandEntry(
         @field:Json(name = "id") val id: Int,
         @field:Json(name = "api_key") val apiKey: String? = null,
@@ -1416,7 +1394,6 @@ object System {
      * Parameters for truecommand.update.
      */
     @JsonClass(generateAdapter = true)
-    @Suppress("PropertyName")
     data class TruecommandUpdateArgs(
         @field:Json(name = "enabled") val enabled: Boolean? = null,
         @field:Json(name = "api_key") val apiKey: String? = null
