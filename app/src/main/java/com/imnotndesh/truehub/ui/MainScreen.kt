@@ -83,6 +83,9 @@ import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootEnvironmentD
 import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootEnvironmentsScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootPoolScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.SystemInformationScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.TrueCommandScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.TrueNasConnectScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.LocalAdminSetupScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserCreateScreen
@@ -162,6 +165,9 @@ fun MainScreen(
             Screen.BootPoolScreen.route,
             Screen.BootEnvironmentsScreen.route,
             Screen.BootEnvironmentDetailScreen.route,
+            Screen.SystemInformationScreen.route,
+            Screen.TrueNasConnectScreen.route,
+            Screen.TrueCommandScreen.route,
             Screen.InstanceConfigScreen.route,
             Screen.ServicesScreen.route,
             Screen.ServicesDetailScreen.route
@@ -313,6 +319,9 @@ private fun TrueHubNavGraph(
                 },
                 onInstanceConfigClick = {
                     navController.navigate(Screen.InstanceConfigScreen.route)
+                },
+                onSystemInfoClick = {
+                    navController.navigate(Screen.SystemInformationScreen.route)
                 }
             )
         }
@@ -355,7 +364,34 @@ private fun TrueHubNavGraph(
                 },
                 onNavigateToBoot = {
                     navController.navigate(Screen.BootScreen.route)
+                },
+                onNavigateToSystemInformation = {
+                    navController.navigate(Screen.SystemInformationScreen.route)
+                },
+                onNavigateToTrueNasConnect = {
+                    navController.navigate(Screen.TrueNasConnectScreen.route)
+                },
+                onNavigateToTrueCommand = {
+                    navController.navigate(Screen.TrueCommandScreen.route)
                 }
+            )
+        }
+        composable(Screen.SystemInformationScreen.route) {
+            SystemInformationScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.TrueNasConnectScreen.route) {
+            TrueNasConnectScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.TrueCommandScreen.route) {
+            TrueCommandScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.BootScreen.route) {

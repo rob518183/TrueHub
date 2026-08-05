@@ -23,8 +23,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.People
@@ -73,6 +76,9 @@ fun InstanceConfigScreen(
     onNavigateToAuditConfig: () -> Unit = {},
     onNavigateToAuditLogs: () -> Unit = {},
     onNavigateToNetwork: () -> Unit = {},
+    onNavigateToSystemInformation: () -> Unit = {},
+    onNavigateToTrueNasConnect: () -> Unit = {},
+    onNavigateToTrueCommand: () -> Unit = {},
 
 ) {
     Column(
@@ -177,6 +183,32 @@ fun InstanceConfigScreen(
                         name = "Audit logs",
                         description = "View and export audit entries",
                         onClick = onNavigateToAuditLogs
+                    )
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            InstanceConfigSection(
+                title = "System information",
+                items = listOf(
+                    InstanceConfigItem(
+                        icon = Icons.Default.Cloud,
+                        name = "TrueNAS Connect",
+                        description = "Configure the TrueNAS cloud connection",
+                        onClick = onNavigateToTrueNasConnect
+                    ),
+                    InstanceConfigItem(
+                        icon = Icons.Default.Insights,
+                        name = "TrueCommand",
+                        description = "Centralized instance management",
+                        onClick = onNavigateToTrueCommand
+                    ),
+                    InstanceConfigItem(
+                        icon = Icons.Default.Info,
+                        name = "System information",
+                        description = "Version, identifiers, state and features",
+                        onClick = onNavigateToSystemInformation
                     )
                 )
             )

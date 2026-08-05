@@ -23,6 +23,7 @@ sealed class HomeUiState {
     object Loading : HomeUiState()
     data class Success(
         val systemInfo: System.SystemInfo,
+        val systemVersionShort: String? = null,
         val poolDetails: List<System.Pool>,
         val diskDetails: List<System.DiskDetails>,
         val nfsShares : List<Shares.NfsShare>,
@@ -262,6 +263,9 @@ class HomeViewModel(
                 val updateVersionsDeferred = async {
                     apiManager.system.getSystemUpdateVersions()
                 }
+                val versionShortDeferred = async {
+                    apiManager.system.getSystemVersionShort()
+                }
                 val memoryDataDeferred = async {
                     val memoryGraphRequest = listOf(
                         System.ReportingGraphRequest(
@@ -283,6 +287,7 @@ class HomeViewModel(
                 val cpuDataResult = cpuDataDeferred.await()
                 val memoryDataResult = memoryDataDeferred.await()
                 val tempDataResult = tempDataDeferred.await()
+                val versionShortResult = versionShortDeferred.await()
 
                 val pools = if (poolResult is ApiResult.Success) poolResult.data else emptyList()
                 val disks = if (diskResult is ApiResult.Success) diskResult.data else emptyList()
@@ -298,6 +303,7 @@ class HomeViewModel(
 
                 _uiState.value = HomeUiState.Success(
                     systemInfo = systemInfo,
+                    systemVersionShort = (versionShortResult as? ApiResult.Success)?.data,
                     poolDetails = pools,
                     diskDetails = disks,
                     cpuData = if (cpuDataResult is ApiResult.Success) cpuDataResult.data else null,

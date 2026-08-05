@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Tune
@@ -94,6 +95,7 @@ fun HomeScreen(
     onDisksClick: () -> Unit,
     onUpdateClick: () -> Unit,
     onInstanceConfigClick: () -> Unit,
+    onSystemInfoClick: () -> Unit = {},
     onNavigateToPerformance: (MetricType) -> Unit,
     onNavigateToShareInfo: (ShareType) -> Unit = {}
 ) {
@@ -149,7 +151,8 @@ fun HomeScreen(
                     onUpdateClick = {
                         onUpdateClick()
                     },
-                    onInstanceConfigClick = { onInstanceConfigClick() }
+                    onInstanceConfigClick = { onInstanceConfigClick() },
+                    onSystemInfoClick = { onSystemInfoClick() }
                 )
             }
         }
@@ -238,6 +241,7 @@ private fun HomeContent(
     onPoolClick: (System.Pool) -> Unit,
     onShutdown: (String) -> Unit,
     onInstanceConfigClick: () -> Unit = {},
+    onSystemInfoClick: () -> Unit = {},
     onDiskClick: () -> Unit,
     onNavigateToShareInfo: (ShareType) -> Unit,
     onNavigateToPerformance: (MetricType) -> Unit,
@@ -256,10 +260,12 @@ private fun HomeContent(
         SystemOverviewCard(
             isConnectedStatus = isConnectedStatus,
             systemInfo = state.systemInfo,
+            systemVersionShort = state.systemVersionShort,
             modifier = Modifier.padding(bottom = 16.dp),
             systemUpdateVersions = state.systemUpdateVersions,
             onUpdateClick = onUpdateClick,
-            onInstanceConfigClick = onInstanceConfigClick
+            onInstanceConfigClick = onInstanceConfigClick,
+            onSystemInfoClick = onSystemInfoClick
         )
 
         if (isAdaptiveLayout) {
@@ -378,9 +384,11 @@ private fun SystemOverviewCard(
     isConnectedStatus: Boolean,
     systemInfo: System.SystemInfo,
     modifier: Modifier = Modifier,
+    systemVersionShort: String? = null,
     systemUpdateVersions: List<System.UpdateAvailableVersionsResponse> = emptyList(),
     onUpdateClick: () -> Unit = {},
-    onInstanceConfigClick: () -> Unit = {}
+    onInstanceConfigClick: () -> Unit = {},
+    onSystemInfoClick: () -> Unit = {}
 ) {
     val statusColor = if (isConnectedStatus) {
         Color(0xFF2E7D32)
@@ -455,7 +463,7 @@ private fun SystemOverviewCard(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                systemInfo.version,
+                                systemVersionShort ?: systemInfo.version,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -504,7 +512,7 @@ private fun SystemOverviewCard(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                "Instance config",
+                                "Instance Settings",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold
@@ -536,6 +544,31 @@ private fun SystemOverviewCard(
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
+                        }
+                    }
+
+                    Surface(
+                        onClick = onSystemInfoClick,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(50)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Info,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "System Information",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }
