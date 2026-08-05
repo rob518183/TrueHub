@@ -1355,6 +1355,73 @@ object System {
         @field:Json(name = "can_activate") val canActivate: Boolean?
     )
 
+    // ──────────────────────────────────────────────
+    // TrueNAS Connect (tn_connect.*)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Configuration entry returned by tn_connect.config and tn_connect.update.
+     */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class TNCEntry(
+        @field:Json(name = "id") val id: Int,
+        @field:Json(name = "enabled") val enabled: Boolean,
+        @field:Json(name = "registration_details") val registrationDetails: Map<String, Any?>? = null,
+        @field:Json(name = "ips") val ips: List<String> = emptyList(),
+        @field:Json(name = "interfaces") val interfaces: List<String> = emptyList(),
+        @field:Json(name = "interfaces_ips") val interfacesIps: List<String> = emptyList(),
+        @field:Json(name = "use_all_interfaces") val useAllInterfaces: Boolean,
+        @field:Json(name = "status") val status: String,
+        @field:Json(name = "status_reason") val statusReason: String,
+        @field:Json(name = "certificate") val certificate: Int? = null,
+        @field:Json(name = "account_service_base_url") val accountServiceBaseUrl: String,
+        @field:Json(name = "leca_service_base_url") val lecaServiceBaseUrl: String,
+        @field:Json(name = "tnc_base_url") val tncBaseUrl: String,
+        @field:Json(name = "heartbeat_url") val heartbeatUrl: String
+    )
+
+    /**
+     * Parameters for tn_connect.update.
+     */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class TNConnectUpdateArgs(
+        @field:Json(name = "enabled") val enabled: Boolean? = null,
+        @field:Json(name = "ips") val ips: List<String>? = null,
+        @field:Json(name = "interfaces") val interfaces: List<String>? = null,
+        @field:Json(name = "use_all_interfaces") val useAllInterfaces: Boolean? = null
+    )
+
+    // ──────────────────────────────────────────────
+    // TrueCommand (truecommand.*)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Configuration entry returned by truecommand.config and truecommand.update.
+     */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class TruecommandEntry(
+        @field:Json(name = "id") val id: Int,
+        @field:Json(name = "api_key") val apiKey: String? = null,
+        @field:Json(name = "status") val status: String,
+        @field:Json(name = "status_reason") val statusReason: String? = null,
+        @field:Json(name = "remote_url") val remoteUrl: String? = null,
+        @field:Json(name = "remote_ip_address") val remoteIpAddress: String? = null,
+        @field:Json(name = "enabled") val enabled: Boolean
+    )
+
+    /**
+     * Parameters for truecommand.update.
+     */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class TruecommandUpdateArgs(
+        @field:Json(name = "enabled") val enabled: Boolean? = null,
+        @field:Json(name = "api_key") val apiKey: String? = null
+    )
+
     fun MongoDate?.formatDate(): String {
         if (this == null) return "—"
         val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())

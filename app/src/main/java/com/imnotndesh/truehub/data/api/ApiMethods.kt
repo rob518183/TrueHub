@@ -259,6 +259,33 @@ object ApiMethods {
         const val BOOT_ENV_KEEP = "boot.environment.keep"
         const val BOOT_ENV_QUERY = "boot.environment.query"
 
+        // ──────────────────────────────────────────────
+        // TrueNAS Connect (tn_connect.*)
+        // ──────────────────────────────────────────────
+        const val TN_CONNECT_CONFIG = "tn_connect.config"
+        const val TN_CONNECT_GENERATE_CLAIM_TOKEN = "tn_connect.generate_claim_token"
+        const val TN_CONNECT_GET_REGISTRATION_URI = "tn_connect.get_registration_uri"
+        const val TN_CONNECT_IP_CHOICES = "tn_connect.ip_choices"
+        const val TN_CONNECT_UPDATE = "tn_connect.update"
+
+        // ──────────────────────────────────────────────
+        // TrueCommand (truecommand.*)
+        // ──────────────────────────────────────────────
+        const val TRUECOMMAND_CONFIG = "truecommand.config"
+        const val TRUECOMMAND_UPDATE = "truecommand.update"
+
+        // ──────────────────────────────────────────────
+        // TrueNAS (truenas.*)
+        // ──────────────────────────────────────────────
+        const val TRUENAS_ACCEPT_EULA = "truenas.accept_eula"
+        const val TRUENAS_GET_CHASSIS_HARDWARE = "truenas.get_chassis_hardware"
+        const val TRUENAS_GET_EULA = "truenas.get_eula"
+        const val TRUENAS_IS_EULA_ACCEPTED = "truenas.is_eula_accepted"
+        const val TRUENAS_IS_IX_HARDWARE = "truenas.is_ix_hardware"
+        const val TRUENAS_IS_PRODUCTION = "truenas.is_production"
+        const val TRUENAS_MANAGED_BY_TRUECOMMAND = "truenas.managed_by_truecommand"
+        const val TRUENAS_SET_PRODUCTION = "truenas.set_production"
+
     }
     object Apps {
         const val QUERY_APPS = "app.query"

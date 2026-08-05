@@ -1344,4 +1344,206 @@ class SystemService(val manager: TrueNASApiManager){
         )
     }
 
+    // ──────────────────────────────────────────────
+    // TrueNAS Connect service methods (tn_connect.*)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Returns the current TrueNAS Connect configuration.
+     * Required role: TRUENAS_CONNECT_READ
+     */
+    suspend fun getTnConnectConfig(): ApiResult<System.TNCEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TN_CONNECT_CONFIG,
+            params = emptyList(),
+            resultType = System.TNCEntry::class.java
+        )
+    }
+
+    /**
+     * Generates a claim token used to claim the system with TrueNAS Connect.
+     * Required role: TRUENAS_CONNECT_WRITE
+     */
+    suspend fun generateTnConnectClaimToken(): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TN_CONNECT_GENERATE_CLAIM_TOKEN,
+            params = emptyList(),
+            resultType = String::class.java
+        )
+    }
+
+    /**
+     * Returns the registration URI for TrueNAS Connect. Requires the service to be
+     * enabled and a claim token generated first. Required role: TRUENAS_CONNECT_READ
+     */
+    suspend fun getTnConnectRegistrationUri(): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TN_CONNECT_GET_REGISTRATION_URI,
+            params = emptyList(),
+            resultType = String::class.java
+        )
+    }
+
+    /**
+     * Returns object of available IP addresses and their interface descriptions.
+     * Required role: READONLY_ADMIN | TRUENAS_CONNECT_READ
+     */
+    suspend fun getTnConnectIpChoices(): ApiResult<Map<String, String>> {
+        val resultType = Types.newParameterizedType(
+            Map::class.java, String::class.java, String::class.java
+        )
+        return manager.callWithResult(
+            method = ApiMethods.System.TN_CONNECT_IP_CHOICES,
+            params = emptyList(),
+            resultType = resultType
+        )
+    }
+
+    /**
+     * Updates the TrueNAS Connect configuration.
+     * Required role: TRUENAS_CONNECT_WRITE
+     */
+    suspend fun updateTnConnect(data: System.TNConnectUpdateArgs): ApiResult<System.TNCEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TN_CONNECT_UPDATE,
+            params = listOf(data),
+            resultType = System.TNCEntry::class.java
+        )
+    }
+
+    // ──────────────────────────────────────────────
+    // TrueCommand service methods (truecommand.*)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Returns the current TrueCommand configuration.
+     * Required role: TRUECOMMAND_READ
+     */
+    suspend fun getTruecommandConfig(): ApiResult<System.TruecommandEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TRUECOMMAND_CONFIG,
+            params = emptyList(),
+            resultType = System.TruecommandEntry::class.java
+        )
+    }
+
+    /**
+     * Updates TrueCommand service settings.
+     * Required role: TRUECOMMAND_WRITE
+     */
+    suspend fun updateTruecommand(data: System.TruecommandUpdateArgs): ApiResult<System.TruecommandEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TRUECOMMAND_UPDATE,
+            params = listOf(data),
+            resultType = System.TruecommandEntry::class.java
+        )
+    }
+
+    // ──────────────────────────────────────────────
+    // TrueNAS service methods (truenas.*)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Accepts the TrueNAS EULA. Required role: FULL_ADMIN
+     */
+    suspend fun acceptEula(): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TRUENAS_ACCEPT_EULA,
+            params = emptyList(),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Returns the hardware chassis model identifier detected from dmidecode.
+     * Required role: READONLY_ADMIN
+     */
+    suspend fun getChassisHardware(): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TRUENAS_GET_CHASSIS_HARDWARE,
+            params = emptyList(),
+            resultType = String::class.java
+        )
+    }
+
+    /**
+     * Returns the full TrueNAS EULA text, or null if no EULA is required.
+     * Required role: READONLY_ADMIN
+     */
+    suspend fun getEula(): ApiResult<String?> {
+        return try {
+            @Suppress("UNCHECKED_CAST")
+            manager.callWithResult<String>(
+                method = ApiMethods.System.TRUENAS_GET_EULA,
+                params = emptyList(),
+                resultType = String::class.java
+            ) as ApiResult<String?>
+        } catch (e: Exception) {
+            val msg = e.message ?: ""
+            if (msg.contains("null result", ignoreCase = true)) {
+                ApiResult.Success(null)
+            } else {
+                ApiResult.Error(msg, e)
+            }
+        }
+    }
+
+    /**
+     * Returns whether the EULA has been accepted. Required role: READONLY_ADMIN
+     */
+    suspend fun isEulaAccepted(): ApiResult<Boolean> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TRUENAS_IS_EULA_ACCEPTED,
+            params = emptyList(),
+            resultType = Boolean::class.java
+        )
+    }
+
+    /**
+     * Returns whether this is hardware that iXsystems sells.
+     * Required role: READONLY_ADMIN
+     */
+    suspend fun isIxHardware(): ApiResult<Boolean> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TRUENAS_IS_IX_HARDWARE,
+            params = emptyList(),
+            resultType = Boolean::class.java
+        )
+    }
+
+    /**
+     * Returns whether the system is marked as production.
+     * Required role: READONLY_ADMIN
+     */
+    suspend fun isProduction(): ApiResult<Boolean> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TRUENAS_IS_PRODUCTION,
+            params = emptyList(),
+            resultType = Boolean::class.java
+        )
+    }
+
+    /**
+     * Returns whether this TrueNAS is being managed by TrueCommand.
+     */
+    suspend fun isManagedByTruecommand(): ApiResult<Boolean> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TRUENAS_MANAGED_BY_TRUECOMMAND,
+            params = emptyList(),
+            resultType = Boolean::class.java
+        )
+    }
+
+    /**
+     * Sets the system production state and optionally sends initial debug.
+     * This method is a job. Required role: FULL_ADMIN
+     */
+    suspend fun setProduction(production: Boolean, attachDebug: Boolean = false): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.TRUENAS_SET_PRODUCTION,
+            params = listOf(production, attachDebug),
+            resultType = Any::class.java
+        )
+    }
+
 }
