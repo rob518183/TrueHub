@@ -46,6 +46,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
+import com.imnotndesh.truehub.ui.components.PullToRefreshContent
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.ExpressiveInfoCard
 import com.imnotndesh.truehub.ui.homepage.instancesettings.general.ExpressiveSection
@@ -100,7 +101,7 @@ fun BootPoolScreen(
             uiState.isLoading && uiState.bootState == null ->
                 LoadingScreen("Loading boot pool...")
             else ->
-                BootPullToRefreshBox(
+                PullToRefreshContent(
                     isRefreshing = uiState.isRefreshing,
                     onRefresh = { vm.refresh() },
                     modifier = Modifier

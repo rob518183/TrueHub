@@ -47,6 +47,7 @@ import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.ExpressiveFAB
 import com.imnotndesh.truehub.ui.components.LoadingScreen
+import com.imnotndesh.truehub.ui.components.PullToRefreshContent
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.ExpressiveInfoCard
 import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.InfoRow
@@ -73,7 +74,7 @@ fun NetworkScreen(
                 title = "Network",
                 subtitle = "Configuration and status",
                 isLoading = uiState.isLoading,
-                isRefreshing = false,
+                isRefreshing = uiState.isRefreshing,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,
@@ -94,10 +95,16 @@ fun NetworkScreen(
         when {
             uiState.isLoading -> LoadingScreen("Loading network...")
             uiState.summary != null && uiState.config != null -> {
-                Column(
+                PullToRefreshContent(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { vm.refresh() },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
+                ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
                         .verticalScroll(scrollState)
                         .padding(start = 16.dp, end = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -269,6 +276,7 @@ fun NetworkScreen(
                     }
 
                     Spacer(modifier = Modifier.height(64.dp))
+                }
                 }
             }
         }

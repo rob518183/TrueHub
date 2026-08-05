@@ -49,6 +49,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.ui.components.ExpressiveFAB
 import com.imnotndesh.truehub.ui.components.LoadingScreen
+import com.imnotndesh.truehub.ui.components.PullToRefreshContent
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 
 @Composable
@@ -72,7 +73,7 @@ fun GeneralSystemSettingsScreen(
                 title = "General Settings",
                 subtitle = "System general configuration",
                 isLoading = uiState.isLoading,
-                isRefreshing = false,
+                isRefreshing = uiState.isRefreshing,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,
@@ -94,10 +95,16 @@ fun GeneralSystemSettingsScreen(
             uiState.isLoading -> LoadingScreen("Loading system settings...")
             uiState.config != null -> {
                 val config = uiState.config!!
-                Column(
+                PullToRefreshContent(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { vm.refresh() },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
+                ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                         .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -183,6 +190,7 @@ fun GeneralSystemSettingsScreen(
                         }
 
                     }
+                }
                 }
             }
         }

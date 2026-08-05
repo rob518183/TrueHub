@@ -48,6 +48,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.ui.components.ExpressiveFAB
 import com.imnotndesh.truehub.ui.components.LoadingScreen
+import com.imnotndesh.truehub.ui.components.PullToRefreshContent
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 
 @Composable
@@ -71,7 +72,7 @@ fun AdvancedSystemSettingsScreen(
                 title = "Advanced Settings",
                 subtitle = "System advanced configuration",
                 isLoading = uiState.isLoading,
-                isRefreshing = false,
+                isRefreshing = uiState.isRefreshing,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,
@@ -92,10 +93,16 @@ fun AdvancedSystemSettingsScreen(
             uiState.isLoading -> LoadingScreen("Loading advanced settings...")
             uiState.config != null -> {
                 val config = uiState.config!!
-                Column(
+                PullToRefreshContent(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { vm.refresh() },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
+                ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
                         .verticalScroll(scrollState)
                         .padding(start = 16.dp, end = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -194,6 +201,7 @@ fun AdvancedSystemSettingsScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(64.dp))
+                }
                 }
             }
         }

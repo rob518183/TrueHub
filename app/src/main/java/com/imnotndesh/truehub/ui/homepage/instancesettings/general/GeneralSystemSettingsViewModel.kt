@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 
 data class GeneralSystemSettingsUiState(
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val isSaving: Boolean = false,
     val config: System.SystemGeneralEntry? = null,
     val timezoneChoices: Map<String, String> = emptyMap(),
@@ -61,6 +62,8 @@ class GeneralSystemSettingsViewModel(
     private val _uiState = MutableStateFlow(GeneralSystemSettingsUiState())
     val uiState: StateFlow<GeneralSystemSettingsUiState> = _uiState.asStateFlow()
 
+    fun refresh() = loadAll(forceRefresh = true)
+
     companion object {
         private var cachedTimezoneChoices: Map<String, String>? = null
         private var cachedKbdmapChoices: Map<String, String>? = null
@@ -82,14 +85,17 @@ class GeneralSystemSettingsViewModel(
         }
     }
 
-    fun loadAll() {
+    fun loadAll(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update {
+                if (forceRefresh) it.copy(isRefreshing = true, error = null)
+                else it.copy(isLoading = true, error = null)
+            }
             try {
                 // Load config (always fresh)
                 val configResult = manager.system.generalConfig()
                 if (configResult is ApiResult.Error) {
-                    _uiState.update { it.copy(isLoading = false, error = configResult.message) }
+                    _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = configResult.message) }
                     return@launch
                 }
 
@@ -131,6 +137,7 @@ class GeneralSystemSettingsViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
+                        isRefreshing = false,
                         config = (configResult as? ApiResult.Success)?.data,
                         timezoneChoices = cachedTimezoneChoices ?: it.timezoneChoices,
                         kbdmapChoices = cachedKbdmapChoices ?: it.kbdmapChoices,
@@ -144,7 +151,7 @@ class GeneralSystemSettingsViewModel(
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = e.message ?: "Unknown error") }
             }
         }
     }

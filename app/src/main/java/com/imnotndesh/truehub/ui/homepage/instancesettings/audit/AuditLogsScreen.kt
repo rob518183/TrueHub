@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.System
+import com.imnotndesh.truehub.ui.components.PullToRefreshContent
 import kotlinx.coroutines.launch
 
 /**
@@ -187,6 +188,11 @@ fun AuditLogsScreen(
                     }
                 }
                 else -> {
+                    PullToRefreshContent(
+                        isRefreshing = uiState.isRefreshing,
+                        onRefresh = { viewModel.refresh() },
+                        modifier = Modifier.fillMaxSize()
+                    ) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(
@@ -198,6 +204,7 @@ fun AuditLogsScreen(
                         items(uiState.logs, key = { it.auditId?.toString() ?: it.hashCode().toString() }) { item ->
                             AuditLogCard(item)
                         }
+                    }
                     }
                 }
             }

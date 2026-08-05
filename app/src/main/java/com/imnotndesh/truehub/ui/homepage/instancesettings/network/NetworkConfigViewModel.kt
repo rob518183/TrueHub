@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 
 data class NetworkUiState(
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val isSaving: Boolean = false,
     val summary: System.NetworkGeneralSummaryResult? = null,
     val config: System.NetworkConfigurationEntry? = null,
@@ -53,9 +54,14 @@ class NetworkConfigViewModel(
         }
     }
 
-    fun loadAll() {
+    fun refresh() = loadAll(forceRefresh = true)
+
+    fun loadAll(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update {
+                if (forceRefresh) it.copy(isRefreshing = true, error = null)
+                else it.copy(isLoading = true, error = null)
+            }
             try {
 
                 val summaryDeferred = async { manager.system.networkGeneralSummary() }
@@ -65,7 +71,9 @@ class NetworkConfigViewModel(
                 val configResult = configDeferred.await()
 
                 if (configResult is ApiResult.Error) {
-                    _uiState.update { it.copy(isLoading = false, error = configResult.message) }
+                    _uiState.update {
+                        it.copy(isLoading = false, isRefreshing = false, error = configResult.message)
+                    }
                     return@launch
                 }
 
@@ -78,13 +86,16 @@ class NetworkConfigViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
+                        isRefreshing = false,
                         summary = (summaryResult as? ApiResult.Success)?.data,
                         config = (configResult as? ApiResult.Success)?.data,
                         activityChoices = cachedActivityChoices ?: emptyList()
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                _uiState.update {
+                    it.copy(isLoading = false, isRefreshing = false, error = e.message ?: "Unknown error")
+                }
             }
         }
     }

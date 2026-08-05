@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 
 data class AdvancedSystemSettingsUiState(
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val isSaving: Boolean = false,
     val config: System.SystemAdvancedEntry? = null,
     val gpuPciChoices: Map<String, String> = emptyMap(),
@@ -53,6 +54,8 @@ class AdvancedSystemSettingsViewModel(
     private val _uiState = MutableStateFlow(AdvancedSystemSettingsUiState())
     val uiState: StateFlow<AdvancedSystemSettingsUiState> = _uiState.asStateFlow()
 
+    fun refresh() = loadAll(forceRefresh = true)
+
     companion object {
         private var cachedGpuPciChoices: Map<String, String>? = null
         private var cachedSerialPortChoices: Map<String, String>? = null
@@ -67,14 +70,17 @@ class AdvancedSystemSettingsViewModel(
         }
     }
 
-    fun loadAll() {
+    fun loadAll(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update {
+                if (forceRefresh) it.copy(isRefreshing = true, error = null)
+                else it.copy(isLoading = true, error = null)
+            }
             try {
 
                 val configResult = manager.system.advancedConfig()
                 if (configResult is ApiResult.Error) {
-                    _uiState.update { it.copy(isLoading = false, error = configResult.message) }
+                    _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = configResult.message) }
                     return@launch
                 }
 
@@ -104,6 +110,7 @@ class AdvancedSystemSettingsViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
+                        isRefreshing = false,
                         config = (configResult as? ApiResult.Success)?.data,
                         gpuPciChoices = cachedGpuPciChoices ?: it.gpuPciChoices,
                         serialPortChoices = cachedSerialPortChoices ?: it.serialPortChoices,
@@ -114,7 +121,7 @@ class AdvancedSystemSettingsViewModel(
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
+                _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = e.message ?: "Unknown error") }
             }
         }
     }

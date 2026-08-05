@@ -55,6 +55,7 @@ import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.ExpressiveFAB
 import com.imnotndesh.truehub.ui.components.LoadingScreen
+import com.imnotndesh.truehub.ui.components.PullToRefreshContent
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.homepage.instancesettings.general.ExpressiveSection
 
@@ -140,7 +141,7 @@ fun BootEnvironmentsScreen(
                     }
                 }
             else ->
-                BootPullToRefreshBox(
+                PullToRefreshContent(
                     isRefreshing = uiState.isRefreshing,
                     onRefresh = { vm.refresh() },
                     modifier = Modifier

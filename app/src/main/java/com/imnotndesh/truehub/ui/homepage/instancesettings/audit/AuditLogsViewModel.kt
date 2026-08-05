@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 data class AuditLogsUiState(
     val logs: List<System.AuditQueryResultItem> = emptyList(),
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val isExporting: Boolean = false,
     val exportPath: String? = null,
     val error: String? = null
@@ -31,12 +32,15 @@ class AuditLogsViewModel(private val manager: TrueNASApiManager) : ViewModel() {
 
     fun refresh() {
         val currentService = _uiState.value.logs.firstOrNull()?.service ?: "MIDDLEWARE"
-        queryLogs(currentService)
+        queryLogs(currentService, forceRefresh = true)
     }
 
-    fun queryLogs(service: String) {
+    fun queryLogs(service: String, forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update {
+                if (forceRefresh) it.copy(isRefreshing = true, error = null)
+                else it.copy(isLoading = true, error = null)
+            }
 
             val args = System.AuditQueryArgs(
                 services = listOf(service),
@@ -47,12 +51,12 @@ class AuditLogsViewModel(private val manager: TrueNASApiManager) : ViewModel() {
                 is ApiResult.Success -> {
                     val logList = extractLogs(result.data)
                     _uiState.update {
-                        it.copy(logs = logList, isLoading = false)
+                        it.copy(logs = logList, isLoading = false, isRefreshing = false)
                     }
                 }
                 is ApiResult.Error -> {
                     _uiState.update {
-                        it.copy(isLoading = false, error = result.message)
+                        it.copy(isLoading = false, isRefreshing = false, error = result.message)
                     }
                 }
                 is ApiResult.Loading -> {}
