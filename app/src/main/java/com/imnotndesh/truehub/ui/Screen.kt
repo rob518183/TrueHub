@@ -82,5 +82,11 @@ sealed class Screen(val route:String, val title:String) {
     object AuditLogsScreen : Screen("audit_logs", "Audit Logs")
     object NetworkScreen : Screen("network", "Network")
     object NetworkEditScreen : Screen("network_edit", "Edit Network Configuration")
+    object BootScreen : Screen("boot", "Boot")
+    object BootPoolScreen : Screen("boot_pool", "Boot Pool")
+    object BootEnvironmentsScreen : Screen("boot_environments", "Boot Environments")
+    object BootEnvironmentDetailScreen : Screen("boot_environment/{environmentId}", "Boot Environment") {
+        fun createRoute(environmentId: String) = "boot_environment/$environmentId"
+    }
 
 }

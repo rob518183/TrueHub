@@ -79,6 +79,10 @@ import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystem
 import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkEditScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootEnvironmentDetailScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootEnvironmentsScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootPoolScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.LocalAdminSetupScreen
 import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserCreateScreen
@@ -154,6 +158,10 @@ fun MainScreen(
             Screen.AuditLogsScreen.route,
             Screen.NetworkScreen.route,
             Screen.NetworkEditScreen.route,
+            Screen.BootScreen.route,
+            Screen.BootPoolScreen.route,
+            Screen.BootEnvironmentsScreen.route,
+            Screen.BootEnvironmentDetailScreen.route,
             Screen.InstanceConfigScreen.route,
             Screen.ServicesScreen.route,
             Screen.ServicesDetailScreen.route
@@ -344,7 +352,48 @@ private fun TrueHubNavGraph(
                 },
                 onNavigateToNetwork = {
                     navController.navigate(Screen.NetworkScreen.route)
+                },
+                onNavigateToBoot = {
+                    navController.navigate(Screen.BootScreen.route)
                 }
+            )
+        }
+        composable(Screen.BootScreen.route) {
+            BootScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToBootPool = {
+                    navController.navigate(Screen.BootPoolScreen.route)
+                },
+                onNavigateToBootEnvironments = {
+                    navController.navigate(Screen.BootEnvironmentsScreen.route)
+                }
+            )
+        }
+        composable(Screen.BootPoolScreen.route) {
+            BootPoolScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.BootEnvironmentsScreen.route) {
+            BootEnvironmentsScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDetail = { envId ->
+                    navController.navigate(Screen.BootEnvironmentDetailScreen.createRoute(envId))
+                }
+            )
+        }
+        composable(
+            Screen.BootEnvironmentDetailScreen.route,
+            arguments = listOf(navArgument("environmentId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val envId = backStackEntry.arguments?.getString("environmentId").orEmpty()
+            BootEnvironmentDetailScreen(
+                manager = manager,
+                environmentId = envId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.NetworkScreen.route) {
