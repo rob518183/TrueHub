@@ -53,7 +53,6 @@ import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
-import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.ExpressiveInfoCard
 import com.imnotndesh.truehub.ui.homepage.instancesettings.general.ExpressiveSection
 
 /**
@@ -107,7 +106,7 @@ fun BootScreen(
                         ActionBanner(text = msg, onDismiss = { vm.clearActionMessage() }, isError = false)
                     }
 
-                    // Boot pool health summary
+
                     ExpressiveSection(title = "Boot Pool", icon = Icons.Default.SdStorage) {
                         uiState.bootState?.let { state ->
                             PoolHealthCard(state = state)
@@ -130,7 +129,7 @@ fun BootScreen(
                         }
                     }
 
-                    // Boot environments entry
+
                     ExpressiveSection(title = "Boot Environments", icon = Icons.Default.PowerSettingsNew) {
                         ClickableEntryCard(
                             icon = Icons.Default.PowerSettingsNew,
@@ -147,7 +146,7 @@ fun BootScreen(
                         }
                     }
 
-                    // Quick actions
+
                     ExpressiveSection(title = "Maintenance", icon = Icons.Default.Refresh) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
