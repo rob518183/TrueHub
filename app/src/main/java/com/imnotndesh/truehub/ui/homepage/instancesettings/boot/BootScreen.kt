@@ -81,7 +81,7 @@ fun BootScreen(
                 title = "Boot",
                 subtitle = "Boot pool and environments",
                 isLoading = uiState.isLoading,
-                isRefreshing = false,
+                isRefreshing = uiState.isRefreshing,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,
@@ -93,15 +93,21 @@ fun BootScreen(
             uiState.isLoading && uiState.bootState == null ->
                 LoadingScreen("Loading boot info...")
             else ->
-                Column(
+                BootPullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { vm.refresh() },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
                     uiState.actionMessage?.let { msg ->
                         ActionBanner(text = msg, onDismiss = { vm.clearActionMessage() }, isError = false)
                     }
@@ -169,6 +175,7 @@ fun BootScreen(
                                 onClick = { vm.refresh() }
                             )
                         }
+                    }
                     }
                 }
         }

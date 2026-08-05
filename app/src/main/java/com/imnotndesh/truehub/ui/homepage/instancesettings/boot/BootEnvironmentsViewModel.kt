@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 
 data class BootEnvironmentsUiState(
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val isActing: Boolean = false,
     val activeId: String? = null,
     val environments: List<System.BootEnvironmentQueryResultItem> = emptyList(),
@@ -38,7 +39,10 @@ class BootEnvironmentsViewModel(private val manager: TrueNASApiManager) : ViewMo
 
     fun loadEnvironments(forceRefresh: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update {
+                if (forceRefresh) it.copy(isRefreshing = true, error = null)
+                else it.copy(isLoading = true, error = null)
+            }
 
             if (forceRefresh || cachedEnvironments == null) {
                 cachedEnvironments =
@@ -48,6 +52,7 @@ class BootEnvironmentsViewModel(private val manager: TrueNASApiManager) : ViewMo
             _uiState.update {
                 it.copy(
                     isLoading = false,
+                    isRefreshing = false,
                     environments = cachedEnvironments ?: emptyList(),
                     activeId = cachedEnvironments?.firstOrNull { env -> env.active == true }?.id
                 )

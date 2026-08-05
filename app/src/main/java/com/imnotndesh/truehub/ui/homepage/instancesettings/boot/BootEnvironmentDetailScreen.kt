@@ -87,7 +87,7 @@ fun BootEnvironmentDetailScreen(
                 title = "Boot Environment",
                 subtitle = environmentId,
                 isLoading = uiState.isLoading,
-                isRefreshing = false,
+                isRefreshing = uiState.isRefreshing,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,
@@ -99,13 +99,19 @@ fun BootEnvironmentDetailScreen(
             uiState.isLoading && environment == null ->
                 LoadingScreen("Loading environment...")
             environment != null ->
-                LazyColumn(
+                BootPullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { vm.refresh() },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
                     item {
                         val isActive = environment.active == true
                         androidx.compose.material3.Card(
@@ -236,6 +242,7 @@ fun BootEnvironmentDetailScreen(
                         }
                     }
                 }
+                    }
             else ->
                 Column(
                     modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),

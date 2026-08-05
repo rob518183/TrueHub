@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 
 data class BootUiState(
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val isActing: Boolean = false,
     val bootState: System.BootGetState? = null,
     val disks: List<String> = emptyList(),
@@ -39,7 +40,10 @@ class BootViewModel(private val manager: TrueNASApiManager) : ViewModel() {
 
     fun loadAll(forceRefresh: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update {
+                if (forceRefresh) it.copy(isRefreshing = true, error = null)
+                else it.copy(isLoading = true, error = null)
+            }
 
             if (forceRefresh || cachedBootState == null) {
                 cachedBootState = (manager.system.getBootState() as? ApiResult.Success)?.data
@@ -55,6 +59,7 @@ class BootViewModel(private val manager: TrueNASApiManager) : ViewModel() {
             _uiState.update {
                 it.copy(
                     isLoading = false,
+                    isRefreshing = false,
                     bootState = cachedBootState,
                     disks = cachedDisks ?: emptyList(),
                     environments = cachedEnvironments ?: emptyList()

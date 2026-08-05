@@ -88,7 +88,7 @@ fun BootPoolScreen(
                 title = "Boot Pool",
                 subtitle = "State and disks",
                 isLoading = uiState.isLoading,
-                isRefreshing = false,
+                isRefreshing = uiState.isRefreshing,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,
@@ -100,13 +100,19 @@ fun BootPoolScreen(
             uiState.isLoading && uiState.bootState == null ->
                 LoadingScreen("Loading boot pool...")
             else ->
-                LazyColumn(
+                BootPullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { vm.refresh() },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
                     item {
                         uiState.bootState?.let { PoolHealthCard(it) }
                     }
@@ -218,6 +224,7 @@ fun BootPoolScreen(
 
                     item { Spacer(Modifier.height(8.dp)) }
                 }
+                    }
         }
     }
 

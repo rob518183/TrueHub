@@ -96,7 +96,7 @@ fun BootEnvironmentsScreen(
                 title = "Boot Environments",
                 subtitle = "${uiState.environments.size} environments",
                 isLoading = uiState.isLoading,
-                isRefreshing = false,
+                isRefreshing = uiState.isRefreshing,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,
@@ -140,13 +140,19 @@ fun BootEnvironmentsScreen(
                     }
                 }
             else ->
-                LazyColumn(
+                BootPullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { vm.refresh() },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                     item {
                         ExpressiveSection(title = "Environments", icon = Icons.Default.PowerSettingsNew) {
                             IconButton(onClick = { vm.refresh() }, modifier = Modifier.align(Alignment.End)) {
@@ -167,6 +173,7 @@ fun BootEnvironmentsScreen(
                     }
                     item { Spacer(Modifier.size(88.dp)) }
                 }
+                    }
         }
     }
 
