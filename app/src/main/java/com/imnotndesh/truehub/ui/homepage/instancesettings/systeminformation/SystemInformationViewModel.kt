@@ -27,6 +27,11 @@ data class SystemInformationUiState(
     val dedupEnabled: Boolean? = null,
     val fibreChannelEnabled: Boolean? = null,
     val vmEnabled: Boolean? = null,
+    val chassisHardware: String? = null,
+    val isIxHardware: Boolean? = null,
+    val isProduction: Boolean? = null,
+    val isEulaAccepted: Boolean? = null,
+    val managedByTruecommand: Boolean? = null,
     val error: String? = null
 )
 
@@ -57,6 +62,11 @@ class SystemInformationViewModel(private val manager: TrueNASApiManager) : ViewM
             val dedupDeferred = async { manager.system.isFeatureEnabled("DEDUP") }
             val fcDeferred = async { manager.system.isFeatureEnabled("FIBRECHANNEL") }
             val vmDeferred = async { manager.system.isFeatureEnabled("VM") }
+            val chassisDeferred = async { manager.system.getChassisHardware() }
+            val ixHardwareDeferred = async { manager.system.isIxHardware() }
+            val productionDeferred = async { manager.system.isProduction() }
+            val eulaAcceptedDeferred = async { manager.system.isEulaAccepted() }
+            val managedByDeferred = async { manager.system.isManagedByTruecommand() }
 
             val hostId = (hostIdDeferred.await() as? ApiResult.Success)?.data
             val bootId = (bootIdDeferred.await() as? ApiResult.Success)?.data
@@ -69,6 +79,11 @@ class SystemInformationViewModel(private val manager: TrueNASApiManager) : ViewM
             val dedup = (dedupDeferred.await() as? ApiResult.Success)?.data
             val fc = (fcDeferred.await() as? ApiResult.Success)?.data
             val vm = (vmDeferred.await() as? ApiResult.Success)?.data
+            val chassis = (chassisDeferred.await() as? ApiResult.Success)?.data
+            val ixHardware = (ixHardwareDeferred.await() as? ApiResult.Success)?.data
+            val production = (productionDeferred.await() as? ApiResult.Success)?.data
+            val eulaAccepted = (eulaAcceptedDeferred.await() as? ApiResult.Success)?.data
+            val managedBy = (managedByDeferred.await() as? ApiResult.Success)?.data
 
             _uiState.update {
                 it.copy(
@@ -84,7 +99,12 @@ class SystemInformationViewModel(private val manager: TrueNASApiManager) : ViewM
                     releaseNotesUrl = releaseNotesUrl ?: it.releaseNotesUrl,
                     dedupEnabled = dedup ?: it.dedupEnabled,
                     fibreChannelEnabled = fc ?: it.fibreChannelEnabled,
-                    vmEnabled = vm ?: it.vmEnabled
+                    vmEnabled = vm ?: it.vmEnabled,
+                    chassisHardware = chassis ?: it.chassisHardware,
+                    isIxHardware = ixHardware ?: it.isIxHardware,
+                    isProduction = production ?: it.isProduction,
+                    isEulaAccepted = eulaAccepted ?: it.isEulaAccepted,
+                    managedByTruecommand = managedBy ?: it.managedByTruecommand
                 )
             }
         }

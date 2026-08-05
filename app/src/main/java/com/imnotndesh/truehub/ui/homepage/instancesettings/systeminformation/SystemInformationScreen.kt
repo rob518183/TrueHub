@@ -9,12 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Hardware
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Card
@@ -40,6 +40,11 @@ import com.imnotndesh.truehub.ui.components.PullToRefreshContent
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.homepage.instancesettings.general.ExpressiveSection
 
+/**
+ * Read-only view of the TrueNAS system: operating system details, identifiers,
+ * hardware/chassis info, feature flags, and release notes. Uses the various
+ * system.* and truenas.* read APIs.
+ */
 @Composable
 fun SystemInformationScreen(
     manager: TrueNASApiManager,
@@ -75,21 +80,23 @@ fun SystemInformationScreen(
                 .padding(top = innerPadding.calculateTopPadding())
         ) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 item {
                     ExpressiveSection(title = "Operating System", icon = Icons.Default.Build) {
                         InfoCard {
-                            InfoRow(label = "Version", value = uiState.versionShort ?: uiState.version ?: "—")
+                            InfoRow("Version", uiState.versionShort ?: uiState.version ?: "—")
                             HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow(label = "Full Version", value = uiState.version ?: "—")
+                            InfoRow("Full Version", uiState.version ?: "—")
                             HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow(label = "Product Type", value = uiState.productType ?: "—")
+                            InfoRow("Product Type", uiState.productType ?: "—")
                             HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow(label = "State", value = uiState.state ?: "—")
+                            InfoRow("State", uiState.state ?: "—")
                             HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow(label = "Ready", value = booleanLabel(uiState.ready))
+                            InfoRow("Ready", booleanLabel(uiState.ready))
                         }
                     }
                 }
@@ -97,21 +104,43 @@ fun SystemInformationScreen(
                 item {
                     ExpressiveSection(title = "System Identity", icon = Icons.Default.Fingerprint) {
                         InfoCard {
-                            InfoRow(label = "Host ID", value = uiState.hostId ?: "—")
+                            InfoRow("Host ID", uiState.hostId ?: "—")
                             HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow(label = "Boot ID", value = uiState.bootId ?: "—")
+                            InfoRow("Boot ID", uiState.bootId ?: "—")
                         }
                     }
                 }
 
                 item {
-                    ExpressiveSection(title = "Features", icon = Icons.Default.Verified) {
+                    ExpressiveSection(title = "Hardware", icon = Icons.Default.Hardware) {
                         InfoCard {
-                            InfoRow(label = "Deduplication", value = booleanLabel(uiState.dedupEnabled))
+                            InfoRow("Chassis", uiState.chassisHardware ?: "—")
                             HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow(label = "Fibre Channel", value = booleanLabel(uiState.fibreChannelEnabled))
+                            InfoRow("iX Systems Hardware", booleanLabel(uiState.isIxHardware))
+                        }
+                    }
+                }
+
+                item {
+                    ExpressiveSection(title = "System Status", icon = Icons.Default.Verified) {
+                        InfoCard {
+                            InfoRow("Production", booleanLabel(uiState.isProduction))
                             HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                            InfoRow(label = "Virtual Machines", value = booleanLabel(uiState.vmEnabled))
+                            InfoRow("Managed by TrueCommand", booleanLabel(uiState.managedByTruecommand))
+                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                            InfoRow("EULA Accepted", booleanLabel(uiState.isEulaAccepted))
+                        }
+                    }
+                }
+
+                item {
+                    ExpressiveSection(title = "Features", icon = Icons.Default.Build) {
+                        InfoCard {
+                            InfoRow("Deduplication", booleanLabel(uiState.dedupEnabled))
+                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                            InfoRow("Fibre Channel", booleanLabel(uiState.fibreChannelEnabled))
+                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                            InfoRow("Virtual Machines", booleanLabel(uiState.vmEnabled))
                         }
                     }
                 }
