@@ -153,7 +153,7 @@ fun BootEnvironmentDetailScreen(
                                     HorizontalDivider(Modifier.padding(vertical = 12.dp))
                                     InfoRow("Used", environment.used ?: "—")
                                     HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                                    InfoRow("Used Bytes", environment.usedBytes?.toString() ?: "—")
+                                    InfoRow("Used Bytes", formatBytes(environment.usedBytes))
                                     HorizontalDivider(Modifier.padding(vertical = 12.dp))
                                     InfoRow("Activated for next boot", booleanLabel(environment.activated))
                                 }

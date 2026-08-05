@@ -228,9 +228,9 @@ internal fun PoolHealthCard(state: System.BootGetState) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                InfoCell(label = "Size", value = state.sizeStr ?: state.size?.toString() ?: "—")
-                InfoCell(label = "Allocated", value = state.allocatedStr ?: state.allocated?.toString() ?: "—")
-                InfoCell(label = "Free", value = state.freeStr ?: state.free?.toString() ?: "—")
+                InfoCell(label = "Size", value = formatBytes(state.size))
+                InfoCell(label = "Allocated", value = formatBytes(state.allocated))
+                InfoCell(label = "Free", value = formatBytes(state.free))
             }
         }
     }

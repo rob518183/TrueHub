@@ -125,15 +125,15 @@ fun BootPoolScreen(
                                     InfoRow("Health", if (it.healthy) "Healthy" else "Degraded")
                                     if (it.size != null) {
                                         HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                                        InfoRow("Size", it.sizeStr ?: it.size.toString())
+                                        InfoRow("Size", formatBytes(it.size))
                                     }
                                     if (it.allocated != null) {
                                         HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                                        InfoRow("Allocated", it.allocatedStr ?: it.allocated.toString())
+                                        InfoRow("Allocated", formatBytes(it.allocated))
                                     }
                                     if (it.free != null) {
                                         HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                                        InfoRow("Free", it.freeStr ?: it.free.toString())
+                                        InfoRow("Free", formatBytes(it.free))
                                     }
                                     HorizontalDivider(Modifier.padding(vertical = 12.dp))
                                     InfoRow("Is Upgraded", if (it.isUpgraded) "Yes" else "No")
