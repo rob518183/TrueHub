@@ -89,7 +89,7 @@ fun BootPoolScreen(
                 title = "Boot Pool",
                 subtitle = "State and disks",
                 isLoading = uiState.isLoading,
-                isRefreshing = uiState.isRefreshing,
+                isRefreshing = false,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,

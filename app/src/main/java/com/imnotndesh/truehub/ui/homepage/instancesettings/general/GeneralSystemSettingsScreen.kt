@@ -73,7 +73,7 @@ fun GeneralSystemSettingsScreen(
                 title = "General Settings",
                 subtitle = "System general configuration",
                 isLoading = uiState.isLoading,
-                isRefreshing = uiState.isRefreshing,
+                isRefreshing = false,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,

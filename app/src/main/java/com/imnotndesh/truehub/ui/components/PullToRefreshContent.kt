@@ -65,12 +65,12 @@ private fun ShapesRefreshIndicator(isRefreshing: Boolean, modifier: Modifier = M
             modifier = modifier
                 .offset(y = 16.dp)
                 .zIndex(1f)
-                .size(44.dp)
+                .size(56.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surface)
         ) {
             LoadingIndicator(
-                modifier = Modifier.size(28.dp).align(Alignment.Center),
+                modifier = Modifier.size(36.dp).align(Alignment.Center),
                 color = MaterialTheme.colorScheme.primary
             )
         }

@@ -97,7 +97,7 @@ fun BootEnvironmentsScreen(
                 title = "Boot Environments",
                 subtitle = "${uiState.environments.size} environments",
                 isLoading = uiState.isLoading,
-                isRefreshing = uiState.isRefreshing,
+                isRefreshing = false,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,

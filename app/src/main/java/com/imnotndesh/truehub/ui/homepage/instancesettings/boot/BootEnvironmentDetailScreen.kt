@@ -88,7 +88,7 @@ fun BootEnvironmentDetailScreen(
                 title = "Boot Environment",
                 subtitle = environmentId,
                 isLoading = uiState.isLoading,
-                isRefreshing = uiState.isRefreshing,
+                isRefreshing = false,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,

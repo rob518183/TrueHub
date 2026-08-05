@@ -74,7 +74,7 @@ fun NetworkScreen(
                 title = "Network",
                 subtitle = "Configuration and status",
                 isLoading = uiState.isLoading,
-                isRefreshing = uiState.isRefreshing,
+                isRefreshing = false,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,

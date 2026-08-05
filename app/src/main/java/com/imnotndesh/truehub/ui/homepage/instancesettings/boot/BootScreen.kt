@@ -82,7 +82,7 @@ fun BootScreen(
                 title = "Boot",
                 subtitle = "Boot pool and environments",
                 isLoading = uiState.isLoading,
-                isRefreshing = uiState.isRefreshing,
+                isRefreshing = false,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,

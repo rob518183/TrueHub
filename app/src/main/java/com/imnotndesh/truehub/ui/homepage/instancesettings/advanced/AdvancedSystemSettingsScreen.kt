@@ -72,7 +72,7 @@ fun AdvancedSystemSettingsScreen(
                 title = "Advanced Settings",
                 subtitle = "System advanced configuration",
                 isLoading = uiState.isLoading,
-                isRefreshing = uiState.isRefreshing,
+                isRefreshing = false,
                 error = uiState.error,
                 onDismissError = { vm.clearError() },
                 manager = manager,
