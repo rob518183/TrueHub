@@ -187,6 +187,64 @@ object ApiMethods {
         const val NETWORK_CONFIGURATION_CONFIG = "network.configuration.config"
         const val NETWORK_CONFIGURATION_UPDATE = "network.configuration.update"
 
+        // ──────────────────────────────────────────────
+        // Boot Pool Stuff (boot.*)
+        // ──────────────────────────────────────────────
+
+        /**
+         * Attach a disk to the boot pool, turning a stripe into a mirror.
+         * This method is a job.
+         * Required role: DISK_WRITE
+         */
+        const val BOOT_ATTACH = "boot.attach"
+
+        /**
+         * Detach given `dev` from boot pool.
+         * Required role: DISK_WRITE
+         */
+        const val BOOT_DETACH = "boot.detach"
+
+        /**
+         * Returns disks of the boot pool.
+         * Required role: DISK_READ
+         */
+        const val BOOT_GET_DISKS = "boot.get_disks"
+
+        /**
+         * Returns the current state of the boot pool, including all vdevs,
+         * properties and datasets.
+         * Required role: READONLY_ADMIN
+         */
+        const val BOOT_GET_STATE = "boot.get_state"
+
+        /**
+         * Replace device `label` on boot pool with `dev`.
+         * This method is a job.
+         * Required role: DISK_WRITE
+         */
+        const val BOOT_REPLACE = "boot.replace"
+
+        /**
+         * Scrub on boot pool.
+         * This method is a job.
+         * Required role: BOOT_ENV_WRITE
+         */
+        const val BOOT_SCRUB = "boot.scrub"
+
+        /**
+         * Set Automatic Scrub Interval value in days.
+         * Required role: BOOT_ENV_WRITE
+         */
+        const val BOOT_SET_SCRUB_INTERVAL = "boot.set_scrub_interval"
+
+        // ──────────────────────────────────────────────
+        // Boot Environment Stuff (boot.environment.*)
+        // ──────────────────────────────────────────────
+        const val BOOT_ENV_ACTIVATE = "boot.environment.activate"
+        const val BOOT_ENV_CLONE = "boot.environment.clone"
+        const val BOOT_ENV_DESTROY = "boot.environment.destroy"
+        const val BOOT_ENV_KEEP = "boot.environment.keep"
+        const val BOOT_ENV_QUERY = "boot.environment.query"
 
     }
     object Apps {
@@ -247,6 +305,12 @@ object ApiMethods {
         const val EXPORT = "audit.export"
         const val QUERY = "audit.query"
         const val UPDATE = "audit.update"
+
+        /**
+         * Calls a job that produces downloadable output and returns a time-limited,
+         * single-use HTTP download URL. Returns a tuple [job id, download URL].
+         */
+        const val CORE_DOWNLOAD = "core.download"
     }
     object Shares{
         const val GET_NFS_SHARES = "sharing.nfs.query"

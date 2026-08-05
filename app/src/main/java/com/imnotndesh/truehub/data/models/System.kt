@@ -562,6 +562,38 @@ object System {
         @field:Json(name = "report_name") val reportName: String
     )
 
+    /**
+     * Parameters for core.download.
+     *
+     * Executes the target job method and returns a tuple [jobId, downloadUrl] where
+     * downloadUrl is an HTTP path such as "/_download/{job_id}?auth_token={token}".
+     *
+     * @param method   Name of the job method to execute (e.g. "audit.download_report").
+     * @param args     Arguments to pass to the job method.
+     * @param filename Suggested filename for the downloaded file (sets Content-Disposition).
+     * @param buffered When true the job output is buffered in RAM until completion, then
+     *                 made available for download (URL valid for 3600s). When false the job
+     *                 streams immediately to the client (valid for 60s).
+     */
+    @JsonClass(generateAdapter = true)
+    data class CoreDownloadArgs(
+        @field:Json(name = "method") val method: String,
+        @field:Json(name = "args") val args: List<Any> = emptyList(),
+        @field:Json(name = "filename") val filename: String? = null,
+        @field:Json(name = "buffered") val buffered: Boolean = false
+    )
+
+    /**
+     * Result tuple from core.download.
+     *
+     * @property jobId       The job ID, usable with core.get_jobs to monitor progress.
+     * @property downloadUrl The download URL path (e.g. "/_download/{job_id}?auth_token={token}").
+     */
+    data class CoreDownloadResult(
+        val jobId: Int,
+        val downloadUrl: String
+    )
+
     // Service structs
     @JsonClass(generateAdapter = true)
     data class ServiceQueryResponse(
@@ -1104,6 +1136,183 @@ object System {
         val rollbackTimeout: Any? = null
     )
 
+
+    // ──────────────────────────────────────────────
+    // Boot Pool Stuff (boot.*)
+    // ──────────────────────────────────────────────
+
+    /** Parameters for boot.attach. */
+    @JsonClass(generateAdapter = true)
+    data class BootAttachOptions(
+        @field:Json(name = "expand") val expand: Boolean = false
+    )
+
+    /**
+     * Current state and configuration of the boot pool returned by boot.get_state.
+     */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class BootGetState(
+        @field:Json(name = "name") val name: String,
+        @field:Json(name = "status") val status: String,
+        @field:Json(name = "path") val path: String,
+        @field:Json(name = "scan") val scan: BootScan? = null,
+        @field:Json(name = "expand") val expand: BootExpand? = null,
+        @field:Json(name = "is_upgraded") val isUpgraded: Boolean = false,
+        @field:Json(name = "healthy") val healthy: Boolean,
+        @field:Json(name = "warning") val warning: Boolean,
+        @field:Json(name = "status_code") val statusCode: String? = null,
+        @field:Json(name = "status_detail") val statusDetail: String? = null,
+        @field:Json(name = "size") val size: Long? = null,
+        @field:Json(name = "allocated") val allocated: Long? = null,
+        @field:Json(name = "free") val free: Long? = null,
+        @field:Json(name = "freeing") val freeing: Long? = null,
+        @field:Json(name = "dedup_table_size") val dedupTableSize: Long? = null,
+        @field:Json(name = "dedup_table_quota") val dedupTableQuota: String? = null,
+        @field:Json(name = "fragmentation") val fragmentation: String? = null,
+        @field:Json(name = "size_str") val sizeStr: String? = null,
+        @field:Json(name = "allocated_str") val allocatedStr: String? = null,
+        @field:Json(name = "free_str") val freeStr: String? = null,
+        @field:Json(name = "freeing_str") val freeingStr: String? = null,
+        @field:Json(name = "autotrim") val autotrim: BootAutotrim? = null,
+        @field:Json(name = "topology") val topology: BootPoolTopology? = null
+    )
+
+    /** Information about an active scrub or resilver operation. */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class BootScan(
+        @field:Json(name = "bytes_issued") val bytesIssued: Long? = null,
+        @field:Json(name = "bytes_processed") val bytesProcessed: Long? = null,
+        @field:Json(name = "bytes_to_process") val bytesToProcess: Long? = null,
+        @field:Json(name = "end_time") val endTime: String? = null,
+        @field:Json(name = "errors") val errors: Long? = null,
+        @field:Json(name = "function") val function: String? = null,
+        @field:Json(name = "pause") val pause: Boolean? = null,
+        @field:Json(name = "percentage") val percentage: Double? = null,
+        @field:Json(name = "start_time") val startTime: String? = null,
+        @field:Json(name = "state") val state: String? = null,
+        @field:Json(name = "total_secs_left") val totalSecsLeft: Long? = null
+    )
+
+    /** Information about an active pool expansion operation. */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class BootExpand(
+        @field:Json(name = "bytes_reflowed") val bytesReflowed: Long? = null,
+        @field:Json(name = "bytes_to_reflow") val bytesToReflow: Long? = null,
+        @field:Json(name = "end_time") val endTime: String? = null,
+        @field:Json(name = "expanding_vdev") val expandingVdev: Int? = null,
+        @field:Json(name = "percentage") val percentage: Double? = null,
+        @field:Json(name = "start_time") val startTime: String? = null,
+        @field:Json(name = "state") val state: String? = null,
+        @field:Json(name = "total_secs_left") val totalSecsLeft: Long? = null,
+        @field:Json(name = "waiting_for_resilver") val waitingForResilver: Int? = null
+    )
+
+    /** Auto-trim configuration for the pool. */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class BootAutotrim(
+        @field:Json(name = "parsed") val parsed: String? = null,
+        @field:Json(name = "rawvalue") val rawValue: String? = null,
+        @field:Json(name = "source") val source: String? = null,
+        @field:Json(name = "value") val value: String? = null
+    )
+
+    /** Physical topology and structure of the pool including vdevs. */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class BootPoolTopology(
+        @field:Json(name = "data") val data: List<Any> = emptyList(),
+        @field:Json(name = "log") val log: List<Any> = emptyList(),
+        @field:Json(name = "cache") val cache: List<Any> = emptyList(),
+        @field:Json(name = "spare") val spare: List<Any> = emptyList(),
+        @field:Json(name = "special") val special: List<Any> = emptyList(),
+        @field:Json(name = "dedup") val dedup: List<Any> = emptyList()
+    )
+
+    // ──────────────────────────────────────────────
+    // Boot Environment Stuff (boot.environment.*)
+    // ──────────────────────────────────────────────
+
+    /** Base query options shared across query methods. */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class BootEnvironmentQueryOptions(
+        @field:Json(name = "extra") val extra: Map<String, Any?> = emptyMap(),
+        @field:Json(name = "order_by") val orderBy: List<String> = emptyList(),
+        @field:Json(name = "select") val select: List<Any> = emptyList(),
+        @field:Json(name = "count") val count: Boolean = false,
+        @field:Json(name = "get") val get: Boolean = false,
+        @field:Json(name = "offset") val offset: Int = 0,
+        @field:Json(name = "limit") val limit: Int = 0,
+        @field:Json(name = "force_sql_filters") val forceSqlFilters: Boolean = false
+    )
+
+    /** Arguments for boot.environment.activate. */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class BootEnvironmentActivateArgs(
+        @field:Json(name = "id") val id: String
+    )
+
+    /** Arguments for boot.environment.clone. */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class BootEnvironmentCloneArgs(
+        @field:Json(name = "id") val id: String,
+        @field:Json(name = "target") val target: String
+    )
+
+    /** Arguments for boot.environment.destroy. */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class BootEnvironmentDestroyArgs(
+        @field:Json(name = "id") val id: String
+    )
+
+    /** Arguments for boot.environment.keep. */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class BootEnvironmentKeepArgs(
+        @field:Json(name = "id") val id: String,
+        @field:Json(name = "value") val value: Boolean
+    )
+
+    /**
+     * A boot environment entry returned by boot.environment.* methods.
+     */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class BootEnvironmentEntry(
+        @field:Json(name = "id") val id: String,
+        @field:Json(name = "dataset") val dataset: String,
+        @field:Json(name = "active") val active: Boolean,
+        @field:Json(name = "activated") val activated: Boolean,
+        @field:Json(name = "created") val created: String,
+        @field:Json(name = "used_bytes") val usedBytes: Long,
+        @field:Json(name = "used") val used: String,
+        @field:Json(name = "keep") val keep: Boolean,
+        @field:Json(name = "can_activate") val canActivate: Boolean
+    )
+
+    /**
+     * A boot environment entry returned by boot.environment.query.
+     */
+    @JsonClass(generateAdapter = true)
+    @Suppress("PropertyName")
+    data class BootEnvironmentQueryResultItem(
+        @field:Json(name = "id") val id: String?,
+        @field:Json(name = "dataset") val dataset: String?,
+        @field:Json(name = "active") val active: Boolean?,
+        @field:Json(name = "activated") val activated: Boolean?,
+        @field:Json(name = "created") val created: String?,
+        @field:Json(name = "used_bytes") val usedBytes: Long?,
+        @field:Json(name = "used") val used: String?,
+        @field:Json(name = "keep") val keep: Boolean?,
+        @field:Json(name = "can_activate") val canActivate: Boolean?
+    )
 
     fun MongoDate?.formatDate(): String {
         if (this == null) return "—"

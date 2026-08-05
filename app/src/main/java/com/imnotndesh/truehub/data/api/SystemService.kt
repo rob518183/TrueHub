@@ -895,6 +895,48 @@ class SystemService(val manager: TrueNASApiManager){
         )
     }
 
+    /**
+     * Calls a job that produces downloadable output and returns a time-limited,
+     * single-use HTTP download URL.
+     *
+     * Executes the target `method` job and returns a tuple [jobId, downloadUrl].
+     * The `downloadUrl` is an HTTP path (e.g. "/_download/{job_id}?auth_token={token}")
+     * that must be fetched via an HTTP GET (not over the WebSocket) to retrieve the bytes.
+     *
+     * @param data core.download parameters (method, args, filename, buffered).
+     * @return A [System.CoreDownloadResult] containing the job id and download URL, or an error.
+     */
+    suspend fun coreDownload(data: System.CoreDownloadArgs): ApiResult<System.CoreDownloadResult> {
+        val type = Types.newParameterizedType(
+            List::class.java,
+            Any::class.java
+        )
+        return when (val result = manager.callWithResult<Any>(
+            method = ApiMethods.Audit.CORE_DOWNLOAD,
+            params = listOf(data),
+            resultType = type
+        )) {
+            is ApiResult.Success -> parseCoreDownloadResult(result.data)
+            is ApiResult.Error -> result
+            is ApiResult.Loading -> ApiResult.Loading
+        }
+    }
+
+    /** Parse the [jobId, downloadUrl] tuple returned by core.download. */
+    private fun parseCoreDownloadResult(data: Any?): ApiResult<System.CoreDownloadResult> {
+        return try {
+            val list = data as? List<*> ?: return ApiResult.Error("Unexpected core.download response: $data")
+            if (list.size < 2) return ApiResult.Error("core.download returned an unexpected tuple: $list")
+            val jobId = (list[0] as? Number)?.toInt()
+                ?: return ApiResult.Error("core.download returned an invalid job id: ${list[0]}")
+            val downloadUrl = list[1] as? String
+                ?: return ApiResult.Error("core.download returned an invalid download URL: ${list[1]}")
+            ApiResult.Success(System.CoreDownloadResult(jobId = jobId, downloadUrl = downloadUrl))
+        } catch (e: Exception) {
+            ApiResult.Error("Failed to parse core.download response: ${e.message}", e)
+        }
+    }
+
     suspend fun advancedUpdateGpuPciIds(pciIds: List<String>): ApiResult<Unit> {
         return manager.callWithResult(
             method = ApiMethods.System.UPDATE_GPU_PCI_IDS,
@@ -959,6 +1001,192 @@ class SystemService(val manager: TrueNASApiManager){
             method = ApiMethods.System.NETWORK_CONFIGURATION_UPDATE,
             params = listOf(data),
             resultType = System.NetworkConfigurationEntry::class.java
+        )
+    }
+
+    // ──────────────────────────────────────────────
+    // Boot Pool service methods (boot.*)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Attach a disk to the boot pool, turning a stripe into a mirror.
+     * This method is a job.
+     * Required role: DISK_WRITE
+     *
+     * @param dev Device name or path to attach to the boot pool.
+     * @param expand Whether to expand the boot pool after attaching the disk.
+     */
+    suspend fun attachBootDisk(dev: String, expand: Boolean = false): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.BOOT_ATTACH,
+            params = listOf(dev, System.BootAttachOptions(expand = expand)),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Detach given `dev` from boot pool.
+     * Required role: DISK_WRITE
+     */
+    suspend fun detachBootDisk(dev: String): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.BOOT_DETACH,
+            params = listOf(dev),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Returns disk device names that are part of the boot pool.
+     * Required role: DISK_READ
+     */
+    suspend fun getBootDisks(): ApiResult<List<String>> {
+        val resultType = Types.newParameterizedType(List::class.java, String::class.java)
+        return manager.callWithResult(
+            method = ApiMethods.System.BOOT_GET_DISKS,
+            params = emptyList(),
+            resultType = resultType
+        )
+    }
+
+    /**
+     * Returns the current state of the boot pool, including all vdevs, properties
+     * and datasets.
+     * Required role: READONLY_ADMIN
+     */
+    suspend fun getBootState(): ApiResult<System.BootGetState> {
+        return manager.callWithResult(
+            method = ApiMethods.System.BOOT_GET_STATE,
+            params = emptyList(),
+            resultType = System.BootGetState::class.java
+        )
+    }
+
+    /**
+     * Replace device `label` on boot pool with `dev`.
+     * This method is a job.
+     * Required role: DISK_WRITE
+     */
+    suspend fun replaceBootDisk(label: String, dev: String): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.BOOT_REPLACE,
+            params = listOf(label, dev),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Scrub on boot pool.
+     * This method is a job.
+     * Required role: BOOT_ENV_WRITE
+     */
+    suspend fun scrubBootPool(): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.BOOT_SCRUB,
+            params = emptyList(),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Set Automatic Scrub Interval value in days.
+     * Required role: BOOT_ENV_WRITE
+     *
+     * @param interval Scrub interval in days (must be a positive integer).
+     * @return The updated scrub interval in days.
+     */
+    suspend fun setBootScrubInterval(interval: Int): ApiResult<Int> {
+        return manager.callWithResult(
+            method = ApiMethods.System.BOOT_SET_SCRUB_INTERVAL,
+            params = listOf(interval),
+            resultType = Int::class.java
+        )
+    }
+
+    // ──────────────────────────────────────────────
+    // Boot Environment service methods (boot.environment.*)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Activate a boot environment for next boot.
+     * Required role: BOOT_ENV_WRITE
+     *
+     * @param id Name of the boot environment to activate.
+     * @return The activated boot environment.
+     */
+    suspend fun activateBootEnvironment(id: String): ApiResult<System.BootEnvironmentEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.BOOT_ENV_ACTIVATE,
+            params = listOf(System.BootEnvironmentActivateArgs(id = id)),
+            resultType = System.BootEnvironmentEntry::class.java
+        )
+    }
+
+    /**
+     * Clone an existing boot environment.
+     * Required role: BOOT_ENV_WRITE
+     *
+     * @param id Name of the existing boot environment to clone from.
+     * @param target Name for the new cloned boot environment.
+     * @return The newly created clone.
+     */
+    suspend fun cloneBootEnvironment(id: String, target: String): ApiResult<System.BootEnvironmentEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.BOOT_ENV_CLONE,
+            params = listOf(System.BootEnvironmentCloneArgs(id = id, target = target)),
+            resultType = System.BootEnvironmentEntry::class.java
+        )
+    }
+
+    /**
+     * Destroy a boot environment.
+     * Required role: BOOT_ENV_WRITE
+     *
+     * @param id Name of the boot environment to destroy.
+     */
+    suspend fun destroyBootEnvironment(id: String): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.BOOT_ENV_DESTROY,
+            params = listOf(System.BootEnvironmentDestroyArgs(id = id)),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Set whether a boot environment is kept (protected from automatic deletion).
+     * Required role: BOOT_ENV_WRITE
+     *
+     * @param id Name of the boot environment to modify.
+     * @param value Whether to protect this boot environment from automatic deletion.
+     * @return The updated boot environment.
+     */
+    suspend fun keepBootEnvironment(id: String, value: Boolean): ApiResult<System.BootEnvironmentEntry> {
+        return manager.callWithResult(
+            method = ApiMethods.System.BOOT_ENV_KEEP,
+            params = listOf(System.BootEnvironmentKeepArgs(id = id, value = value)),
+            resultType = System.BootEnvironmentEntry::class.java
+        )
+    }
+
+    /**
+     * Query boot environments.
+     * Required role: BOOT_ENV_READ
+     *
+     * @param filters List of filters for query results.
+     * @param options Query options including pagination, ordering and additional parameters.
+     */
+    suspend fun queryBootEnvironments(
+        filters: List<Any> = emptyList(),
+        options: System.BootEnvironmentQueryOptions = System.BootEnvironmentQueryOptions()
+    ): ApiResult<List<System.BootEnvironmentQueryResultItem>> {
+        val resultType = Types.newParameterizedType(
+            List::class.java,
+            System.BootEnvironmentQueryResultItem::class.java
+        )
+        return manager.callWithResult(
+            method = ApiMethods.System.BOOT_ENV_QUERY,
+            params = listOf(filters, options),
+            resultType = resultType
         )
     }
 
