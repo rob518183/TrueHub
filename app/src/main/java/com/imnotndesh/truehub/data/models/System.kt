@@ -58,7 +58,48 @@ object System {
         val system_manufacturer: String?,
 
         @field:Json("ecc_memory")
-        val ecc_memory: Boolean
+        val ecc_memory: Boolean,
+
+        @field:Json("uptime_seconds")
+        val uptime_seconds: Double? = null
+    )
+
+    /** Values returned by system.state. */
+    enum class SystemState(val apiValue: String) {
+        BOOTING("BOOTING"),
+        READY("READY"),
+        SHUTTING_DOWN("SHUTTING_DOWN");
+
+        companion object {
+            fun fromApi(value: String?): SystemState? = entries.firstOrNull { it.apiValue == value }
+        }
+    }
+
+    /** Values returned by system.product_type. */
+    enum class ProductType(val apiValue: String) {
+        COMMUNITY_EDITION("COMMUNITY_EDITION"),
+        ENTERPRISE("ENTERPRISE");
+
+        companion object {
+            fun fromApi(value: String?): ProductType? = entries.firstOrNull { it.apiValue == value }
+        }
+    }
+
+    /** Valid feature names accepted by system.feature_enabled. */
+    enum class FeatureName(val apiValue: String) {
+        DEDUP("DEDUP"),
+        FIBRECHANNEL("FIBRECHANNEL"),
+        VM("VM");
+
+        companion object {
+            fun fromApi(value: String?): FeatureName? = entries.firstOrNull { it.apiValue == value }
+        }
+    }
+
+    /** Options for system.license_update. */
+    @JsonClass(generateAdapter = true)
+    data class LicenseUpdateArgs(
+        @field:Json(name = "license") val license: String
     )
 
     // Jobs Stuff

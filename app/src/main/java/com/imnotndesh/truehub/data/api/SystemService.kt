@@ -14,6 +14,160 @@ class SystemService(val manager: TrueNASApiManager){
             resultType = System.SystemInfo::class.java
         )
     }
+
+    /**
+     * Returns a unique boot identifier, unique for every system boot.
+     */
+    suspend fun getBootId(): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_BOOT_ID,
+            params = emptyList(),
+            resultType = String::class.java
+        )
+    }
+
+    /**
+     * Returns a hex string generated from /etc/hostid, permanent across reboots.
+     * Required role: READONLY_ADMIN
+     */
+    suspend fun getHostId(): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_HOST_ID,
+            params = emptyList(),
+            resultType = String::class.java
+        )
+    }
+
+    /**
+     * Returns the current system state (BOOTING / READY / SHUTTING_DOWN).
+     * Required role: SYSTEM_GENERAL_READ
+     */
+    suspend fun getSystemState(): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_STATE,
+            params = emptyList(),
+            resultType = String::class.java
+        )
+    }
+
+    /**
+     * Returns whether the system completed boot and is ready to use.
+     * Required role: SYSTEM_GENERAL_READ
+     */
+    suspend fun isSystemReady(): ApiResult<Boolean> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_READY,
+            params = emptyList(),
+            resultType = Boolean::class.java
+        )
+    }
+
+    /**
+     * Returns the full software version string.
+     */
+    suspend fun getSystemVersion(): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_VERSION,
+            params = emptyList(),
+            resultType = String::class.java
+        )
+    }
+
+    /**
+     * Returns the short software version string.
+     */
+    suspend fun getSystemVersionShort(): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_VERSION_SHORT,
+            params = emptyList(),
+            resultType = String::class.java
+        )
+    }
+
+    /**
+     * Returns the type of the product (COMMUNITY_EDITION / ENTERPRISE).
+     * Required role: SYSTEM_PRODUCT_READ
+     */
+    suspend fun getProductType(): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_PRODUCT_TYPE,
+            params = emptyList(),
+            resultType = String::class.java
+        )
+    }
+
+    /**
+     * Returns whether the given feature is enabled on this system.
+     * Required role: SYSTEM_PRODUCT_READ
+     *
+     * @param feature One of DEDUP, FIBRECHANNEL, VM.
+     */
+    suspend fun isFeatureEnabled(feature: String): ApiResult<Boolean> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_FEATURE_ENABLED,
+            params = listOf(feature),
+            resultType = Boolean::class.java
+        )
+    }
+
+    /**
+     * Returns the release notes URL for a version of SCALE. Pass null for the
+     * currently installed version. Required role: SYSTEM_PRODUCT_READ
+     */
+    suspend fun getReleaseNotesUrl(versionStr: String? = null): ApiResult<String> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_RELEASE_NOTES_URL,
+            params = listOf(versionStr),
+            resultType = String::class.java
+        )
+    }
+
+    /**
+     * Updates the license file. Returns null on success.
+     * Required role: SYSTEM_PRODUCT_WRITE
+     */
+    suspend fun updateLicense(license: String): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_LICENSE_UPDATE,
+            params = listOf(System.LicenseUpdateArgs(license = license)),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Downloads a debug file. This is a job and MUST be used with core.download.
+     * Required role: READONLY_ADMIN
+     */
+    suspend fun downloadDebug(): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_DEBUG,
+            params = emptyList(),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Reboots the operating system. This is a job.
+     */
+    suspend fun rebootSystem(reason: String = ""): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_REBOOT,
+            params = listOf(reason),
+            resultType = Any::class.java
+        )
+    }
+
+    /**
+     * Returns information about the pending reboot.
+     */
+    suspend fun rebootInfo(): ApiResult<Any> {
+        return manager.callWithResult(
+            method = ApiMethods.System.SYSTEM_REBOOT_INFO,
+            params = emptyList(),
+            resultType = Any::class.java
+        )
+    }
+
     // Shutdown Call
     suspend fun shutdownSystemWithResult(reason: String): ApiResult<Any>{
         return manager.callWithResult(
