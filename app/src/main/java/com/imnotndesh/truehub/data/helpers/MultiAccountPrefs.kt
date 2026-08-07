@@ -134,7 +134,7 @@ object MultiAccountPrefs {
                 LoginMethod.API_KEY -> {
                     apiKey?.let { prefs[getCredentialKey(accountId, "api_key")] = it }
                 }
-                LoginMethod.PASSWORD -> {
+                LoginMethod.PASSWORD, LoginMethod.TOTP -> {
                     username?.let { prefs[getCredentialKey(accountId, "username")] = it }
                     password?.let { prefs[getCredentialKey(accountId, "password")] = it }
                 }
@@ -154,7 +154,7 @@ object MultiAccountPrefs {
                 val apiKey = prefs[getCredentialKey(accountId, "api_key")]
                 apiKey to null
             }
-            LoginMethod.PASSWORD -> {
+            LoginMethod.PASSWORD, LoginMethod.TOTP -> {
                 val username = prefs[getCredentialKey(accountId, "username")]
                 val password = prefs[getCredentialKey(accountId, "password")]
                 username to password

@@ -86,7 +86,7 @@ class CancelJobWorker(
                         }
                         manager.auth.loginWithApiKeyWithResult(credentialPrimary)
                     }
-                    LoginMethod.PASSWORD -> {
+                    LoginMethod.PASSWORD, LoginMethod.TOTP -> {
                         if (credentialPrimary.isNullOrBlank() || credentialSecondary.isNullOrBlank()) {
                             client.disconnect(); return@withContext Result.failure()
                         }

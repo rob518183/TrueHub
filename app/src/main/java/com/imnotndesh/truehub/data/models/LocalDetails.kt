@@ -30,7 +30,8 @@ data class SavedAccount(
 
 enum class LoginMethod {
     PASSWORD,
-    API_KEY
+    API_KEY,
+    TOTP
 }
 
 /**

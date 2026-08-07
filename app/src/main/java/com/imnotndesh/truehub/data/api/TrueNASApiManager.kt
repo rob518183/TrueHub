@@ -84,7 +84,7 @@ class TrueNASApiManager(
                     result is ApiResult.Success && result.data == true
                 }
 
-                LoginMethod.PASSWORD -> {
+                LoginMethod.PASSWORD, LoginMethod.TOTP -> {
                     if (credentialPrimary.isNullOrBlank() || credentialSecondary.isNullOrBlank()) {
                         android.util.Log.e("TrueNASApiManager", "❌ Recovery failed: Username or Password missing")
                         return false

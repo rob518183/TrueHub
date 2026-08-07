@@ -110,7 +110,7 @@ class UpgradeBottomSheetActivity : ComponentActivity() {
                 )
                 val loginResult = when (account.loginMethod) {
                     LoginMethod.API_KEY -> credentialPrimary?.let { m.auth.loginWithApiKeyWithResult(it) }
-                    LoginMethod.PASSWORD -> if (credentialPrimary != null && credentialSecondary != null) {
+                    LoginMethod.PASSWORD, LoginMethod.TOTP -> if (credentialPrimary != null && credentialSecondary != null) {
                         m.auth.loginUserWithResult(AuthService.DefaultAuth(credentialPrimary, credentialSecondary))
                     } else null
                 }

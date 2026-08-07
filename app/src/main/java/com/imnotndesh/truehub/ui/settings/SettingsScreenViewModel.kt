@@ -89,7 +89,8 @@ class SettingsScreenViewModel(
 
                         val hasCredentials = when (account.loginMethod) {
                             com.imnotndesh.truehub.data.models.LoginMethod.API_KEY -> cred1 != null
-                            com.imnotndesh.truehub.data.models.LoginMethod.PASSWORD -> cred1 != null && cred2 != null
+                            com.imnotndesh.truehub.data.models.LoginMethod.PASSWORD,
+                            com.imnotndesh.truehub.data.models.LoginMethod.TOTP -> cred1 != null && cred2 != null
                         }
 
                         if (hasCredentials) {
@@ -101,7 +102,8 @@ class SettingsScreenViewModel(
                             // Prompt for credentials
                             val dialogType = when (account.loginMethod) {
                                 com.imnotndesh.truehub.data.models.LoginMethod.API_KEY -> AutoLoginDialogType.PROMPT_API_KEY
-                                com.imnotndesh.truehub.data.models.LoginMethod.PASSWORD -> AutoLoginDialogType.PROMPT_PASSWORD
+                                com.imnotndesh.truehub.data.models.LoginMethod.PASSWORD,
+                                com.imnotndesh.truehub.data.models.LoginMethod.TOTP -> AutoLoginDialogType.PROMPT_PASSWORD
                             }
                             _uiState.value = _uiState.value.copy(
                                 showAutoLoginDialog = true,

@@ -159,7 +159,7 @@ class MainViewModel : ViewModel() {
                         result is ApiResult.Success && result.data
                     } ?: false
                 }
-                LoginMethod.PASSWORD -> {
+                LoginMethod.PASSWORD, LoginMethod.TOTP -> {
                     if (cred1 != null && cred2 != null) {
                         val result = manager.auth.loginUserWithResult(
                             AuthService.DefaultAuth(cred1, cred2)

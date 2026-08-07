@@ -119,7 +119,7 @@ class AppsRefreshWorker(
                     LoginMethod.API_KEY -> cred1?.let {
                         manager.auth.loginWithApiKeyWithResult(it)
                     } ?: return@withContext Result.failure()
-                    LoginMethod.PASSWORD -> if (cred1 != null && cred2 != null) {
+                    LoginMethod.PASSWORD, LoginMethod.TOTP -> if (cred1 != null && cred2 != null) {
                         manager.auth.loginUserWithResult(AuthService.DefaultAuth(cred1, cred2))
                     } else return@withContext Result.failure()
                 }

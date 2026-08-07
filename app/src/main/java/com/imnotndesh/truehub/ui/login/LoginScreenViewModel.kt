@@ -117,7 +117,10 @@ class LoginScreenViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        isLoginSuccessful = false
+                        isLoginSuccessful = false,
+                        showOtpField = false,
+                        otpToken = "",
+                        otpUsername = ""
                     )
                 }
             }
@@ -338,10 +341,10 @@ class LoginScreenViewModel(
                                             saveBaseInfo(
                                                 application,
                                                 tokenResult.data,
-                                                "password"
+                                                "totp"
                                             )
                                             saveDetailsForAutoLogin(
-                                                application, "password", null,
+                                                application, "totp", null,
                                                 state.username, state.password,
                                                 state.saveDetailsForAutoLogin
                                             )
@@ -492,6 +495,7 @@ class LoginScreenViewModel(
         val account = existingAccount?.copy(
             loginMethod = when (method) {
                 "api_key" -> LoginMethod.API_KEY
+                "totp" -> LoginMethod.TOTP
                 else -> LoginMethod.PASSWORD
             },
             autoLoginEnabled = autoLoginEnabled,
@@ -501,6 +505,7 @@ class LoginScreenViewModel(
             username = accountUsername,
             loginMethod = when (method) {
                 "api_key" -> LoginMethod.API_KEY
+                "totp" -> LoginMethod.TOTP
                 else -> LoginMethod.PASSWORD
             },
             autoLoginEnabled = autoLoginEnabled
