@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,11 +31,11 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Tune
@@ -71,13 +73,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.Shares
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.background.WavyGradientBackground
-import com.imnotndesh.truehub.ui.components.HalfCircleGauge
+// import com.imnotndesh.truehub.ui.components.HalfCircleGauge
 import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.homepage.details.MetricType
@@ -97,14 +98,15 @@ fun HomeScreen(
     onInstanceConfigClick: () -> Unit,
     onSystemInfoClick: () -> Unit = {},
     onNavigateToPerformance: (MetricType) -> Unit,
-    onNavigateToShareInfo: (ShareType) -> Unit = {}
+    onNavigateToShareInfo: (ShareType) -> Unit = {},
+    onSearchClick: (() -> Unit)? = null
 ) {
     val viewModel: HomeViewModel = viewModel(
         factory = HomeViewModel.HomeViewModelFactory(manager, LocalContext.current.applicationContext)
     )
 
     val uiState by viewModel.uiState.collectAsState()
-    val loadAveragesState by viewModel.loadAverages.collectAsState()
+    // val loadAveragesState by viewModel.loadAverages.collectAsState()
     val isConnected by viewModel.isConnected.collectAsState()
     var showShutdownDialog by remember { mutableStateOf(false) }
     val isRefreshing = (uiState as? HomeUiState.Success)?.isRefreshing ?: false
@@ -116,11 +118,11 @@ fun HomeScreen(
             isLoading = uiState is HomeUiState.Loading,
             isRefreshing = false,
             error = null,
-            onRefresh = { viewModel.refresh() },
             onDismissError = { viewModel.refresh() },
             manager = manager,
             onNavigateToSettings = onNavigateToSettings,
-            onShutdownInvoke = { showShutdownDialog = true }
+            onShutdownInvoke = { showShutdownDialog = true },
+            onSearchClick = onSearchClick
         )
         PullToRefreshBox(
             isRefreshing = isRefreshing,
@@ -141,7 +143,7 @@ fun HomeScreen(
                     onRefresh = { viewModel.refresh() },
                     onShutdown = { reason -> viewModel.shutdownSystem(reason) },
                     isConnectedStatus = isConnected,
-                    loadAveragesState = loadAveragesState,
+                    // loadAveragesState = loadAveragesState,
                     onPoolClick = onPoolClick,
                     onDiskClick = { onDisksClick() },
                     onNavigateToShareInfo = onNavigateToShareInfo,
@@ -236,7 +238,7 @@ private fun ErrorScreen(
 private fun HomeContent(
     isConnectedStatus: Boolean,
     state: HomeUiState.Success,
-    loadAveragesState: LoadAveragesState,
+    // loadAveragesState: LoadAveragesState,
     onRefresh: () -> Unit,
     onPoolClick: (System.Pool) -> Unit,
     onShutdown: (String) -> Unit,
@@ -264,6 +266,7 @@ private fun HomeContent(
             modifier = Modifier.padding(bottom = 16.dp),
             systemUpdateVersions = state.systemUpdateVersions,
             onUpdateClick = onUpdateClick,
+            onPerformanceClick = { AppDataHolder.initialMetricType = MetricType.ALL; onNavigateToPerformance(MetricType.ALL) },
             onInstanceConfigClick = onInstanceConfigClick,
             onSystemInfoClick = onSystemInfoClick
         )
@@ -272,24 +275,25 @@ private fun HomeContent(
             AdaptiveGridLayout(
                 columnCount = columnCount,
                 state = state,
-                loadAveragesState = loadAveragesState,
-                onCpuClick = { AppDataHolder.cpuData = state.cpuData; onNavigateToPerformance(MetricType.CPU) },
-                onMemoryClick = { AppDataHolder.memoryData = state.memoryData;onNavigateToPerformance(MetricType.MEMORY) },
-                onLoadClick = { onNavigateToPerformance(MetricType.ALL)},
-                onTempClick = {AppDataHolder.temperatureData = state.temperatureData; onNavigateToPerformance(MetricType.TEMPERATURE)},
+                // loadAveragesState = loadAveragesState,
+                // onCpuClick = { AppDataHolder.cpuData = state.cpuData; onNavigateToPerformance(MetricType.CPU) },
+                // onMemoryClick = { AppDataHolder.memoryData = state.memoryData;onNavigateToPerformance(MetricType.MEMORY) },
+                // onLoadClick = { onNavigateToPerformance(MetricType.ALL)},
+                // onTempClick = {AppDataHolder.temperatureData = state.temperatureData; onNavigateToPerformance(MetricType.TEMPERATURE)},
                 onDiskClick = { AppDataHolder.disks = state.diskDetails; onDiskClick() },
                 onPoolClick = onPoolClick,
                 onSmbShareClick = { share -> onNavigateToShareInfo(ShareType.Smb(share)) },
                 onNfsShareClick = { share -> onNavigateToShareInfo(ShareType.Nfs(share)) }
             )
         } else {
-            LoadAveragesGrid(
-                loadAveragesState = loadAveragesState,
-                modifier = Modifier.padding(bottom = 16.dp),
-                onCpuClick = { AppDataHolder.cpuData = state.cpuData;onNavigateToPerformance(MetricType.CPU) },
-                onMemoryClick = {AppDataHolder.memoryData = state.memoryData; onNavigateToPerformance(MetricType.MEMORY) },
-                onTempClick = { AppDataHolder.temperatureData = state.temperatureData;onNavigateToPerformance(MetricType.TEMPERATURE) }
-            )
+            // LoadAveragesGrid commented out
+            // LoadAveragesGrid(
+            //     loadAveragesState = loadAveragesState,
+            //     modifier = Modifier.padding(bottom = 16.dp),
+            //     onCpuClick = { AppDataHolder.cpuData = state.cpuData;onNavigateToPerformance(MetricType.CPU) },
+            //     onMemoryClick = {AppDataHolder.memoryData = state.memoryData; onNavigateToPerformance(MetricType.MEMORY) },
+            //     onTempClick = { AppDataHolder.temperatureData = state.temperatureData;onNavigateToPerformance(MetricType.TEMPERATURE) }
+            // )
 
             if (state.poolDetails.isNotEmpty()) {
                 state.poolDetails.forEach { pool ->
@@ -313,11 +317,11 @@ private fun HomeContent(
 private fun AdaptiveGridLayout(
     columnCount: Int,
     state: HomeUiState.Success,
-    loadAveragesState: LoadAveragesState,
-    onCpuClick: () -> Unit,
-    onMemoryClick: () -> Unit,
-    onLoadClick: () -> Unit,
-    onTempClick: () -> Unit,
+    // loadAveragesState: LoadAveragesState,
+    // onCpuClick: () -> Unit,
+    // onMemoryClick: () -> Unit,
+    // onLoadClick: () -> Unit,
+    // onTempClick: () -> Unit,
     onDiskClick: () -> Unit,
     onPoolClick: (System.Pool) -> Unit,
     onSmbShareClick: (Shares.SmbShare) -> Unit,
@@ -326,7 +330,7 @@ private fun AdaptiveGridLayout(
     val spacing = AdaptiveLayoutHelper.getHorizontalSpacing()
 
     val sections = buildList {
-        add(SectionItem.LoadAverages(loadAveragesState, onCpuClick, onMemoryClick, onLoadClick, onTempClick))
+        // add(SectionItem.LoadAverages(loadAveragesState, onCpuClick, onMemoryClick, onLoadClick, onTempClick))
         if (state.poolDetails.isNotEmpty()) {
             state.poolDetails.forEach { pool -> add(SectionItem.StoragePool(pool, onPoolClick)) }
         } else {
@@ -344,12 +348,12 @@ private fun AdaptiveGridLayout(
         sections.forEach { section ->
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 when (section) {
-                    is SectionItem.LoadAverages -> LoadAveragesGrid(
-                        loadAveragesState = section.state,
-                        onCpuClick = section.onCpuClick,
-                        onMemoryClick = section.onMemoryClick,
-                        onTempClick = section.onTempClick
-                    )
+                    // is SectionItem.LoadAverages -> LoadAveragesGrid(
+                    //     loadAveragesState = section.state,
+                    //     onCpuClick = section.onCpuClick,
+                    //     onMemoryClick = section.onMemoryClick,
+                    //     onTempClick = section.onTempClick
+                    // )
                     is SectionItem.StoragePool -> StorageCard(pool = section.pool, onClick = { section.onPoolClick(section.pool) })
                     is SectionItem.NoStorage -> NoStorageCard()
                     is SectionItem.Shares -> SharesCard(
@@ -372,6 +376,7 @@ private fun SystemOverviewCard(
     systemVersionShort: String? = null,
     systemUpdateVersions: List<System.UpdateAvailableVersionsResponse> = emptyList(),
     onUpdateClick: () -> Unit = {},
+    onPerformanceClick: () -> Unit = {},
     onInstanceConfigClick: () -> Unit = {},
     onSystemInfoClick: () -> Unit = {}
 ) {
@@ -476,85 +481,51 @@ private fun SystemOverviewCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Row(
+                // Pills: Update (conditional) → Performance → Instance Settings → System Information
+                // Scrollable to support future additions
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    contentPadding = PaddingValues(horizontal = 0.dp)
                 ) {
-                    Surface(
-                        onClick = onInstanceConfigClick,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(50)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Tune,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                "Instance Settings",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-
+                    // Update pill — only when updates are available, shown first
                     if (systemUpdateVersions.isNotEmpty()) {
-                        Surface(
-                            onClick = onUpdateClick,
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(50)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.SystemUpdateAlt,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    "Update (${systemUpdateVersions.size})",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
+                        item {
+                            PillChip(
+                                onClick = onUpdateClick,
+                                icon = Icons.Filled.SystemUpdateAlt,
+                                label = "Update (${systemUpdateVersions.size})",
+                                tint = Color(0xFFF57C00)
+                            )
                         }
                     }
 
-                    Surface(
-                        onClick = onSystemInfoClick,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(50)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Info,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                "System Information",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                    // Performance Overview
+                    item {
+                        PillChip(
+                            onClick = onPerformanceClick,
+                            icon = Icons.Filled.Memory,
+                            label = "Performance",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    // Instance Settings
+                    item {
+                        PillChip(
+                            onClick = onInstanceConfigClick,
+                            icon = Icons.Filled.Tune,
+                            label = "Instance Settings"
+                        )
+                    }
+
+                    // System Information
+                    item {
+                        PillChip(
+                            onClick = onSystemInfoClick,
+                            icon = Icons.Filled.Info,
+                            label = "System Information"
+                        )
                     }
                 }
             }
@@ -576,6 +547,7 @@ fun String.toShortUptime(): String {
     }
 }
 
+/*
 @Composable
 private fun LoadAveragesGrid(
     loadAveragesState: LoadAveragesState,
@@ -677,6 +649,7 @@ private fun LoadAveragesGrid(
         }
     }
 }
+*/
 
 @Composable
 private fun StorageCard(modifier: Modifier = Modifier, pool: System.Pool, onClick: () -> Unit) {
@@ -911,8 +884,41 @@ fun ShutdownDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
     )
 }
 
+@Composable
+private fun PillChip(
+    onClick: () -> Unit,
+    icon: ImageVector,
+    label: String,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant
+) {
+    Surface(
+        onClick = onClick,
+        color = tint.copy(alpha = 0.12f),
+        shape = RoundedCornerShape(50)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = tint
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = tint,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
 private sealed class SectionItem {
-    data class LoadAverages(val state: LoadAveragesState, val onCpuClick: () -> Unit, val onMemoryClick: () -> Unit, val onLoadClick: () -> Unit, val onTempClick: () -> Unit) : SectionItem()
+    // data class LoadAverages(val state: LoadAveragesState, val onCpuClick: () -> Unit, val onMemoryClick: () -> Unit, val onLoadClick: () -> Unit, val onTempClick: () -> Unit) : SectionItem()
     data class StoragePool(val pool: System.Pool, val onPoolClick: (System.Pool) -> Unit) : SectionItem()
     object NoStorage : SectionItem()
     data class Shares(val smbShares: List<Shares.SmbShare>, val nfsShares: List<Shares.NfsShare>, val onSmbShareClick: (Shares.SmbShare) -> Unit, val onNfsShareClick: (Shares.NfsShare) -> Unit) : SectionItem()

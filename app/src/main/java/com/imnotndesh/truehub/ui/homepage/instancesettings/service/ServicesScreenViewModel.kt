@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.imnotndesh.truehub.data.ApiResult
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.System
+import com.imnotndesh.truehub.ui.utils.AppCache
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,9 +43,11 @@ class ServicesScreenViewModel(private val manager: TrueNASApiManager) : ViewMode
 
             when (val result = manager.system.getInstanceServices()) {
                 is ApiResult.Success -> {
+                    val sorted = result.data.sortedBy { svc -> svc.service }
+                    AppCache.updateServices(sorted)
                     _uiState.update {
                         it.copy(
-                            services = result.data.sortedBy { svc -> svc.service },
+                            services = sorted,
                             isLoading = false,
                             isRefreshing = false
                         )

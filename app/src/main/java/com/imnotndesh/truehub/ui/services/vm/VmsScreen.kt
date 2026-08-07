@@ -105,6 +105,7 @@ enum class VmFilterCategory(val label: String) {
 fun VmsScreen(
     manager: TrueNASApiManager,
     onNavigateToVmInfo: (Vm.VmQueryResponse) -> Unit = {},
+    onSearchClick: (() -> Unit)? = null,
     viewModel: VmsScreenViewModel = viewModel(
         factory = VmsScreenViewModel.VmViewModelFactory(manager)
     )
@@ -139,7 +140,8 @@ fun VmsScreen(
             error = uiState.error,
             onRefresh = { viewModel.refresh() },
             onDismissError = { viewModel.clearError() },
-            manager = manager
+            manager = manager,
+            onSearchClick = onSearchClick
         )
 
         VmFilterBar(

@@ -38,6 +38,9 @@ object AppCache {
     private val _cachedVms = MutableStateFlow<List<Vm.VmQueryResponse>>(emptyList())
     val cachedVms: StateFlow<List<Vm.VmQueryResponse>> = _cachedVms.asStateFlow()
 
+    private val _cachedServices = MutableStateFlow<List<System.ServiceQueryResponse>>(emptyList())
+    val cachedServices: StateFlow<List<System.ServiceQueryResponse>> = _cachedServices.asStateFlow()
+
     fun updateApps(apps: List<Apps.AppQueryResponse>) {
         _cachedApps.value = apps
     }
@@ -75,6 +78,10 @@ object AppCache {
 
     fun updateVms(vms: List<Vm.VmQueryResponse>) {
         _cachedVms.value = vms
+    }
+
+    fun updateServices(services: List<System.ServiceQueryResponse>) {
+        _cachedServices.value = services
     }
 
     fun clearAllCache() {

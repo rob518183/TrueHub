@@ -133,6 +133,7 @@ fun AppsScreen(
     onNavigateToUpgrade: (String) -> Unit,
     onNavigateToRollback: (String) -> Unit = {},
     onNavigateToMarketplace: () -> Unit = {},
+    onSearchClick: (() -> Unit)? = null
 ) {
     val appsScreenViewModel: AppsScreenViewModel = viewModel(
         factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
@@ -269,6 +270,7 @@ fun AppsScreen(
             error = uiState.error,
             onDismissError = { appsScreenViewModel.clearError() },
             manager = manager,
+            onSearchClick = onSearchClick,
             trailingActions = {
                 // Only Marketplace button in header
                 IconButton(

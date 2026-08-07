@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.PowerSettingsNew
@@ -42,6 +41,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,7 +75,8 @@ fun UnifiedScreenHeader(
     onBackPressed: (() -> Unit)? = null,
     onNavigateToSettings: (() -> Unit)? = null,
     onShutdownInvoke: (() -> Unit)? = null,
-    trailingActions: @Composable RowScope.() -> Unit = {}
+    trailingActions: @Composable RowScope.() -> Unit = {},
+    onSearchClick: (() -> Unit)? = null
 ) {
     var isSubtitleVisible by remember { mutableStateOf(true) }
 
@@ -156,6 +158,15 @@ fun UnifiedScreenHeader(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     trailingActions()
+
+                    if (onSearchClick != null) {
+                        ExpressiveIconButton(
+                            onClick = onSearchClick,
+                            icon = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
 
                     AlertsBellButton(manager = manager)
 

@@ -1,8 +1,7 @@
 package com.imnotndesh.truehub.ui.components
 
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -41,8 +40,8 @@ fun HalfCircleGauge(
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
-        label = "gaugeProgressAnimation"
+        animationSpec = spring(stiffness = 200f),
+        label = "gaugeProgress"
     )
 
     val trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)

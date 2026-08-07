@@ -9,8 +9,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
@@ -35,7 +37,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
@@ -114,6 +118,8 @@ import com.imnotndesh.truehub.ui.services.system.services.ServiceDetailScreen
 import com.imnotndesh.truehub.ui.services.vm.VmsScreen
 import com.imnotndesh.truehub.ui.services.vm.details.VmDataHolder
 import com.imnotndesh.truehub.ui.services.vm.details.VmInfoScreen
+import com.imnotndesh.truehub.ui.topbar.ExpressiveSearchAppBar
+import com.imnotndesh.truehub.ui.topbar.SearchResultNavigation
 import com.imnotndesh.truehub.ui.utils.AppCache
 
 
@@ -201,77 +207,116 @@ fun MainScreen(
             viewModel.clearPendingNavigation()
         }
     }
-    if (isLandscape) {
-        Row {
-            NavigationRail(
-                containerColor = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.fillMaxHeight(),
-                header = {}
-            ) {
-                navItems.forEach { item ->
-                    val selected = currentRoute == item.screen.route
-                    NavigationRailItem(
-                        selected = selected,
-                        onClick = { onNavClick(navController, item.screen.route) },
-                        label = { Text(item.title, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
-                        icon = {
-                            Crossfade(targetState = selected, label = "iconFade") { isSelected ->
-                                Icon(if (isSelected) item.selectedIcon else item.unselectedIcon, item.title)
-                            }
-                        },
-                        colors = NavigationRailItemDefaults.colors(
-                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    )
-                }
-            }
-            TrueHubNavGraph(navController = navController, manager = manager, rootNavController = rootNavController, modifier = Modifier.weight(1f))
-        }
-    } else {
-        Scaffold(
-            bottomBar = {if (currentRoute !in routesWithoutBottomBar){
-                run {
-                    NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 8.dp
-                    ) {
-                        navItems.forEach { item ->
-                            val selected = currentRoute == item.screen.route
-                            NavigationBarItem(
-                                selected = selected,
-                                onClick = { onNavClick(navController, item.screen.route) },
-                                label = {
-                                    Text(
-                                        item.title,
-                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                },
-                                icon = {
-                                    Crossfade(
-                                        targetState = selected,
-                                        label = "iconFade"
-                                    ) { isSelected ->
-                                        Icon(
-                                            if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                            item.title
-                                        )
-                                    }
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+
+    var showSearch by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isLandscape) {
+            Row {
+                NavigationRail(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.fillMaxHeight(),
+                    header = {}
+                ) {
+                    navItems.forEach { item ->
+                        val selected = currentRoute == item.screen.route
+                        NavigationRailItem(
+                            selected = selected,
+                            onClick = { onNavClick(navController, item.screen.route) },
+                            label = { Text(item.title, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
+                            icon = {
+                                Crossfade(targetState = selected, label = "iconFade") { isSelected ->
+                                    Icon(if (isSelected) item.selectedIcon else item.unselectedIcon, item.title)
+                                }
+                            },
+                            colors = NavigationRailItemDefaults.colors(
+                                indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        )
+                    }
+                }
+                TrueHubNavGraph(
+                    navController = navController,
+                    manager = manager,
+                    rootNavController = rootNavController,
+                    onSearchClick = { showSearch = true },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        } else {
+            Scaffold(
+                bottomBar = {if (currentRoute !in routesWithoutBottomBar){
+                    run {
+                        NavigationBar(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 8.dp
+                        ) {
+                            navItems.forEach { item ->
+                                val selected = currentRoute == item.screen.route
+                                NavigationBarItem(
+                                    selected = selected,
+                                    onClick = { onNavClick(navController, item.screen.route) },
+                                    label = {
+                                        Text(
+                                            item.title,
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    icon = {
+                                        Crossfade(
+                                            targetState = selected,
+                                            label = "iconFade"
+                                        ) { isSelected ->
+                                            Icon(
+                                                if (isSelected) item.selectedIcon else item.unselectedIcon,
+                                                item.title
+                                            )
+                                        }
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                )
+                            }
                         }
                     }
                 }
+                }
+            ) { innerPadding ->
+                TrueHubNavGraph(
+                    navController = navController,
+                    manager = manager,
+                    rootNavController = rootNavController,
+                    onSearchClick = { showSearch = true },
+                    modifier = Modifier.padding(innerPadding)
+                )
             }
-            }
-        ) { innerPadding ->
-            TrueHubNavGraph(navController = navController, manager = manager, rootNavController = rootNavController, modifier = Modifier.padding(innerPadding))
+        }
+
+        // Full-screen search overlay
+        if (showSearch) {
+            ExpressiveSearchAppBar(
+                title = "Search",
+                manager = manager,
+                startSearchActive = true,
+                onCloseSearch = {
+                    showSearch = false
+                    // Navigate to Home tab on search close
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onSearchResultClick = { result ->
+                    SearchResultNavigation.navigate(result, navController)
+                    showSearch = false
+                }
+            )
         }
     }
 }
@@ -281,6 +326,7 @@ private fun TrueHubNavGraph(
     navController: NavHostController,
     manager: TrueNASApiManager,
     rootNavController: NavController,
+    onSearchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -327,7 +373,8 @@ private fun TrueHubNavGraph(
                 },
                 onSystemInfoClick = {
                     navController.navigate(Screen.SystemInformationScreen.route)
-                }
+                },
+                onSearchClick = onSearchClick
             )
         }
         composable(Screen.LocalAdminSetupScreen.route) {
@@ -710,7 +757,8 @@ private fun TrueHubNavGraph(
                 onNavigateToUpgrade = { appName ->
                     navController.navigate(Screen.AppUpgrade.createRoute(appName)) },
                 onNavigateToRollback = { navController.navigate(Screen.RollbackVersion.createRoute(it)) },
-                onNavigateToMarketplace = { navController.navigate(Screen.Marketplace.route) }
+                onNavigateToMarketplace = { navController.navigate(Screen.Marketplace.route) },
+                onSearchClick = onSearchClick
             )
         }
 
@@ -840,7 +888,11 @@ private fun TrueHubNavGraph(
         }
 
         composable(Screen.Containers.route) {
-            ContainersScreen(manager = manager, onNavigateToContainerInfo = { container -> ContainerDataHolder.selectedContainer = container; navController.navigate("container_info") })
+            ContainersScreen(
+                manager = manager,
+                onNavigateToContainerInfo = { container -> ContainerDataHolder.selectedContainer = container; navController.navigate("container_info") },
+                onSearchClick = onSearchClick
+            )
         }
 
         composable(Screen.ContainerInfo.route) {
@@ -849,7 +901,11 @@ private fun TrueHubNavGraph(
         }
 
         composable(Screen.Vms.route) {
-            VmsScreen(manager = manager, onNavigateToVmInfo = { vmInfo -> VmDataHolder.selectedVm = vmInfo; navController.navigate("vm_details") })
+            VmsScreen(
+                manager = manager,
+                onNavigateToVmInfo = { vmInfo -> VmDataHolder.selectedVm = vmInfo; navController.navigate("vm_details") },
+                onSearchClick = onSearchClick
+            )
         }
 
         composable(Screen.VmDetails.route) {
