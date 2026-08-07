@@ -94,7 +94,9 @@ fun LoginScreen(
     existingManager: TrueNASApiManager?,
     navController: NavController,
     onManagerInitialized: (TrueNASApiManager) -> Unit,
-    onLoginSuccess : ()->Unit
+    onLoginSuccess : ()->Unit,
+    startInOtpMode: Boolean = false,
+    totpUsername: String? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -111,6 +113,13 @@ fun LoginScreen(
         factory = LoginViewModelFactory(existingManager, application)
     )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Enter OTP mode on cold start for TOTP users
+    LaunchedEffect(startInOtpMode, totpUsername) {
+        if (startInOtpMode && totpUsername != null) {
+            viewModel.enterOtpMode(totpUsername)
+        }
+    }
 
     // Handle manager initialization when URL is configured but manager is null
     LaunchedEffect(savedUrl, savedInsecure, localManager) {
@@ -162,6 +171,14 @@ fun LoginScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         when {
+            // OTP takes over the entire screen — no login form visible
+            localManager != null && uiState.showOtpField -> {
+                OtpFullScreen(
+                    viewModel = viewModel,
+                    uiState = uiState,
+                    onChangeServerConfig = { showSetupSheet = true }
+                )
+            }
             localManager != null -> {
                 LoginContent(
                     manager = localManager!!,
@@ -509,15 +526,8 @@ private fun LoginContent(
                     }
                 }
 
-                // ── OTP SCREEN — full replacement when TOTP is required ──
-                if (uiState.showOtpField) {
-                    OtpFullScreen(
-                        viewModel = viewModel,
-                        uiState = uiState,
-                        onChangeServerConfig = onChangeServerConfig
-                    )
-                } else {
-                    // ── Only shown when OTP is NOT active ──
+                // ── Only shown when OTP is NOT active ──
+                Spacer(modifier = Modifier.height(32.dp))
                 Button(
                     onClick = {
                         viewModel.handleEvent(LoginEvent.Login(context))
@@ -567,7 +577,6 @@ private fun LoginContent(
                 ServerInfoSection(
                     onChangeServerClick = onChangeServerConfig
                 )
-                } // end else (non-OTP)
             }
         }
     }

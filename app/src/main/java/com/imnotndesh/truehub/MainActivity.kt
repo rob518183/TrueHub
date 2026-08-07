@@ -175,6 +175,17 @@ fun MainActivityContent(
                     )
                 }
             }
+            is AppState.TotpRequired -> {
+                AppNavigation(
+                    startRoute = Screen.Login.route,
+                    navController = navController,
+                    viewModel = viewModel,
+                    manager = manager,
+                    onThemeChanged = onThemeChanged,
+                    currentTheme = currentTheme,
+                    totpUsername = (appState as AppState.TotpRequired).username
+                )
+            }
         }
 
         Box(
@@ -194,7 +205,8 @@ private fun AppNavigation(
     startRoute: String,
     navController: NavHostController,
     viewModel: MainViewModel,
-    manager: TrueNASApiManager?
+    manager: TrueNASApiManager?,
+    totpUsername: String? = null
 ) {
     val context = LocalContext.current
     val pendingNav by viewModel.pendingNavigation.collectAsState()
@@ -237,7 +249,9 @@ private fun AppNavigation(
                         popUpTo(Screen.Login.route) { inclusive = true }
                         launchSingleTop = true
                     }
-                }
+                },
+                startInOtpMode = totpUsername != null,
+                totpUsername = totpUsername
             )
         }
 

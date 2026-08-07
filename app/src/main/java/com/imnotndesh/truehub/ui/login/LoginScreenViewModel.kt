@@ -83,6 +83,16 @@ class LoginScreenViewModel(
         checkConnection()
     }
 
+    fun enterOtpMode(username: String) {
+        _uiState.update {
+            it.copy(
+                showOtpField = true,
+                otpUsername = username,
+                otpToken = ""
+            )
+        }
+    }
+
     fun handleEvent(event: LoginEvent) {
         when (event) {
             is LoginEvent.UpdateUsername -> {

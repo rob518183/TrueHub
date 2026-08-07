@@ -10,6 +10,8 @@ import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.MultiAccountPrefs
 import com.imnotndesh.truehub.data.helpers.NetworkConnectivityObserver
 import com.imnotndesh.truehub.data.models.Config.ClientConfig
+import com.imnotndesh.truehub.data.models.LoginExResult
+import com.imnotndesh.truehub.data.models.LoginMechanisms
 import com.imnotndesh.truehub.data.models.LoginMethod
 import com.imnotndesh.truehub.data.models.SavedAccount
 import com.imnotndesh.truehub.data.models.SavedServer
@@ -31,6 +33,7 @@ sealed class AppState {
     object AttemptingAutoLogin : AppState()
     data class Ready(val startRoute: String) : AppState()
     data class Error(val message: String, val fallbackRoute: String) : AppState()
+    data class TotpRequired(val username: String) : AppState()
 }
 
 class MainViewModel : ViewModel() {
@@ -85,6 +88,16 @@ class MainViewModel : ViewModel() {
                             _manager.value = manager
                             _appState.value = AppState.Ready(Screen.Main.route)
                             return@launch
+                        }
+
+                        // Token login failed — for TOTP accounts, try loginEx with saved creds
+                        if (account.loginMethod == LoginMethod.TOTP) {
+                            val totpManager = attemptTotpAutoLogin(context, server, account)
+                            if (totpManager != null) {
+                                // loginEx returned OTP_REQUIRED — TOTP username is stored in _manager for later
+                                _appState.value = AppState.TotpRequired(account.username)
+                                return@launch
+                            }
                         }
                     }
                     _appState.value = AppState.Ready(Screen.AccountSwitcher.route)
@@ -184,6 +197,51 @@ class MainViewModel : ViewModel() {
 
         } catch (_: Exception) {
             null
+        }
+    }
+
+    /**
+     * For TOTP accounts: connects to server, fires loginEx with saved password,
+     * and returns the manager ONLY if OTP_REQUIRED is returned (so we can show the OTP page).
+     * Returns null if login succeeds fully (shouldn't happen for TOTP) or fails.
+     */
+    private suspend fun attemptTotpAutoLogin(
+        context: Context,
+        server: SavedServer,
+        account: SavedAccount
+    ): TrueNASApiManager? {
+        return withTimeoutOrNull(10000.milliseconds) {
+            try {
+                val config = ClientConfig(
+                    serverUrl = server.serverUrl,
+                    insecure = server.insecure,
+                    connectionTimeoutMs = 5000,
+                    enablePing = true,
+                    enableDebugLogging = true
+                )
+                val client = TrueNASClient(config)
+                val manager = TrueNASApiManager(client, context)
+                if (!manager.connect()) return@withTimeoutOrNull null
+
+                val (cred1, cred2) = MultiAccountPrefs.getAccountCredentials(
+                    context, account.id, account.loginMethod
+                )
+                if (cred1 == null || cred2 == null) return@withTimeoutOrNull null
+
+                val mechanism = LoginMechanisms.AuthPasswordPlain(
+                    username = cred1,
+                    password = cred2,
+                    login_options = LoginMechanisms.LoginOptions(user_info = true)
+                )
+                val result = manager.auth.loginEx(mechanism, includeUserInfo = true)
+                if (result is ApiResult.Success && result.data is LoginExResult.AuthRespOTPRequired) {
+                    _manager.value = manager  // store manager so OTP page can use it
+                    return@withTimeoutOrNull manager
+                }
+                null
+            } catch (_: Exception) {
+                null
+            }
         }
     }
 
