@@ -87,12 +87,17 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.ui.Screen
 
@@ -693,19 +698,7 @@ private fun SearchResultItem(
     result: SearchResult,
     onClick: () -> Unit
 ) {
-    val icon = when (result) {
-        is SearchResult.PoolResult -> Icons.Default.Storage
-        is SearchResult.DiskResult -> Icons.Default.Storage
-        is SearchResult.ServiceResult -> Icons.Default.PlayArrow
-        is SearchResult.ShareResult -> Icons.Default.FolderShared
-        is SearchResult.SystemInfoResult -> Icons.Default.Info
-        is SearchResult.ActionResult -> Icons.Default.TouchApp
-        is SearchResult.InstalledAppResult -> Icons.Default.Apps
-        is SearchResult.MarketplaceAppResult -> Icons.Default.Storefront
-        is SearchResult.ContainerResult -> Icons.Default.Inventory
-        is SearchResult.VmResult -> Icons.Default.Computer
-        is SearchResult.NavigationResult -> Icons.Default.Search
-    }
+    val isAppResult = result is SearchResult.InstalledAppResult || result is SearchResult.MarketplaceAppResult
 
     Row(
         modifier = Modifier
@@ -714,6 +707,7 @@ private fun SearchResultItem(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Icon slot — use actual app icon for app results, fallback to vector icon
         Box(
             modifier = Modifier
                 .size(40.dp)
@@ -721,12 +715,29 @@ private fun SearchResultItem(
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(20.dp)
-            )
+            if (isAppResult) {
+                val iconUrl = when (result) {
+                    is SearchResult.InstalledAppResult -> result.app.metadata?.icon
+                    is SearchResult.MarketplaceAppResult -> result.app.icon_url
+                }
+                if (!iconUrl.isNullOrBlank()) {
+                    val context = LocalContext.current
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(iconUrl)
+                            .decoderFactory(SvgDecoder.Factory())
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "${result.title} icon",
+                        modifier = Modifier.size(36.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    AppFallbackIcon(result)
+                }
+            } else {
+                AppFallbackIcon(result)
+            }
         }
 
         Spacer(modifier = Modifier.width(14.dp))
@@ -755,6 +766,29 @@ private fun SearchResultItem(
             tint = MaterialTheme.colorScheme.outlineVariant
         )
     }
+}
+
+@Composable
+private fun AppFallbackIcon(result: SearchResult) {
+    val icon = when (result) {
+        is SearchResult.PoolResult -> Icons.Default.Storage
+        is SearchResult.DiskResult -> Icons.Default.Storage
+        is SearchResult.ServiceResult -> Icons.Default.PlayArrow
+        is SearchResult.ShareResult -> Icons.Default.FolderShared
+        is SearchResult.SystemInfoResult -> Icons.Default.Info
+        is SearchResult.ActionResult -> Icons.Default.TouchApp
+        is SearchResult.InstalledAppResult -> Icons.Default.Apps
+        is SearchResult.MarketplaceAppResult -> Icons.Default.Storefront
+        is SearchResult.ContainerResult -> Icons.Default.Inventory
+        is SearchResult.VmResult -> Icons.Default.Computer
+        is SearchResult.NavigationResult -> Icons.Default.Search
+    }
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+        modifier = Modifier.size(20.dp)
+    )
 }
 
 // ═══════════════════════════════════════════════════════════════

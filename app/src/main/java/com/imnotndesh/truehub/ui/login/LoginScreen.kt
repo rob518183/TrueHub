@@ -77,7 +77,7 @@ import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.Prefs
 import com.imnotndesh.truehub.data.models.Auth.LoginMode
 import com.imnotndesh.truehub.data.models.Config
-import com.imnotndesh.truehub.ui.background.AnimatedWavyGradientBackground
+import com.imnotndesh.truehub.ui.background.WavyGradientBackground
 import com.imnotndesh.truehub.ui.components.ToastManager
 import com.imnotndesh.truehub.ui.setup.ServerConfigBottomSheet
 import kotlinx.coroutines.launch
@@ -271,7 +271,7 @@ private fun LoginContent(
                 )
             )
     ) {
-        AnimatedWavyGradientBackground {
+        WavyGradientBackground {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -479,6 +479,74 @@ private fun LoginContent(
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+
+                // OTP field — shown when server requests 2FA
+                if (uiState.showOtpField) {
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Security,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Two-Factor Authentication",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Enter the OTP code for ${uiState.otpUsername.ifBlank { "your account" }}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = uiState.otpToken,
+                                onValueChange = { viewModel.handleEvent(LoginEvent.UpdateOtpToken(it)) },
+                                label = { Text("OTP Code") },
+                                placeholder = { Text("123456") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true,
+                                enabled = !uiState.isLoading
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = { viewModel.handleEvent(LoginEvent.SubmitOtp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !uiState.isLoading && uiState.otpToken.isNotBlank()
+                    ) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Verifying...")
+                        } else {
+                            Text("Verify OTP", fontWeight = FontWeight.Medium)
                         }
                     }
                 }
