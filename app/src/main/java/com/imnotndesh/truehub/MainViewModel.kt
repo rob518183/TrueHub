@@ -90,14 +90,12 @@ class MainViewModel : ViewModel() {
                             return@launch
                         }
 
-                        // Token login failed — for TOTP accounts, try loginEx with saved creds
-                        if (account.loginMethod == LoginMethod.TOTP) {
-                            val totpManager = attemptTotpAutoLogin(context, server, account)
-                            if (totpManager != null) {
-                                // loginEx returned OTP_REQUIRED — TOTP username is stored in _manager for later
-                                _appState.value = AppState.TotpRequired(account.username)
-                                return@launch
-                            }
+                        // Token login failed — try loginEx with saved password credentials.
+                        // This handles TOTP users where the token alone is insufficient.
+                        val totpManager = attemptTotpAutoLogin(context, server, account)
+                        if (totpManager != null) {
+                            _appState.value = AppState.TotpRequired(account.username)
+                            return@launch
                         }
                     }
                     _appState.value = AppState.Ready(Screen.AccountSwitcher.route)
