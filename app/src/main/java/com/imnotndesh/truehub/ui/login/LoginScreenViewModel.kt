@@ -84,12 +84,20 @@ class LoginScreenViewModel(
     }
 
     fun enterOtpMode(username: String) {
-        _uiState.update {
-            it.copy(
-                showOtpField = true,
-                otpUsername = username,
-                otpToken = ""
-            )
+        // Also load saved credentials so the submit flow can re-save them after OTP
+        viewModelScope.launch {
+            val (serverId, accountId) = MultiAccountPrefs.getLastUsedProfile(application) ?: return@launch
+            val account = MultiAccountPrefs.getAccount(application, accountId) ?: return@launch
+            val (savedUser, savedPass) = MultiAccountPrefs.getAccountCredentials(application, accountId, account.loginMethod)
+            _uiState.update {
+                it.copy(
+                    showOtpField = true,
+                    otpUsername = username,
+                    otpToken = "",
+                    username = savedUser ?: username,
+                    password = savedPass ?: ""
+                )
+            }
         }
     }
 

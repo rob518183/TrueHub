@@ -36,6 +36,8 @@ sealed class AppState {
     data class TotpRequired(val username: String) : AppState()
 }
 
+enum class TotpResult { OTP_REQUIRED, SUCCESS }
+
 class MainViewModel : ViewModel() {
 
     private val _appState = MutableStateFlow<AppState>(AppState.Initializing)
@@ -81,21 +83,33 @@ class MainViewModel : ViewModel() {
                     val account = MultiAccountPrefs.getAccount(context, accountId)
                     val token = MultiAccountPrefs.getTokenForLastUsed(context)
 
-                    if (server != null && account != null && token != null) {
-                        val manager = attemptLoginWithToken(context, server, account, token)
+                    if (server != null && account != null) {
+                        var manager: TrueNASApiManager? = null
 
-                        if (manager != null) {
-                            _manager.value = manager
-                            _appState.value = AppState.Ready(Screen.Main.route)
-                            return@launch
+                        // Phase 1: try saved token
+                        if (token != null) {
+                            manager = attemptLoginWithToken(context, server, account, token)
+                            if (manager != null) {
+                                _manager.value = manager
+                                _appState.value = AppState.Ready(Screen.Main.route)
+                                return@launch
+                            }
                         }
 
-                        // Token login failed — try loginEx with saved password credentials.
-                        // This handles TOTP users where the token alone is insufficient.
+                        // Phase 2: token failed or missing — try loginEx with saved password
                         val totpManager = attemptTotpAutoLogin(context, server, account)
                         if (totpManager != null) {
-                            _appState.value = AppState.TotpRequired(account.username)
-                            return@launch
+                            when (totpManager.second) {
+                                TotpResult.OTP_REQUIRED -> {
+                                    _appState.value = AppState.TotpRequired(account.username)
+                                    return@launch
+                                }
+                                TotpResult.SUCCESS -> {
+                                    _manager.value = totpManager.first
+                                    _appState.value = AppState.Ready(Screen.Main.route)
+                                    return@launch
+                                }
+                            }
                         }
                     }
                     _appState.value = AppState.Ready(Screen.AccountSwitcher.route)
@@ -199,16 +213,17 @@ class MainViewModel : ViewModel() {
     }
 
     /**
-     * For TOTP accounts: connects to server, fires loginEx with saved password,
-     * and returns the manager ONLY if OTP_REQUIRED is returned (so we can show the OTP page).
-     * Returns null if login succeeds fully (shouldn't happen for TOTP) or fails.
+     * Connects to server, fires loginEx with saved password credentials.
+     * Returns Pair(manager, TotpResult.OTP_REQUIRED) if the server asks for TOTP.
+     * Returns Pair(manager, TotpResult.SUCCESS) if login succeeds and a fresh token is generated.
+     * Returns null on any other failure.
      */
     private suspend fun attemptTotpAutoLogin(
         context: Context,
         server: SavedServer,
         account: SavedAccount
-    ): TrueNASApiManager? {
-        return withTimeoutOrNull(10000.milliseconds) {
+    ): Pair<TrueNASApiManager, TotpResult>? {
+        return withTimeoutOrNull(15000.milliseconds) {
             try {
                 val config = ClientConfig(
                     serverUrl = server.serverUrl,
@@ -232,11 +247,30 @@ class MainViewModel : ViewModel() {
                     login_options = LoginMechanisms.LoginOptions(user_info = true)
                 )
                 val result = manager.auth.loginEx(mechanism, includeUserInfo = true)
-                if (result is ApiResult.Success && result.data is LoginExResult.AuthRespOTPRequired) {
-                    _manager.value = manager  // store manager so OTP page can use it
-                    return@withTimeoutOrNull manager
+
+                when {
+                    result is ApiResult.Success && result.data is LoginExResult.AuthRespOTPRequired -> {
+                        _manager.value = manager
+                        Pair(manager, TotpResult.OTP_REQUIRED)
+                    }
+                    result is ApiResult.Success && result.data is LoginExResult.AuthRespSuccess -> {
+                        // loginEx succeeded directly — generate token and save
+                        val tokenResult = manager.auth.generateTokenWithResult()
+                        if (tokenResult is ApiResult.Success) {
+                            MultiAccountPrefs.saveCurrentSession(
+                                context, server.id, account.id, tokenResult.data
+                            )
+                            // Also save credentials to make sure they're persisted
+                            MultiAccountPrefs.saveAccountCredentials(
+                                context, account.id, account.loginMethod,
+                                username = cred1, password = cred2
+                            )
+                            _manager.value = manager
+                            Pair(manager, TotpResult.SUCCESS)
+                        } else null
+                    }
+                    else -> null
                 }
-                null
             } catch (_: Exception) {
                 null
             }
