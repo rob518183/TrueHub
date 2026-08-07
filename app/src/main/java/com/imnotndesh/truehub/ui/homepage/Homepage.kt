@@ -266,7 +266,13 @@ private fun HomeContent(
             modifier = Modifier.padding(bottom = 16.dp),
             systemUpdateVersions = state.systemUpdateVersions,
             onUpdateClick = onUpdateClick,
-            onPerformanceClick = { AppDataHolder.initialMetricType = MetricType.ALL; onNavigateToPerformance(MetricType.ALL) },
+            onPerformanceClick = {
+                AppDataHolder.cpuData = state.cpuData
+                AppDataHolder.memoryData = state.memoryData
+                AppDataHolder.temperatureData = state.temperatureData
+                AppDataHolder.initialMetricType = MetricType.ALL
+                onNavigateToPerformance(MetricType.ALL)
+            },
             onInstanceConfigClick = onInstanceConfigClick,
             onSystemInfoClick = onSystemInfoClick
         )

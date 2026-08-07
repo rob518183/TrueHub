@@ -360,11 +360,11 @@ private data class QuickAction(
 
 private val quickActions: List<QuickAction> = listOf(
     QuickAction(
-        title = "Settings",
+        title = "Instance Settings",
         icon = Icons.Default.Settings,
         result = SearchResult.NavigationResult(
-            id = "quick_settings", title = "Go to Settings", subtitle = "Navigate",
-            relevanceScore = 10f, destinationRoute = Screen.Settings.route
+            id = "quick_settings", title = "Instance Settings", subtitle = "Navigate",
+            relevanceScore = 10f, destinationRoute = Screen.InstanceConfigScreen.route
         )
     ),
     QuickAction(
@@ -711,8 +711,7 @@ private fun SearchResultItem(
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer),
+                .clip(RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (isAppResult) {

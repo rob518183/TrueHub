@@ -279,7 +279,11 @@ class SearchViewModel(
 
     fun clearSearch() {
         _searchQuery.value = ""
-        _searchState.value = SearchState()
+        _searchState.value = _searchState.value.copy(
+            query = "",
+            results = emptyList(),
+            isSearching = false
+        )
     }
 
     fun addToRecentSearches(query: String) {
