@@ -1,5 +1,6 @@
 package com.imnotndesh.truehub.ui.services.apps
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -14,7 +15,10 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,7 +43,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ClearAll
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Info
@@ -51,6 +59,11 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -58,22 +71,33 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.ToggleFloatingActionButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -87,6 +111,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
@@ -96,15 +121,19 @@ import com.imnotndesh.truehub.ui.components.LoadingScreen
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppInfoPane
 import com.imnotndesh.truehub.ui.utils.AdaptiveLayoutHelper
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppsScreen(
     manager: TrueNASApiManager,
     onNavigateToAppInfo: (Apps.AppQueryResponse) -> Unit = {},
-    onNavigateToUpgrade: (String) -> Unit = {},
+    onNavigateToUpgrade: (String) -> Unit,
     onNavigateToRollback: (String) -> Unit = {},
     onNavigateToMarketplace: () -> Unit = {},
+    onSearchClick: (() -> Unit)? = null
 ) {
     val appsScreenViewModel: AppsScreenViewModel = viewModel(
         factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager)
@@ -112,8 +141,63 @@ fun AppsScreen(
     val uiState by appsScreenViewModel.uiState.collectAsState()
     val isCompact = AdaptiveLayoutHelper.isCompact()
     val refreshState = rememberPullToRefreshState()
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val activeJobs by JobRepository.activeJobs.collectAsState()
 
-    val selectedAppForInfo by remember { mutableStateOf<Apps.AppQueryResponse?>(null) }
+    // Selection state for multiple app selection
+    var selectedAppIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var isSelectionMode by remember { mutableStateOf(false) }
+    var showUpdateAllDialog by remember { mutableStateOf(false) }
+    var showDeleteSelectedDialog by remember { mutableStateOf(false) }
+    var fabMenuExpanded by rememberSaveable { mutableStateOf(true) } // Start expanded when entering mode
+
+    var selectedAppForInfo by remember { mutableStateOf<Apps.AppQueryResponse?>(null) }
+
+    val upgradableAppsCount = remember(uiState.apps, activeJobs) {
+        uiState.apps.count { app ->
+            app.upgrade_available &&
+                    activeJobs.values.none { it.appName == app.name && it.type == "UPGRADE" && it.state !in listOf("SUCCESS", "FAILED", "ABORTED") }
+        }
+    }
+
+    var isUpdatingAll by remember { mutableStateOf(false) }
+
+    // Handle back button when in selection mode
+    BackHandler(isSelectionMode) {
+        isSelectionMode = false
+        selectedAppIds = emptySet()
+        fabMenuExpanded = false
+    }
+
+    LaunchedEffect(activeJobs, isUpdatingAll) {
+        if (isUpdatingAll) {
+            val activeUpgrades = activeJobs.values.count {
+                it.type == "UPGRADE" &&
+                        it.state !in listOf("SUCCESS", "FAILED", "ABORTED")
+            }
+
+            if (activeUpgrades == 0) {
+                delay(1000.milliseconds)
+                isUpdatingAll = false
+                appsScreenViewModel.refresh()
+            }
+        }
+    }
+
+    LaunchedEffect(isSelectionMode) {
+        if (isSelectionMode) {
+            fabMenuExpanded = true
+        }
+    }
+
+    val selectedAppsForDeletion = remember(selectedAppIds, uiState.apps) {
+        uiState.apps.filter { it.id in selectedAppIds }
+    }
+
+    val selectedAppsForUpdate = remember(selectedAppIds, uiState.apps) {
+        uiState.apps.filter { it.id in selectedAppIds && it.upgrade_available }
+    }
 
     val filteredApps by remember(uiState.apps, uiState.selectedCategory) {
         derivedStateOf {
@@ -126,16 +210,69 @@ fun AppsScreen(
         }
     }
 
+    // Update All Confirmation Dialog
+    if (showUpdateAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showUpdateAllDialog = false },
+            title = { Text("Update All Applications") },
+            text = {
+                Text(
+                    "Are you sure you want to update all $upgradableAppsCount application(s) to their latest versions?\n\n" +
+                            "This will trigger individual upgrades for each app. You can monitor progress in each app card."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showUpdateAllDialog = false
+                        isUpdatingAll = true
+                        appsScreenViewModel.upgradeAllApps(context)
+                        if (isSelectionMode) {
+                            isSelectionMode = false
+                            selectedAppIds = emptySet()
+                        }
+                    }
+                ) {
+                    Text("Update All")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUpdateAllDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Delete Selected Confirmation Dialog
+    if (showDeleteSelectedDialog && selectedAppsForDeletion.isNotEmpty()) {
+        DeleteAppsConfirmationDialog(
+            appNames = selectedAppsForDeletion.map { it.metadata?.title ?: it.name },
+            onConfirm = { options ->
+                showDeleteSelectedDialog = false
+                selectedAppsForDeletion.forEach { app ->
+                    appsScreenViewModel.deleteApp(context, app.name, options)
+                }
+                isSelectionMode = false
+                selectedAppIds = emptySet()
+                fabMenuExpanded = false
+            },
+            onDismiss = { showDeleteSelectedDialog = false }
+        )
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         UnifiedScreenHeader(
             title = "Applications",
-            subtitle = "${filteredApps.size} Applications",
+            subtitle = if (isSelectionMode) "${selectedAppIds.size} Selected" else "${filteredApps.size} Applications",
             isLoading = uiState.isLoading,
             isRefreshing = uiState.isRefreshing,
             error = uiState.error,
             onDismissError = { appsScreenViewModel.clearError() },
             manager = manager,
+            onSearchClick = onSearchClick,
             trailingActions = {
+                // Only Marketplace button in header
                 IconButton(
                     onClick = { onNavigateToMarketplace() },
                     colors = IconButtonDefaults.iconButtonColors(
@@ -202,29 +339,196 @@ fun AppsScreen(
                     }
                 }
                 else -> {
-                    if (isCompact) {
-                        AppsContent(
-                            apps = filteredApps,
-                            onStartApp = { appName -> appsScreenViewModel.startApp(appName) },
-                            onStopApp = { appName -> appsScreenViewModel.stopApp(appName) },
-                            onShowUpgradeSummary = { appName -> onNavigateToUpgrade(appName) },
-                            onRollbackClick = {onNavigateToRollback(it)},
-                            onAppInfoClick = { app -> onNavigateToAppInfo(app) },
-                            selectedApp = null,
-                            loadingSummaryForApp = uiState.isLoadingUpgradeSummaryForApp,
-                        )
-                    } else {
-                        AppsSplitPaneContent(
-                            apps = filteredApps,
-                            selectedApp = selectedAppForInfo,
-                            onStartApp = { appName -> appsScreenViewModel.startApp(appName) },
-                            loadingSummaryForApp = uiState.isLoadingUpgradeSummaryForApp,
-                            onStopApp = { appName -> appsScreenViewModel.stopApp(appName) },
-                            onShowUpgradeSummary = { appName -> onNavigateToUpgrade(appName) },
-                            onShowRollbackDialog = { appName -> onNavigateToRollback(appName) },
-                            onAppInfoClick = { app -> onNavigateToAppInfo(app) },
-                            onCloseInfoPane = { /* handle close */ }
-                        )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        if (isCompact) {
+                            AppsContent(
+                                apps = filteredApps,
+                                onStartApp = { appName -> appsScreenViewModel.startApp(appName) },
+                                onStopApp = { appName -> appsScreenViewModel.stopApp(appName) },
+                                onShowUpgradeSummary = { appName -> onNavigateToUpgrade(appName) },
+                                onRollbackClick = { onNavigateToRollback(it) },
+                                onAppInfoClick = { app -> onNavigateToAppInfo(app) },
+                                selectedApp = null,
+                                loadingSummaryForApp = uiState.isLoadingUpgradeSummaryForApp,
+                                isSelectionMode = isSelectionMode,
+                                selectedAppIds = selectedAppIds,
+                                onToggleSelection = { appId ->
+                                    selectedAppIds = if (selectedAppIds.contains(appId)) {
+                                        selectedAppIds - appId
+                                    } else {
+                                        selectedAppIds + appId
+                                    }
+                                },
+                                onLongPress = { appId ->
+                                    if (!isSelectionMode) {
+                                        isSelectionMode = true
+                                        selectedAppIds = setOf(appId)
+                                    }
+                                }
+                            )
+                        } else {
+                            AppsSplitPaneContent(
+                                apps = filteredApps,
+                                selectedApp = selectedAppForInfo,
+                                onStartApp = { appName -> appsScreenViewModel.startApp(appName) },
+                                loadingSummaryForApp = uiState.isLoadingUpgradeSummaryForApp,
+                                onStopApp = { appName -> appsScreenViewModel.stopApp(appName) },
+                                onShowUpgradeSummary = { appName -> onNavigateToUpgrade(appName) },
+                                onShowRollbackDialog = { appName -> onNavigateToRollback(appName) },
+                                onAppInfoClick = { app ->
+                                    if (isSelectionMode) {
+                                        selectedAppIds = if (selectedAppIds.contains(app.id)) {
+                                            selectedAppIds - app.id
+                                        } else {
+                                            selectedAppIds + app.id
+                                        }
+                                    } else {
+                                        selectedAppForInfo = app
+                                    }
+                                },
+                                onCloseInfoPane = { selectedAppForInfo = null },
+                                isSelectionMode = isSelectionMode,
+                                selectedAppIds = selectedAppIds,
+                                onToggleSelection = { appId ->
+                                    selectedAppIds = if (selectedAppIds.contains(appId)) {
+                                        selectedAppIds - appId
+                                    } else {
+                                        selectedAppIds + appId
+                                    }
+                                },
+                                onLongPress = { appId ->
+                                    if (!isSelectionMode) {
+                                        isSelectionMode = true
+                                        selectedAppIds = setOf(appId)
+                                    }
+                                }
+                            )
+                        }
+
+                        if (isSelectionMode) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(16.dp)
+                            ) {
+                                FloatingActionButtonMenu(
+                                    expanded = fabMenuExpanded,
+                                    button = {
+                                        ToggleFloatingActionButton(
+                                            checked = fabMenuExpanded,
+                                            onCheckedChange = { isChecked -> fabMenuExpanded = isChecked }
+                                        ) {
+                                            Icon(
+                                                imageVector = if (fabMenuExpanded) Icons.Default.Close else Icons.Default.Settings,
+                                                contentDescription = if (fabMenuExpanded) "Close menu" else "Selection Menu"
+                                            )
+                                        }
+                                    }
+                                ) {
+                                    if (selectedAppsForUpdate.isNotEmpty()) {
+                                        FloatingActionButtonMenuItem(
+                                            onClick = {
+                                                fabMenuExpanded = false
+                                                selectedAppsForUpdate.forEach { app ->
+                                                    appsScreenViewModel.upgradeApp(app.name, context, "latest", true)
+                                                }
+                                                coroutineScope.launch {
+                                                    delay(500.milliseconds)
+                                                    isSelectionMode = false
+                                                    selectedAppIds = emptySet()
+                                                }
+                                            },
+                                            icon = { Icon(Icons.Default.SystemUpdate, contentDescription = null) },
+                                            text = { Text("Update (${selectedAppsForUpdate.size})") }
+                                        )
+                                    }
+
+                                    if (selectedAppsForDeletion.isNotEmpty()) {
+                                        FloatingActionButtonMenuItem(
+                                            onClick = {
+                                                fabMenuExpanded = false
+                                                showDeleteSelectedDialog = true
+                                            },
+                                            icon = { Icon(Icons.Default.Delete, contentDescription = null) },
+                                            text = { Text("Delete (${selectedAppsForDeletion.size})") }
+                                        )
+                                    }
+
+                                    if (selectedAppIds.size < filteredApps.size) {
+                                        FloatingActionButtonMenuItem(
+                                            onClick = {
+                                                fabMenuExpanded = false
+                                                selectedAppIds = filteredApps.map { it.id }.toSet()
+                                            },
+                                            icon = { Icon(Icons.Default.DoneAll, contentDescription = null) },
+                                            text = { Text("Select All") }
+                                        )
+                                    }
+
+                                    if (selectedAppIds.isNotEmpty()) {
+                                        FloatingActionButtonMenuItem(
+                                            onClick = {
+                                                fabMenuExpanded = false
+                                                selectedAppIds = emptySet()
+                                            },
+                                            icon = { Icon(Icons.Default.ClearAll, contentDescription = null) },
+                                            text = { Text("Clear Selection") }
+                                        )
+                                    }
+
+                                    FloatingActionButtonMenuItem(
+                                        onClick = {
+                                            fabMenuExpanded = false
+                                            isSelectionMode = false
+                                            selectedAppIds = emptySet()
+                                        },
+                                        icon = { Icon(Icons.Default.Close, contentDescription = null) },
+                                        text = { Text("Cancel") }
+                                    )
+                                }
+                            }
+                        } else {
+                            if (isUpdatingAll) {
+                                FloatingActionButton(
+                                    onClick = { },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(16.dp),
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
+                            } else if (upgradableAppsCount > 0) {
+                                FloatingActionButton(
+                                    onClick = { showUpdateAllDialog = true },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(16.dp),
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                ) {
+                                    Box {
+                                        Icon(
+                                            imageVector = Icons.Default.SystemUpdate,
+                                            contentDescription = "Update All Apps"
+                                        )
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.error,
+                                            contentColor = MaterialTheme.colorScheme.onError,
+                                            modifier = Modifier.align(Alignment.TopEnd)
+                                        ) {
+                                            Text(
+                                                text = if (upgradableAppsCount > 99) "99+" else upgradableAppsCount.toString(),
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -279,7 +583,6 @@ fun AppFilterBar(
     }
 }
 
-
 @Composable
 private fun AppsSplitPaneContent(
     apps: List<Apps.AppQueryResponse>,
@@ -290,12 +593,16 @@ private fun AppsSplitPaneContent(
     onShowUpgradeSummary: (String) -> Unit,
     onShowRollbackDialog: (String) -> Unit,
     onAppInfoClick: (Apps.AppQueryResponse) -> Unit,
-    onCloseInfoPane: () -> Unit
+    onCloseInfoPane: () -> Unit,
+    isSelectionMode: Boolean = false,
+    selectedAppIds: Set<String> = emptySet(),
+    onToggleSelection: (String) -> Unit = {},
+    onLongPress: (String) -> Unit = {}
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
-                .weight(if (selectedApp != null) 0.55f else 1f)
+                .weight(if (selectedApp != null && !isSelectionMode) 0.55f else 1f)
                 .fillMaxSize()
         ) {
             AppsContent(
@@ -306,11 +613,15 @@ private fun AppsSplitPaneContent(
                 onShowUpgradeSummary = onShowUpgradeSummary,
                 onRollbackClick = onShowRollbackDialog,
                 onAppInfoClick = onAppInfoClick,
-                selectedApp = selectedApp
+                selectedApp = selectedApp,
+                isSelectionMode = isSelectionMode,
+                selectedAppIds = selectedAppIds,
+                onToggleSelection = onToggleSelection,
+                onLongPress = onLongPress
             )
         }
         AnimatedVisibility(
-            visible = selectedApp != null,
+            visible = selectedApp != null && !isSelectionMode,
             enter = slideInHorizontally(
                 initialOffsetX = { it },
                 animationSpec = spring(stiffness = Spring.StiffnessLow)
@@ -372,7 +683,11 @@ private fun AppsContent(
     onShowUpgradeSummary: (String) -> Unit,
     onRollbackClick: (String) -> Unit,
     onAppInfoClick: (Apps.AppQueryResponse) -> Unit,
-    selectedApp: Apps.AppQueryResponse?
+    selectedApp: Apps.AppQueryResponse?,
+    isSelectionMode: Boolean = false,
+    selectedAppIds: Set<String> = emptySet(),
+    onToggleSelection: (String) -> Unit = {},
+    onLongPress: (String) -> Unit = {}
 ) {
     val isCompact = AdaptiveLayoutHelper.isCompact()
     val columnCount = AdaptiveLayoutHelper.getColumnCount(
@@ -400,11 +715,13 @@ private fun AppsContent(
                         onStartApp = onStartApp,
                         onStopApp = onStopApp,
                         onShowUpgradeSummary = onShowUpgradeSummary,
-                        onRollbackClick = {
-                            onRollbackClick(it)
-                        },
+                        onRollbackClick = onRollbackClick,
                         onAppInfoClick = onAppInfoClick,
-                        isSelected = selectedApp?.id == app.id
+                        isSelected = selectedApp?.id == app.id,
+                        isSelectionMode = isSelectionMode,
+                        isChecked = selectedAppIds.contains(app.id),
+                        onToggleSelection = { onToggleSelection(app.id) },
+                        onLongPress = { onLongPress(app.id) }
                     )
                 }
             }
@@ -431,10 +748,14 @@ private fun AppsContent(
                         isLoadingSummary = app.name == loadingSummaryForApp,
                         onStartApp = onStartApp,
                         onStopApp = onStopApp,
-                        onShowUpgradeSummary = onShowUpgradeSummary,
-                        onRollbackClick = { onRollbackClick(it) },
+                        onShowUpgradeSummary = { appName -> onShowUpgradeSummary(appName)},
+                        onRollbackClick = onRollbackClick,
                         onAppInfoClick = onAppInfoClick,
-                        isSelected = selectedApp?.id == app.id
+                        isSelected = selectedApp?.id == app.id,
+                        isSelectionMode = isSelectionMode,
+                        isChecked = selectedAppIds.contains(app.id),
+                        onToggleSelection = { onToggleSelection(app.id) },
+                        onLongPress = { onLongPress(app.id) }
                     )
                 }
             }
@@ -446,7 +767,7 @@ private fun AppsContent(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun ServiceCard(
     app: Apps.AppQueryResponse,
@@ -456,7 +777,11 @@ private fun ServiceCard(
     onShowUpgradeSummary: (String) -> Unit,
     onRollbackClick: (String) -> Unit,
     onAppInfoClick: (Apps.AppQueryResponse) -> Unit,
-    isSelected: Boolean = false
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
+    isChecked: Boolean = false,
+    onToggleSelection: () -> Unit = {},
+    onLongPress: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val activeJobs by JobRepository.activeJobs.collectAsState()
@@ -467,30 +792,55 @@ private fun ServiceCard(
     val cardPadding = if (isCompact) 20.dp else 16.dp
     val cardHorizontalPadding = if (isCompact) 4.dp else 0.dp
 
-    val borderColor by animateColorAsState(
-        if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-        label = "border"
-    )
-
     Card(
         shape = RoundedCornerShape(28.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected)
-                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
-            else
-                MaterialTheme.colorScheme.surface
+
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = BorderStroke(2.dp, borderColor),
+        border = BorderStroke(
+            width = if (isSelectionMode && isChecked) 3.dp else if (isSelected) 2.dp else 0.dp,
+            color = if (isSelectionMode && isChecked || isSelected)
+                MaterialTheme.colorScheme.primary
+            else
+                Color.Transparent
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = cardHorizontalPadding)
+            .combinedClickable(
+                onClick = {
+                    if (isSelectionMode) {
+                        onToggleSelection()
+                    } else {
+                        onAppInfoClick(app)
+                    }
+                },
+                onLongClick = {
+                    onLongPress()
+                }
+            )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(cardPadding)
         ) {
+            if (isSelectionMode) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Icon(
+                        imageVector = if (isChecked) Icons.Default.Check else Icons.Default.Check,
+                        contentDescription = if (isChecked) "Selected" else "Not selected",
+                        tint = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             if (isCompact) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -841,7 +1191,6 @@ private fun UpgradeButton(
     }
 }
 
-
 @Composable
 private fun StatusChip(state: String, icon: ImageVector) {
     Surface(
@@ -934,6 +1283,7 @@ private fun getStatusColor(state: String): Color {
         else -> MaterialTheme.colorScheme.outline
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MorphingRefreshIndicator(
@@ -974,6 +1324,143 @@ fun MorphingRefreshIndicator(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DeleteAppsConfirmationDialog(
+    appNames: List<String>,
+    onConfirm: (Apps.DeleteAppOptions) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var removeImages by remember { mutableStateOf(true) }
+    var removeIxVolumes by remember { mutableStateOf(false) }
+    var forceRemoveIxVolumes by remember { mutableStateOf(false) }
+    var forceRemoveCustomApp by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Uninstall ${appNames.size} Application(s)",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Are you sure you want to uninstall:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                appNames.take(5).forEach { name ->
+                    Text(
+                        text = "• $name",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (appNames.size > 5) {
+                    Text(
+                        text = "...and ${appNames.size - 5} more",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider()
+
+                DeleteOptionToggle(
+                    title = "Remove Docker/Container Images",
+                    description = "Wipes cached containers from the system storage pool if no other apps rely on them.",
+                    checked = removeImages,
+                    onCheckedChange = { removeImages = it }
+                )
+                DeleteOptionToggle(
+                    title = "Delete ixVolumes Data",
+                    description = "Permanently deletes application persistent datasets.",
+                    checked = removeIxVolumes,
+                    onCheckedChange = { removeIxVolumes = it }
+                )
+                DeleteOptionToggle(
+                    title = "Force Remove ixVolumes Data",
+                    description = "Forces data dataset destruction even if busy.",
+                    checked = forceRemoveIxVolumes,
+                    onCheckedChange = { forceRemoveIxVolumes = it }
+                )
+                DeleteOptionToggle(
+                    title = "Force Remove Custom App Context",
+                    description = "Overrides safety validations for custom charts.",
+                    checked = forceRemoveCustomApp,
+                    onCheckedChange = { forceRemoveCustomApp = it }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onConfirm(
+                        Apps.DeleteAppOptions(
+                            remove_images = removeImages,
+                            remove_ix_volumes = removeIxVolumes,
+                            force_remove_ix_volumes = forceRemoveIxVolumes,
+                            force_remove_custom_app = forceRemoveCustomApp
+                        )
+                    )
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
+            ) {
+                Text("Uninstall Selected")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun DeleteOptionToggle(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.onError,
+                checkedTrackColor = MaterialTheme.colorScheme.error
+            )
+        )
     }
 }
 

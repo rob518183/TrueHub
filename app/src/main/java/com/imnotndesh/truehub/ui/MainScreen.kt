@@ -9,8 +9,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
@@ -35,7 +37,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
@@ -52,6 +56,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.imnotndesh.truehub.MainViewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.models.System
 import com.imnotndesh.truehub.ui.components.LoadingScreen
@@ -60,8 +65,41 @@ import com.imnotndesh.truehub.ui.homepage.dataset.DatasetExplorerScreen
 import com.imnotndesh.truehub.ui.homepage.details.DiskInfoScreen
 import com.imnotndesh.truehub.ui.homepage.details.PerformanceScreen
 import com.imnotndesh.truehub.ui.homepage.details.ShareInfoScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.InstanceConfigScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.AdvancedSystemSettingsEditScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.advanced.AdvancedSystemSettingsScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertClassesConfigScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceCreateScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServiceDetailScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.alertservice.AlertServicesListScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyCreateScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyDetailScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.apikeys.ApiKeyListScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditConfigScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditConfigViewModel
+import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditLogsScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.audit.AuditLogsViewModel
+import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootEnvironmentDetailScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootEnvironmentsScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootPoolScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.boot.BootScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsEditScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.general.GeneralSystemSettingsScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkEditScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.network.NetworkScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.service.ServicesScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.HardwareInformationScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.SoftwareInformationScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.SystemInformationScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.TrueCommandScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.systeminformation.TrueNasConnectScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.users.LocalAdminSetupScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserCreateScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserDetailScreen
+import com.imnotndesh.truehub.ui.homepage.instancesettings.users.UserListScreen
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDataHolder
 import com.imnotndesh.truehub.ui.homepage.pools.PoolDetailsScreen
+import com.imnotndesh.truehub.ui.homepage.update.SystemUpdateScreen
 import com.imnotndesh.truehub.ui.services.apps.AppsScreen
 import com.imnotndesh.truehub.ui.services.apps.AppsScreenViewModel
 import com.imnotndesh.truehub.ui.services.apps.details.appdetails.AppConfigPageValues
@@ -76,9 +114,13 @@ import com.imnotndesh.truehub.ui.services.apps.details.upgrade.UpgradeSummaryScr
 import com.imnotndesh.truehub.ui.services.containers.ContainersScreen
 import com.imnotndesh.truehub.ui.services.containers.details.ContainerDataHolder
 import com.imnotndesh.truehub.ui.services.containers.details.ContainerInfoScreen
+import com.imnotndesh.truehub.ui.services.system.services.ServiceDetailScreen
 import com.imnotndesh.truehub.ui.services.vm.VmsScreen
 import com.imnotndesh.truehub.ui.services.vm.details.VmDataHolder
 import com.imnotndesh.truehub.ui.services.vm.details.VmInfoScreen
+import com.imnotndesh.truehub.ui.topbar.ExpressiveSearchAppBar
+import com.imnotndesh.truehub.ui.topbar.SearchResultNavigation
+import com.imnotndesh.truehub.ui.utils.AppCache
 
 
 private data class NavItem(
@@ -89,7 +131,11 @@ private data class NavItem(
 )
 
 @Composable
-fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
+fun MainScreen(
+    manager: TrueNASApiManager,
+    rootNavController: NavController,
+    viewModel: MainViewModel
+) {
     val navController = rememberNavController()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -103,8 +149,40 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
             Screen.Marketplace.route,
             Screen.MarketplaceAppDetails.route,
             Screen.MarketplaceCategory.route,
-            Screen.CatalogInstall.route
-        )
+            Screen.CatalogInstall.route,
+            Screen.SystemUpdateScreen.route,
+            Screen.AlertClassesConfig.route,
+            Screen.AlertServicesList.route,
+            Screen.AlertServiceDetail.route,
+            Screen.AlertServiceCreate.route,
+            Screen.UserListScreen.route,
+            Screen.UserDetailScreen.route,
+            Screen.UserCreateScreen.route,
+            Screen.ApiKeyListScreen.route,
+            Screen.ApiKeyDetailScreen.route,
+            Screen.ApiKeyCreateScreen.route,
+            Screen.GeneralSystemSettingsScreen.route,
+            Screen.GeneralSystemSettingsEditScreen.route,
+            Screen.AdvancedSystemSettingsScreen.route,
+            Screen.AdvancedSystemSettingsEditScreen.route,
+            Screen.AuditConfigScreen.route,
+            Screen.AuditLogsScreen.route,
+            Screen.NetworkScreen.route,
+            Screen.NetworkEditScreen.route,
+            Screen.BootScreen.route,
+            Screen.BootPoolScreen.route,
+            Screen.BootEnvironmentsScreen.route,
+            Screen.BootEnvironmentDetailScreen.route,
+            Screen.SystemInformationScreen.route,
+            Screen.SoftwareInformationScreen.route,
+            Screen.HardwareInformationScreen.route,
+            Screen.TrueNasConnectScreen.route,
+            Screen.TrueCommandScreen.route,
+            Screen.InstanceConfigScreen.route,
+            Screen.ServicesScreen.route,
+            Screen.ServicesDetailScreen.route,
+            Screen.DiskInfo.route
+            )
     }
 
     val navItems = remember {
@@ -118,78 +196,127 @@ fun MainScreen(manager: TrueNASApiManager, rootNavController: NavController) {
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
-    if (isLandscape) {
-        Row {
-            NavigationRail(
-                containerColor = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.fillMaxHeight(),
-                header = {}
-            ) {
-                navItems.forEach { item ->
-                    val selected = currentRoute == item.screen.route
-                    NavigationRailItem(
-                        selected = selected,
-                        onClick = { onNavClick(navController, item.screen.route) },
-                        label = { Text(item.title, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
-                        icon = {
-                            Crossfade(targetState = selected, label = "iconFade") { isSelected ->
-                                Icon(if (isSelected) item.selectedIcon else item.unselectedIcon, item.title)
-                            }
-                        },
-                        colors = NavigationRailItemDefaults.colors(
-                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    )
-                }
+    val pendingNav by viewModel.pendingNavigation.collectAsState()
+    LaunchedEffect(pendingNav) {
+        if (pendingNav == Screen.Apps.route) {
+            navController.navigate(Screen.Apps.route) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
             }
-            TrueHubNavGraph(navController = navController, manager = manager, rootNavController = rootNavController, modifier = Modifier.weight(1f))
+            viewModel.clearPendingNavigation()
         }
-    } else {
-        Scaffold(
-            bottomBar = {if (currentRoute !in routesWithoutBottomBar){
-                run {
-                    NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 8.dp
-                    ) {
-                        navItems.forEach { item ->
-                            val selected = currentRoute == item.screen.route
-                            NavigationBarItem(
-                                selected = selected,
-                                onClick = { onNavClick(navController, item.screen.route) },
-                                label = {
-                                    Text(
-                                        item.title,
-                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                },
-                                icon = {
-                                    Crossfade(
-                                        targetState = selected,
-                                        label = "iconFade"
-                                    ) { isSelected ->
-                                        Icon(
-                                            if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                            item.title
-                                        )
-                                    }
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+    }
+
+    var showSearch by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isLandscape) {
+            Row {
+                NavigationRail(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.fillMaxHeight(),
+                    header = {}
+                ) {
+                    navItems.forEach { item ->
+                        val selected = currentRoute == item.screen.route
+                        NavigationRailItem(
+                            selected = selected,
+                            onClick = { onNavClick(navController, item.screen.route) },
+                            label = { Text(item.title, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
+                            icon = {
+                                Crossfade(targetState = selected, label = "iconFade") { isSelected ->
+                                    Icon(if (isSelected) item.selectedIcon else item.unselectedIcon, item.title)
+                                }
+                            },
+                            colors = NavigationRailItemDefaults.colors(
+                                indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        )
+                    }
+                }
+                TrueHubNavGraph(
+                    navController = navController,
+                    manager = manager,
+                    rootNavController = rootNavController,
+                    onSearchClick = { showSearch = true },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        } else {
+            Scaffold(
+                bottomBar = {if (currentRoute !in routesWithoutBottomBar){
+                    run {
+                        NavigationBar(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 8.dp
+                        ) {
+                            navItems.forEach { item ->
+                                val selected = currentRoute == item.screen.route
+                                NavigationBarItem(
+                                    selected = selected,
+                                    onClick = { onNavClick(navController, item.screen.route) },
+                                    label = {
+                                        Text(
+                                            item.title,
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    icon = {
+                                        Crossfade(
+                                            targetState = selected,
+                                            label = "iconFade"
+                                        ) { isSelected ->
+                                            Icon(
+                                                if (isSelected) item.selectedIcon else item.unselectedIcon,
+                                                item.title
+                                            )
+                                        }
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                )
+                            }
                         }
                     }
                 }
+                }
+            ) { innerPadding ->
+                TrueHubNavGraph(
+                    navController = navController,
+                    manager = manager,
+                    rootNavController = rootNavController,
+                    onSearchClick = { showSearch = true },
+                    modifier = Modifier.padding(innerPadding)
+                )
             }
-            }
-        ) { innerPadding ->
-            TrueHubNavGraph(navController = navController, manager = manager, rootNavController = rootNavController, modifier = Modifier.padding(innerPadding))
+        }
+
+        // Full-screen search overlay
+        if (showSearch) {
+            ExpressiveSearchAppBar(
+                title = "Search",
+                manager = manager,
+                startSearchActive = true,
+                onCloseSearch = {
+                    showSearch = false
+                    // Navigate to Home tab on search close
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onSearchResultClick = { result ->
+                    SearchResultNavigation.navigate(result, navController)
+                    showSearch = false
+                }
+            )
         }
     }
 }
@@ -199,6 +326,7 @@ private fun TrueHubNavGraph(
     navController: NavHostController,
     manager: TrueNASApiManager,
     rootNavController: NavController,
+    onSearchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -228,7 +356,7 @@ private fun TrueHubNavGraph(
                 },
                 onNavigateToShareInfo = { shareType ->
                     AppDataHolder.selectedShareType = shareType
-                    navController.navigate("share_info")
+                    navController.navigate(Screen.ShareInfo.route)
                 },
                 onDisksClick = {
                     navController.navigate(Screen.DiskInfo.route)
@@ -236,7 +364,344 @@ private fun TrueHubNavGraph(
                 onNavigateToPerformance = {metricType ->
                     AppDataHolder.initialMetricType = metricType
                     navController.navigate(Screen.Performance.route)
+                },
+                onUpdateClick = {
+                    navController.navigate(Screen.SystemUpdateScreen.route)
+                },
+                onInstanceConfigClick = {
+                    navController.navigate(Screen.InstanceConfigScreen.route)
+                },
+                onSystemInfoClick = {
+                    navController.navigate(Screen.SystemInformationScreen.route)
+                },
+                onSearchClick = onSearchClick
+            )
+        }
+        composable(Screen.LocalAdminSetupScreen.route) {
+            LocalAdminSetupScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.InstanceConfigScreen.route) {
+            InstanceConfigScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToGeneralSystemSettings = {
+                    navController.navigate(Screen.GeneralSystemSettingsScreen.route)
+                },
+                onNavigateToAdvancedSettings = {
+                    navController.navigate(Screen.AdvancedSystemSettingsScreen.route)
+                },
+                onNavigateToServices = {
+                    navController.navigate(Screen.ServicesScreen.route)
+                },
+                onNavigateToAlertSettings = {
+                    navController.navigate(Screen.AlertServicesList.route)
+                },
+                onNavigateToUsers = {
+                    navController.navigate(Screen.UserListScreen.route)
+                },
+                onNavigateToApiKeys = {
+                    navController.navigate(Screen.ApiKeyListScreen.route)
+                },
+                onNavigateToAuditConfig = {
+                    navController.navigate(Screen.AuditConfigScreen.route)
+                },
+                onNavigateToAuditLogs = {
+                    navController.navigate(Screen.AuditLogsScreen.route)
+                },
+                onNavigateToNetwork = {
+                    navController.navigate(Screen.NetworkScreen.route)
+                },
+                onNavigateToBoot = {
+                    navController.navigate(Screen.BootScreen.route)
+                },
+                onNavigateToSystemInformation = {
+                    navController.navigate(Screen.SystemInformationScreen.route)
+                },
+                onNavigateToTrueNasConnect = {
+                    navController.navigate(Screen.TrueNasConnectScreen.route)
+                },
+                onNavigateToTrueCommand = {
+                    navController.navigate(Screen.TrueCommandScreen.route)
                 }
+            )
+        }
+        composable(Screen.SystemInformationScreen.route) {
+            SystemInformationScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSoftwareInformation = {
+                    navController.navigate(Screen.SoftwareInformationScreen.route)
+                },
+                onNavigateToHardwareInformation = {
+                    navController.navigate(Screen.HardwareInformationScreen.route)
+                }
+            )
+        }
+        composable(Screen.SoftwareInformationScreen.route) {
+            SoftwareInformationScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.HardwareInformationScreen.route) {
+            HardwareInformationScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDisks = {
+                    navController.navigate(Screen.DiskInfo.route)
+                }
+            )
+        }
+        composable(Screen.TrueNasConnectScreen.route) {
+            TrueNasConnectScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.TrueCommandScreen.route) {
+            TrueCommandScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.BootScreen.route) {
+            BootScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToBootPool = {
+                    navController.navigate(Screen.BootPoolScreen.route)
+                },
+                onNavigateToBootEnvironments = {
+                    navController.navigate(Screen.BootEnvironmentsScreen.route)
+                }
+            )
+        }
+        composable(Screen.BootPoolScreen.route) {
+            BootPoolScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.BootEnvironmentsScreen.route) {
+            BootEnvironmentsScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDetail = { envId ->
+                    navController.navigate(Screen.BootEnvironmentDetailScreen.createRoute(envId))
+                }
+            )
+        }
+        composable(
+            Screen.BootEnvironmentDetailScreen.route,
+            arguments = listOf(navArgument("environmentId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val envId = backStackEntry.arguments?.getString("environmentId").orEmpty()
+            BootEnvironmentDetailScreen(
+                manager = manager,
+                environmentId = envId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.NetworkScreen.route) {
+            NetworkScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = {
+                    navController.navigate(Screen.NetworkEditScreen.route)
+                }
+            )
+        }
+        composable(Screen.NetworkEditScreen.route) {
+            NetworkEditScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.AuditConfigScreen.route) {
+            val vm: AuditConfigViewModel = viewModel(factory = AuditConfigViewModel.AuditConfigViewModelFactory(manager))
+            AuditConfigScreen(
+                manager = manager,
+                viewModel = vm,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.AuditLogsScreen.route) {
+            val vm: AuditLogsViewModel = viewModel(factory = AuditLogsViewModel.AuditLogsViewModelFactory(manager))
+            AuditLogsScreen(
+                manager = manager,
+                viewModel = vm,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.UserListScreen.route) {
+            UserListScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToUserDetail = { userId ->
+                    navController.navigate(Screen.UserDetailScreen.createRoute(userId))
+                },
+                onNavigateToCreateUser = {
+                    navController.navigate(Screen.UserCreateScreen.route)
+                }
+            )
+        }
+        composable(Screen.ApiKeyListScreen.route) {
+            ApiKeyListScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDetail = { keyId ->
+                    navController.navigate(Screen.ApiKeyDetailScreen.createRoute(keyId))
+                },
+                onNavigateToCreate = {
+                    navController.navigate(Screen.ApiKeyCreateScreen.route)
+                }
+            )
+        }
+
+        composable(
+            route = Screen.ApiKeyDetailScreen.route,
+            arguments = listOf(navArgument("keyId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val keyId = backStackEntry.arguments?.getInt("keyId") ?: 0
+            ApiKeyDetailScreen(
+                keyId = keyId,
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.ApiKeyCreateScreen.route) {
+            ApiKeyCreateScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.GeneralSystemSettingsScreen.route) {
+            GeneralSystemSettingsScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = {
+                    navController.navigate(Screen.GeneralSystemSettingsEditScreen.route)
+                }
+            )
+        }
+
+        composable(Screen.GeneralSystemSettingsEditScreen.route) {
+            GeneralSystemSettingsEditScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onCheckinNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.AdvancedSystemSettingsScreen.route) {
+            AdvancedSystemSettingsScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = {
+                    navController.navigate(Screen.AdvancedSystemSettingsEditScreen.route)
+                }
+            )
+        }
+
+        composable(Screen.AdvancedSystemSettingsEditScreen.route) {
+            AdvancedSystemSettingsEditScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.UserDetailScreen.route,
+            arguments = listOf(navArgument("userId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+            UserDetailScreen(
+                userId = userId,
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.UserCreateScreen.route) {
+            UserCreateScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.ServicesScreen.route) {
+            ServicesScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToServiceDetail = { service ->
+                    AppDataHolder.selectedService = service
+                    navController.navigate(Screen.ServicesDetailScreen.route)
+                }
+            )
+        }
+        composable(Screen.ServicesDetailScreen.route) {
+            val service = AppDataHolder.selectedService
+            if (service != null) {
+                ServiceDetailScreen(
+                    service = service,
+                    manager = manager,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+        }
+        composable(Screen.SystemUpdateScreen.route) {
+            val updateVersions by AppCache.cachedUpdateVersions.collectAsState()
+            val systemInfo by AppCache.cachedSystemInfo.collectAsState()
+
+            SystemUpdateScreen(
+                manager = manager,
+                versions = updateVersions,
+                currentVersion = systemInfo?.version,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.AlertServicesList.route) {
+            AlertServicesListScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDetail = { service ->
+                    navController.navigate(Screen.AlertServiceDetail.createRoute(service.id))
+                },
+                onNavigateToCreate = {
+                    navController.navigate(Screen.AlertServiceCreate.route)
+                },
+                onNavigateToClassesConfig = {
+                    navController.navigate(Screen.AlertClassesConfig.route)
+                }
+            )
+        }
+        composable(
+            route = Screen.AlertServiceDetail.route,
+            arguments = listOf(navArgument("serviceId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val serviceId = backStackEntry.arguments?.getInt("serviceId") ?: 0
+            AlertServiceDetailScreen(
+                serviceId = serviceId,
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.AlertServiceCreate.route) {
+            AlertServiceCreateScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.AlertClassesConfig.route) {
+            AlertClassesConfigScreen(
+                manager = manager,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.DiskInfo.route){
@@ -259,7 +724,7 @@ private fun TrueHubNavGraph(
             )
         }
 
-        composable("share_info") {
+        composable(Screen.ShareInfo.route) {
             val shareType = AppDataHolder.selectedShareType
             if (shareType != null) {
                 ShareInfoScreen(
@@ -289,9 +754,11 @@ private fun TrueHubNavGraph(
                     AppDataHolder.selectedApp = app
                     navController.navigate(Screen.AppDetailsScreen.route)
                 },
-                onNavigateToUpgrade = { appName -> navController.navigate(Screen.AppUpgrade.createRoute(appName)) },
+                onNavigateToUpgrade = { appName ->
+                    navController.navigate(Screen.AppUpgrade.createRoute(appName)) },
                 onNavigateToRollback = { navController.navigate(Screen.RollbackVersion.createRoute(it)) },
-                onNavigateToMarketplace = { navController.navigate(Screen.Marketplace.route) }
+                onNavigateToMarketplace = { navController.navigate(Screen.Marketplace.route) },
+                onSearchClick = onSearchClick
             )
         }
 
@@ -381,12 +848,25 @@ private fun TrueHubNavGraph(
             val viewModel: AppsScreenViewModel = viewModel(factory = AppsScreenViewModel.AppsScreenViewModelFactory(manager))
             val uiState by viewModel.uiState.collectAsState()
             LaunchedEffect(appName) { viewModel.clearUpgradeSummary(); viewModel.loadUpgradeSummary(appName) }
+            val currentApp = uiState.apps.find { it.name == appName }
+            val currentVersion = currentApp?.version ?: "Unknown"
+            val currentHumanVersion = currentApp?.metadata?.appVersion
             val summary = uiState.upgradeSummaryResult
             val isLoading = (uiState.isLoadingUpgradeSummaryForApp == appName) && (summary == null)
             if (isLoading) {
                 LoadingScreen("Checking upgrades...")
             } else if (summary != null) {
-                UpgradeSummaryScreen(appName = appName, summary = summary, manager = manager, onConfirmUpgrade = { viewModel.upgradeApp(appName, context) }, onNavigateBack = { navController.popBackStack() })
+                UpgradeSummaryScreen(
+                    appName = appName,
+                    summary = summary,
+                    currentVersion = currentVersion,
+                    currentHumanVersion = currentHumanVersion,
+                    manager = manager,
+                    onConfirmUpgrade = { version, backup ->
+                        viewModel.upgradeApp(appName, context, version, backup)
+                    },
+                    onNavigateBack = { navController.popBackStack() }
+                )
             } else if (uiState.error != null) {
                 LaunchedEffect(Unit) { navController.popBackStack() }
             }
@@ -408,7 +888,11 @@ private fun TrueHubNavGraph(
         }
 
         composable(Screen.Containers.route) {
-            ContainersScreen(manager = manager, onNavigateToContainerInfo = { container -> ContainerDataHolder.selectedContainer = container; navController.navigate("container_info") })
+            ContainersScreen(
+                manager = manager,
+                onNavigateToContainerInfo = { container -> ContainerDataHolder.selectedContainer = container; navController.navigate("container_info") },
+                onSearchClick = onSearchClick
+            )
         }
 
         composable(Screen.ContainerInfo.route) {
@@ -417,7 +901,11 @@ private fun TrueHubNavGraph(
         }
 
         composable(Screen.Vms.route) {
-            VmsScreen(manager = manager, onNavigateToVmInfo = { vmInfo -> VmDataHolder.selectedVm = vmInfo; navController.navigate("vm_details") })
+            VmsScreen(
+                manager = manager,
+                onNavigateToVmInfo = { vmInfo -> VmDataHolder.selectedVm = vmInfo; navController.navigate("vm_details") },
+                onSearchClick = onSearchClick
+            )
         }
 
         composable(Screen.VmDetails.route) {

@@ -10,9 +10,12 @@ import com.imnotndesh.truehub.data.TrueNASRpcException
 import com.imnotndesh.truehub.data.helpers.MultiAccountPrefs
 import com.imnotndesh.truehub.data.helpers.NetworkConnectivityObserver
 import com.imnotndesh.truehub.data.models.LoginMethod
+import com.imnotndesh.truehub.data.models.LoginExResult
+import com.imnotndesh.truehub.data.models.LoginMechanisms
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.lang.reflect.Type
+import kotlin.time.Duration.Companion.milliseconds
 
 class TrueNASApiManager(
     private val client: TrueNASClient,
@@ -32,6 +35,7 @@ class TrueNASApiManager(
     val connection : ConnectionService by lazy { ConnectionService(this) }
     val user : UserService by lazy { UserService(this) }
     val storage : StorageService by lazy { StorageService(this) }
+    val alertsService : AlertsService by lazy { AlertsService(this) }
 
     @RequiresPermission(Manifest.permission.ACCESS_NETWORK_STATE)
     suspend fun <T> callWithResult(method: String, params: List<Any?>, resultType: Type): ApiResult<T> {
@@ -53,7 +57,7 @@ class TrueNASApiManager(
                         return retryResult
                     }
                 }
-                kotlinx.coroutines.delay(500)
+                kotlinx.coroutines.delay(500.milliseconds)
             }
         }
         return ApiResult.Error("Session expired. Please login again.")
@@ -82,7 +86,7 @@ class TrueNASApiManager(
                     result is ApiResult.Success && result.data == true
                 }
 
-                LoginMethod.PASSWORD -> {
+                LoginMethod.PASSWORD, LoginMethod.TOTP -> {
                     if (credentialPrimary.isNullOrBlank() || credentialSecondary.isNullOrBlank()) {
                         android.util.Log.e("TrueNASApiManager", "❌ Recovery failed: Username or Password missing")
                         return false
@@ -120,7 +124,7 @@ class TrueNASApiManager(
             val code = (result.throwable as TrueNASRpcException).code
             if (code == 207 || code == -32001) return true
         }
-        val msg = result.message?.lowercase() ?: ""
+        val msg = result.message.lowercase()
         return msg.contains("enotauthenticated") || msg.contains("invalid session")
     }
 
@@ -139,7 +143,39 @@ class TrueNASApiManager(
                     ?: throw Exception("Account not found")
 
                 if (account.loginMethod != LoginMethod.API_KEY) {
-                    throw Exception("Recovery not supported for password-based login yet")
+                    // Try password-based recovery via loginEx
+                    val (username, password) = MultiAccountPrefs.getAccountCredentials(
+                        applicationContext, accountId, account.loginMethod
+                    )
+                    if (username == null || password == null) {
+                        throw Exception("Saved credentials not found for recovery")
+                    }
+                    val mechanism = LoginMechanisms.AuthPasswordPlain(
+                        username = username,
+                        password = password,
+                        login_options = LoginMechanisms.LoginOptions(user_info = true)
+                    )
+                    val recoveryResult = auth.loginEx(mechanism, includeUserInfo = true)
+                    if (recoveryResult is ApiResult.Success) {
+                        when (recoveryResult.data) {
+                            is LoginExResult.AuthRespSuccess -> {
+                                val tokenResult = auth.generateTokenWithResult()
+                                if (tokenResult is ApiResult.Success) {
+                                    MultiAccountPrefs.saveCurrentSession(
+                                        applicationContext, serverId, accountId, tokenResult.data
+                                    )
+                                    android.util.Log.d("TrueNASApiManager", "Recovery success via loginEx")
+                                    return
+                                }
+                            }
+                            is LoginExResult.AuthRespOTPRequired -> {
+                                // TOTP required — can't silently recover, need user interaction
+                                android.util.Log.d("TrueNASApiManager", "Recovery requires TOTP — will fall through to re-login")
+                            }
+                            else -> {}
+                        }
+                    }
+                    throw Exception("Password-based recovery failed")
                 }
 
                 val (apiKey, _) = MultiAccountPrefs.getAccountCredentials(

@@ -59,9 +59,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import kotlinx.coroutines.launch
 
 @Composable
@@ -101,7 +101,7 @@ fun SettingsScreen(
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
@@ -112,30 +112,27 @@ fun SettingsScreen(
                     )
                 )
             )
+            .padding(WindowInsets.systemBars.asPaddingValues())
     ) {
+        UnifiedScreenHeader(
+            title = "Settings",
+            subtitle = "Manage your account and preferences",
+            isLoading = uiState.isLoading,
+            isRefreshing = false,
+            error = null,
+            onDismissError = {},
+            manager = manager!!,
+            onBackPressed = onNavigateBack
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(WindowInsets.systemBars.asPaddingValues())
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp)
         ) {
-            // Header Section
-            Text(
-                text = "Settings",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = "Manage your account and preferences",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
-
-            // Section: Account
             SettingsSection(
                 title = "Account",
                 items = listOf(
@@ -158,7 +155,6 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Section: Application
             SettingsSection(
                 title = "Application",
                 items = listOf(
@@ -179,7 +175,6 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Section: Session
             SettingsSection(
                 title = "Session",
                 items = listOf(
@@ -269,7 +264,6 @@ private fun SettingsSection(
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Section Title
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
@@ -281,8 +275,6 @@ private fun SettingsSection(
                 color = MaterialTheme.colorScheme.primary
             )
         }
-
-        // Settings Cards
         items.forEach { item ->
             SettingCard(item)
         }
@@ -368,6 +360,7 @@ private fun SettingCard(item: SettingItem) {
         }
     }
 }
+
 @Composable
 fun AutoLoginConfigDialog(
     dialogType: AutoLoginDialogType,
@@ -436,7 +429,6 @@ private fun AutoLoginDialogContent(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isSaving
                 )
-                // Buttons are now exclusively here
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onCancel) { Text("Cancel") }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -467,7 +459,6 @@ private fun AutoLoginDialogContent(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isSaving
                 )
-                // Buttons are now exclusively here
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onCancel) { Text("Cancel") }
                     Spacer(modifier = Modifier.width(8.dp))

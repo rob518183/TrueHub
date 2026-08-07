@@ -6,6 +6,7 @@ import com.imnotndesh.truehub.data.ApiResult
 import com.imnotndesh.truehub.data.api.JobNotificationService
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import kotlinx.coroutines.*
+import kotlin.time.Duration.Companion.milliseconds
 
 object GlobalJobTracker {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -14,6 +15,7 @@ object GlobalJobTracker {
     fun startTracking(
         context: Context,
         manager: TrueNASApiManager,
+        type : String = "UPGRADING",
         jobId: Int,
         appName: String,
         showNotif: Boolean
@@ -30,12 +32,12 @@ object GlobalJobTracker {
                     val state = data.state
                     val isDone = state in listOf("SUCCESS", "FAILED", "ABORTED")
 
-                    JobRepository.updateJob(TrackedJob(jobId, appName, state, progress, data.progress?.description))
+                    JobRepository.updateJob(TrackedJob(jobId, appName, type,state,
+                        progress, data.progress?.description))
 
                     if (showNotif) {
                         val intent = Intent(context, JobNotificationService::class.java).apply {
-                            // Use the specific jobId as the operation routing token
-                            action = "ACTION_UPDATE_JOB_$jobId"
+                            action = "ACTION_${type}_JOB_$jobId"
                             putExtra("id", jobId)
                             putExtra("name", appName)
                             putExtra("progress", progress)
@@ -47,12 +49,12 @@ object GlobalJobTracker {
 
                     if (isDone) {
                         running = false
-                        delay(5000)
+                        delay(5000.milliseconds)
                         JobRepository.removeJob(jobId)
                         continue
                     }
                 }
-                delay(2000)
+                delay(2000.milliseconds)
             }
             jobs.remove(jobId)
         }

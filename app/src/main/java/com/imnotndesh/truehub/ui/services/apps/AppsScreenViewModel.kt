@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.collections.plus
+import kotlin.time.Duration.Companion.milliseconds
 
 enum class AppCategory(val label: String) {
     ALL("All Apps"),
@@ -130,7 +131,7 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
                         appName = appName,
                         showNotif = true
                     )
-                    delay(1500)
+                    delay(1500.milliseconds)
                     _appConfigState.update { it.copy(saveSuccess = false) }
                 }
                 is ApiResult.Error -> {
@@ -143,6 +144,73 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
         }
     }
 
+    fun upgradeAllApps(context: Context) {
+        viewModelScope.launch {
+            val appsToUpdate = _uiState.value.apps.filter { it.upgrade_available }
+            if (appsToUpdate.isEmpty()) {
+                ToastManager.showInfo("No updates available")
+                return@launch
+            }
+
+            appsToUpdate.forEach { app ->
+                upgradeAppToLatest(app.name, context)
+                delay(500.milliseconds)
+            }
+        }
+    }
+
+    private suspend fun upgradeAppToLatest(appName: String, context: Context) {
+        try {
+            when (val summaryResult = manager.apps.getUpgradeSummaryWithResult(appName, "latest")) {
+                is ApiResult.Success -> {
+                    val latestVersion = summaryResult.data.upgrade_version
+                    when (val result = manager.apps.upgradeAppWithResult(appName, latestVersion, true)) {
+                        is ApiResult.Success -> {
+                            val jobId = result.data
+                            GlobalJobTracker.startTracking(
+                                context = context.applicationContext,
+                                manager = manager,
+                                jobId = jobId,
+                                appName = appName,
+                                showNotif = true
+                            )
+                        }
+                        is ApiResult.Error -> {
+                            _uiState.update { it.copy(error = "Failed to upgrade $appName: ${result.message}") }
+                        }
+                        else -> {}
+                    }
+                }
+                is ApiResult.Error -> {
+                    _uiState.update { it.copy(error = "Failed to get latest version for $appName") }
+                }
+                else -> {}
+            }
+        } catch (e: Exception) {
+            _uiState.update { it.copy(error = "Error upgrading $appName: ${e.message}") }
+        }
+    }
+    fun deleteApp(context: Context, appName: String, options: Apps.DeleteAppOptions = Apps.DeleteAppOptions()) {
+        viewModelScope.launch {
+            when (val result = manager.apps.removeAppWithResult(appName, options)) {
+                is ApiResult.Success -> {
+                    val jobId = result.data
+                    GlobalJobTracker.startTracking(
+                        context = context,
+                        manager = manager,
+                        jobId = jobId,
+                        appName = appName,
+                        showNotif = true
+                    )
+                    refresh()
+                }
+                is ApiResult.Error -> {
+                    _uiState.update { it.copy(error = result.message) }
+                }
+                else -> {}
+            }
+        }
+    }
     fun clearAppConfigError() {
         _appConfigState.update {
             it.copy(error = null, saveFailed = false, saveError = null, saveJobId = null, saveSuccess = false)
@@ -303,11 +371,11 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
         viewModelScope.launch {
             when (val result = manager.apps.startAppWithResult(appName)) {
                 is ApiResult.Success -> {
-                    ToastManager.showSuccess("Started Container")
                     _uiState.update { it.copy(isRefreshing = true) }
                     loadApps()
                 }
                 is ApiResult.Error -> {
+                    ToastManager.showSuccess("Failed to Start Application")
                     _uiState.update { it.copy(error = if (_uiState.value.apps.isEmpty()) result.message else null) }
                 }
                 is ApiResult.Loading -> {
@@ -335,12 +403,11 @@ class AppsScreenViewModel(private val manager: TrueNASApiManager) : ViewModel() 
         }
     }
 
-    fun upgradeApp(appName: String,context: Context ) {
+    fun upgradeApp(appName: String, context: Context, version: String, backup: Boolean) {
         viewModelScope.launch {
-            when (val result = manager.apps.upgradeAppWithResult(appName)) {
+            when (val result = manager.apps.upgradeAppWithResult(appName, version, backup)) {
                 is ApiResult.Success -> {
                     val jobId = result.data
-
                     GlobalJobTracker.startTracking(
                         context = context.applicationContext,
                         manager = manager,

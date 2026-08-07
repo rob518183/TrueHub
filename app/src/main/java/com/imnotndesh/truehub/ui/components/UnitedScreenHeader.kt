@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.PowerSettingsNew
@@ -42,6 +41,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.ui.alerts.AlertsBellButton
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun UnifiedScreenHeader(
@@ -73,14 +75,15 @@ fun UnifiedScreenHeader(
     onBackPressed: (() -> Unit)? = null,
     onNavigateToSettings: (() -> Unit)? = null,
     onShutdownInvoke: (() -> Unit)? = null,
-    trailingActions: @Composable RowScope.() -> Unit = {}
+    trailingActions: @Composable RowScope.() -> Unit = {},
+    onSearchClick: (() -> Unit)? = null
 ) {
     var isSubtitleVisible by remember { mutableStateOf(true) }
 
     LaunchedEffect(subtitle) {
         isSubtitleVisible = true
         if (subtitle.contains("Welcome back", ignoreCase = true)) {
-            delay(4000)
+            delay(4000.milliseconds)
             isSubtitleVisible = false
         }
     }
@@ -115,7 +118,7 @@ fun UnifiedScreenHeader(
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        // Title Animation
+
                         AnimatedContent(
                             targetState = title,
                             transitionSpec = {
@@ -134,7 +137,7 @@ fun UnifiedScreenHeader(
                             )
                         }
 
-                        // Subtitle Animation (Visibility + Content)
+
                         AnimatedVisibility(
                             visible = isSubtitleVisible && subtitle.isNotEmpty(),
                             enter = expandVertically() + fadeIn(),
@@ -155,6 +158,15 @@ fun UnifiedScreenHeader(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     trailingActions()
+
+                    if (onSearchClick != null) {
+                        ExpressiveIconButton(
+                            onClick = onSearchClick,
+                            icon = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
 
                     AlertsBellButton(manager = manager)
 

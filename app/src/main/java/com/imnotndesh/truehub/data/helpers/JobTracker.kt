@@ -6,6 +6,7 @@ import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * A generic job state holder.
@@ -59,7 +60,7 @@ object JobTracker {
                         if (newState.state in listOf("SUCCESS", "FAILED", "ABORTED")) {
                             onComplete?.invoke(newState.state)
 
-                            delay(5000)
+                            delay(5000.milliseconds)
                             jobsStateFlow.update { it - trackingKey }
                             return
                         }
@@ -79,7 +80,7 @@ object JobTracker {
                 return
             }
             pollAttempts++
-            delay(pollIntervalMillis)
+            delay(pollIntervalMillis.milliseconds)
         }
 
 

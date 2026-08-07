@@ -55,7 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.imnotndesh.truehub.ui.background.AnimatedWavyGradientBackground
+import com.imnotndesh.truehub.ui.background.WavyGradientBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,7 +95,7 @@ fun ServerConfigBottomSheet(
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = null
     ) {
-        AnimatedWavyGradientBackground {
+        WavyGradientBackground {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

@@ -197,7 +197,7 @@ private fun AccountProfileCard(
             ) {
                 Icon(
                     imageVector = when (profile.account.loginMethod) {
-                        LoginMethod.PASSWORD -> Icons.Default.Person
+                        LoginMethod.PASSWORD, LoginMethod.TOTP -> Icons.Default.Person
                         LoginMethod.API_KEY -> Icons.Default.Key
                     },
                     contentDescription = null,
