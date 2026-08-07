@@ -248,6 +248,12 @@ private fun AppNavigation(
                     navController.navigate(Screen.Main.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                         launchSingleTop = true
+                        anim {
+                            enter = 0
+                            exit = 0
+                            popEnter = 0
+                            popExit = 0
+                        }
                     }
                 },
                 startInOtpMode = totpUsername != null,
