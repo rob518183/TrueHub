@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 data class TrackedJob(
     val jobId: Int,
     val appName: String,
+    val type : String = "UPGRADING",
     val state: String = "WAITING",
     val progress: Int = 0,
     val description: String? = null

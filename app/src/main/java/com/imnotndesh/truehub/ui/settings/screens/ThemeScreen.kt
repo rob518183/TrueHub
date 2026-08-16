@@ -2,6 +2,7 @@ package com.imnotndesh.truehub.ui.settings.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,28 +13,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.RadioButtonChecked
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,90 +40,141 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.imnotndesh.truehub.data.api.TrueNASApiManager
 import com.imnotndesh.truehub.data.helpers.Prefs
-import com.imnotndesh.truehub.ui.background.WavyGradientBackground
+import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import com.imnotndesh.truehub.ui.theme.AppTheme
+import com.imnotndesh.truehub.ui.theme.ForestDarkColors
+import com.imnotndesh.truehub.ui.theme.ForestLightColors
+import com.imnotndesh.truehub.ui.theme.LavenderDarkColors
+import com.imnotndesh.truehub.ui.theme.LavenderLightColors
+import com.imnotndesh.truehub.ui.theme.MonochromeDarkColors
+import com.imnotndesh.truehub.ui.theme.MonochromeLightColors
+import com.imnotndesh.truehub.ui.theme.OceanDarkColors
+import com.imnotndesh.truehub.ui.theme.OceanLightColors
+import com.imnotndesh.truehub.ui.theme.SunsetDarkColors
+import com.imnotndesh.truehub.ui.theme.SunsetLightColors
+import com.imnotndesh.truehub.ui.theme.TrueHubDarkColors
+import com.imnotndesh.truehub.ui.theme.TrueHubLightColors
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeScreen(
     currentTheme: AppTheme,
+    isBlackModeEnabled: Boolean,
     onThemeSelected: (AppTheme) -> Unit,
-    onNavigateBack: () -> Unit = {}
+    onBlackModeToggled: (Boolean) -> Unit,
+    onNavigateBack: () -> Unit = {},
+    manager: TrueNASApiManager?
 ) {
     val context = LocalContext.current
+    var selectedTheme by remember { mutableStateOf(currentTheme) }
+    var blackMode by remember { mutableStateOf(isBlackModeEnabled) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Theme") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        }
-    ) { paddingValues ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+    ) {
+        UnifiedScreenHeader(
+            title = "Theme",
+            subtitle = "Choose your color scheme",
+            onDismissError = {},
+            onBackPressed = onNavigateBack,
+            isLoading = false,
+            isRefreshing = false,
+            error = null,
+            manager = manager!!,
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Header Section
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(140.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                WavyGradientBackground {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Palette,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(48.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = "Choose Your Theme",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
+                Column {
+                    Text(
+                        text = "Color Scheme",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
 
-            // Theme options
-            LazyColumn(
+
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                items(AppTheme.entries.toTypedArray()) { theme ->
-                    ThemeCard(
+                AppTheme.entries.forEach { theme ->
+                    ThemePreviewCard(
                         theme = theme,
-                        isSelected = theme == currentTheme,
+                        isSelected = theme == selectedTheme,
                         onClick = {
+                            selectedTheme = theme
                             Prefs.saveTheme(context, theme)
                             onThemeSelected(theme)
+                        }
+                    )
+                }
+            }
+
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Black",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Uses less power on AMOLED screens",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = blackMode,
+                        onCheckedChange = { isChecked ->
+                            blackMode = isChecked
+                            onBlackModeToggled(isChecked)
                         }
                     )
                 }
@@ -134,104 +184,124 @@ fun ThemeScreen(
 }
 
 @Composable
-private fun ThemeCard(
+private fun ThemePreviewCard(
     theme: AppTheme,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            }
-        ),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 4.dp else 2.dp
-        )
+
+    val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+
+
+    val samplePrimary = when(theme) {
+        AppTheme.DYNAMIC -> MaterialTheme.colorScheme.primary
+        AppTheme.TRUEHUB -> if (isSystemDark) TrueHubDarkColors.primary else TrueHubLightColors.primary
+        AppTheme.OCEAN -> if (isSystemDark) OceanDarkColors.primary else OceanLightColors.primary
+        AppTheme.FOREST -> if (isSystemDark) ForestDarkColors.primary else ForestLightColors.primary
+        AppTheme.SUNSET -> if (isSystemDark) SunsetDarkColors.primary else SunsetLightColors.primary
+        AppTheme.LAVENDER -> if (isSystemDark) LavenderDarkColors.primary else LavenderLightColors.primary
+        AppTheme.MONOCHROME -> if (isSystemDark) MonochromeDarkColors.primary else MonochromeLightColors.primary
+    }
+
+    val sampleSecondary = when(theme) {
+        AppTheme.DYNAMIC -> MaterialTheme.colorScheme.secondary
+        AppTheme.TRUEHUB -> if (isSystemDark) TrueHubDarkColors.secondary else TrueHubLightColors.secondary
+        AppTheme.OCEAN -> if (isSystemDark) OceanDarkColors.secondary else OceanLightColors.secondary
+        AppTheme.FOREST -> if (isSystemDark) ForestDarkColors.secondary else ForestLightColors.secondary
+        AppTheme.SUNSET -> if (isSystemDark) SunsetDarkColors.secondary else SunsetLightColors.secondary
+        AppTheme.LAVENDER -> if (isSystemDark) LavenderDarkColors.secondary else LavenderLightColors.secondary
+        AppTheme.MONOCHROME -> if (isSystemDark) MonochromeDarkColors.secondary else MonochromeLightColors.secondary
+    }
+
+    val sampleSurface = when(theme) {
+        AppTheme.DYNAMIC -> MaterialTheme.colorScheme.surfaceVariant
+        AppTheme.TRUEHUB -> if (isSystemDark) Color(0xFF1E1E1E) else Color(0xFFEAEAEA)
+        AppTheme.OCEAN -> if (isSystemDark) Color(0xFF1A2230) else Color(0xFFE5ECF4)
+        AppTheme.FOREST -> if (isSystemDark) Color(0xFF1B221A) else Color(0xFFE6EFE5)
+        AppTheme.SUNSET -> if (isSystemDark) Color(0xFF261812) else Color(0xFFFBECE6)
+        AppTheme.LAVENDER -> if (isSystemDark) Color(0xFF211A26) else Color(0xFFF5EEFA)
+        AppTheme.MONOCHROME -> if (isSystemDark) Color(0xFF222222) else Color(0xFFEEEEEE)
+    }
+
+    Column(
+        horizontalAlignment = Alignment.Start,
+        modifier = Modifier.width(130.dp)
     ) {
-        Row(
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .height(170.dp)
+                .clickable(onClick = onClick),
+            shape = RoundedCornerShape(24.dp),
+            border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, samplePrimary) else null,
+            colors = CardDefaults.cardColors(containerColor = sampleSurface)
         ) {
-            // Theme color preview
-            Box(
+            Column(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(getThemePreviewColor(theme)),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                if (isSelected) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Selected",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
+
+                Text(
+                    text = "Abc",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = samplePrimary
+                )
+
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(samplePrimary)
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(samplePrimary.copy(alpha = 0.6f))
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) samplePrimary else sampleSecondary.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = theme.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-                Text(
-                    text = theme.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    },
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
-
-            if (isSelected) {
-                Icon(
-                    imageVector = Icons.Default.RadioButtonChecked,
-                    contentDescription = "Selected",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.RadioButtonUnchecked,
-                    contentDescription = "Not selected",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
         }
-    }
-}
 
-@Composable
-private fun getThemePreviewColor(theme: AppTheme): Color {
-    return when (theme) {
-        AppTheme.DYNAMIC -> Color(0xFF6750A4)
-        AppTheme.TRUEHUB -> Color(0xFF0061A4)
-        AppTheme.OCEAN -> Color(0xFF006494)
-        AppTheme.FOREST -> Color(0xFF3D6B3A)
-        AppTheme.SUNSET -> Color(0xFFBB3F0C)
-        AppTheme.LAVENDER -> Color(0xFF7E4FA4)
-        AppTheme.MONOCHROME -> Color(0xFF5C5C5C)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = theme.displayName,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(start = 4.dp)
+        )
     }
 }

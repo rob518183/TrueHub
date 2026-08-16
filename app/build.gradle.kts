@@ -29,14 +29,29 @@ android {
     namespace = "com.imnotndesh.truehub"
     compileSdk = 37
 
+
     defaultConfig {
-        applicationId = "com.imnotndesh.truehub"
         minSdk = 33
         targetSdk = 37
         versionCode = versionInfo.first
         versionName = versionInfo.second
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+    android.buildFeatures.buildConfig = true
+    flavorDimensions.add("store")
+
+    productFlavors {
+        create("playstore") {
+            dimension = "store"
+            applicationId = "com.imnotndesh.truehub.app"
+            buildConfigField("Boolean", "IS_PLAYSTORE_BUILD", "true")
+        }
+        create("github") {
+            dimension = "store"
+            applicationId = "com.imnotndesh.truehub"
+            buildConfigField("Boolean", "IS_PLAYSTORE_BUILD", "false")
+        }
     }
 
     buildTypes {
@@ -60,7 +75,11 @@ android {
 dependencies {
     implementation(libs.androidx.compose.material3.window.size.class1)
     implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.runtime.saveable)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.preview)
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.coil.svg)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.graphics.shapes)

@@ -582,7 +582,7 @@ private fun FlatListView(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    ds.used.value?.let { used ->
+                    ds.used!!.value?.let { used ->
                         Surface(
                             color = if (isSelected) MaterialTheme.colorScheme.primary.copy(0.2f)
                             else MaterialTheme.colorScheme.surfaceContainer,
@@ -668,7 +668,7 @@ private fun GridView(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    ds.used.value?.let {
+                    ds.used!!.value?.let {
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = it,
@@ -927,7 +927,7 @@ fun DatasetTreeItem(
                     modifier = Modifier.weight(1f)
                 )
 
-                dataset.used.value?.let { used ->
+                dataset.used!!.value?.let { used ->
                     if (used != "0" && used != "-") {
                         Spacer(Modifier.width(8.dp))
                         Surface(
@@ -1115,13 +1115,15 @@ private fun DatasetDetailsContent(
                 Icon(Icons.Default.Folder, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                 Column {
                     Text("Mount Path", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    Text(
-                        text = dataset.mountpoint,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    dataset.mountpoint?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
@@ -1140,8 +1142,8 @@ private fun DatasetDetailsContent(
             shape = RoundedCornerShape(24.dp)
         ) {
             DatasetSpaceDonutChart(
-                usedStr = dataset.used.value ?: "0B",
-                availableStr = dataset.available.value ?: "0B"
+                usedStr = dataset.used!!.value ?: "0B",
+                availableStr = dataset.available!!.value ?: "0B"
             )
         }
 
@@ -1165,7 +1167,7 @@ private fun DatasetDetailsContent(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            ParamCard("Read Only", dataset.readonly.value ?: "N/A", Modifier.weight(1f))
+            ParamCard("Read Only", dataset.readonly!!.value ?: "N/A", Modifier.weight(1f))
             ParamCard("Encrypted", if (dataset.encrypted) "Yes" else "No", Modifier.weight(1f))
         }
     }

@@ -16,12 +16,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Dashboard
@@ -38,12 +38,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,12 +57,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.imnotndesh.truehub.R
-import com.imnotndesh.truehub.ui.background.AnimatedWavyGradientBackground
-import kotlinx.coroutines.delay
 import androidx.core.net.toUri
+import com.imnotndesh.truehub.R
 import com.imnotndesh.truehub.data.api.TrueNASApiManager
+import com.imnotndesh.truehub.ui.background.AnimatedWavyGradientBackground
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @SuppressLint("UseKtx")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,13 +79,16 @@ fun AboutScreen(
 
     LaunchedEffect(tapCount) {
         if (tapCount > 0) {
-            delay(2000)
+            delay(2000.milliseconds)
             tapCount = 0
         }
     }
-
-    Scaffold(
-        topBar = {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
+        ) {
             UnifiedScreenHeader(
                 title = "About",
                 subtitle = "About",
@@ -99,15 +99,6 @@ fun AboutScreen(
                 manager = manager,
                 onBackPressed = onNavigateBack
             )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(paddingValues)
-        ) {
-            // Header Section with wavy gradient
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -122,7 +113,6 @@ fun AboutScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        // App icon with easter egg trigger
                         val rotation by animateFloatAsState(
                             targetValue = if (showEasterEgg) 360f else 0f,
                             animationSpec = tween(durationMillis = 500),
@@ -176,7 +166,6 @@ fun AboutScreen(
                 }
             }
 
-            // Content sections
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -184,7 +173,6 @@ fun AboutScreen(
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
 
-                // Features Section
                 if (showEasterEgg) {
                     AboutInfoSection(
                         title = "Secret Features",
@@ -227,14 +215,13 @@ fun AboutScreen(
                     }
                 }
 
-                // Developer Section
                 AboutInfoSection(
                     title = "Developer",
                     icon = Icons.Default.Code
                 ) {
                     DeveloperCard(
                         name = "Brian Njoroge",
-                        year = "2025"
+                        year = "2026"
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -249,7 +236,6 @@ fun AboutScreen(
                     )
                 }
 
-                // Legal Section
                 AboutInfoSection(
                     title = "Legal",
                     icon = Icons.Default.Gavel
@@ -273,7 +259,6 @@ fun AboutScreen(
                     )
                 }
 
-                // Made with love footer
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
@@ -300,7 +285,7 @@ fun AboutScreen(
                 }
             }
         }
-    }
+
 }
 @Composable
 private fun SupportButton(onClick: () -> Unit) {

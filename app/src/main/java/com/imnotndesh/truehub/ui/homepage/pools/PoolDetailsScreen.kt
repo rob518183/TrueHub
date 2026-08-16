@@ -332,7 +332,7 @@ private fun PoolInfoHeader(pool: Pool) {
                 )
 
                 Text(
-                    text = "${pool.status} • Total: ${pool.size.toGigabytesString()}",
+                    text = "${pool.status} • Total: ${pool.size!!.toGigabytesString()}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                     fontSize = 14.sp
@@ -356,9 +356,9 @@ fun Long.toGigabytesString(): String {
 
 @Composable
 private fun PoolStorageUsageCard(pool: Pool) {
-    val usedPercentage = if (pool.size > 0) (pool.allocated.toFloat() / pool.size.toFloat()) else 0f
+    val usedPercentage = pool.size?.let { if (it > 0) (pool.allocated!!.toFloat() / pool.size.toFloat()) else 0f }
     val progressColor = when {
-        usedPercentage > 0.9f -> MaterialTheme.colorScheme.error
+        usedPercentage!! > 0.9f -> MaterialTheme.colorScheme.error
         usedPercentage > 0.75f -> Color(0xFFF57C00) // Orange
         else -> MaterialTheme.colorScheme.primary
     }
@@ -372,7 +372,7 @@ private fun PoolStorageUsageCard(pool: Pool) {
     )
 
     LaunchedEffect(usedPercentage) {
-        targetProgress = usedPercentage
+        targetProgress = usedPercentage!!
     }
 
     Card(
@@ -416,12 +416,12 @@ private fun PoolStorageUsageCard(pool: Pool) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    "Used: ${pool.allocated.toGigabytesString()}",
+                    "Used: ${pool.allocated!!.toGigabytesString()}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    "Free: ${pool.free.toGigabytesString()}",
+                    "Free: ${pool.free!!.toGigabytesString()}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -537,7 +537,7 @@ private fun PoolStatusSection(pool: Pool) {
             }
         }
         Spacer(modifier = Modifier.height(12.dp))
-        PoolInfoRow("Fragmentation", pool.fragmentation)
+        PoolInfoRow("Fragmentation", pool.fragmentation!!)
         PoolInfoRow("Autotrim", pool.autotrim.value)
     }
 }

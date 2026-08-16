@@ -106,6 +106,7 @@ enum class ContainerFilterCategory(val label: String) {
 fun ContainersScreen(
     manager: TrueNASApiManager,
     onNavigateToContainerInfo: (Virt.ContainerResponse) -> Unit = {},
+    onSearchClick: (() -> Unit)? = null,
     viewModel: ContainerScreenViewModel = viewModel(
         factory = ContainerScreenViewModel.ContainerViewModelFactory(manager)
     )
@@ -142,7 +143,8 @@ fun ContainersScreen(
             error = uiState.error,
             onRefresh = { viewModel.loadContainers() },
             onDismissError = { viewModel.clearError() },
-            manager = manager
+            manager = manager,
+            onSearchClick = onSearchClick
         )
 
         ContainerFilterBar(

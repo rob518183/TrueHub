@@ -2,7 +2,12 @@ package com.imnotndesh.truehub.ui.services.apps.details.upgrade
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -10,19 +15,58 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,16 +84,20 @@ import com.imnotndesh.truehub.data.helpers.JobRepository
 import com.imnotndesh.truehub.data.models.Apps
 import com.imnotndesh.truehub.ui.components.UnifiedScreenHeader
 import dev.jeziellago.compose.markdowntext.MarkdownText
+import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun UpgradeSummaryScreen(
     appName: String,
+    currentHumanVersion: String? = null,
+    currentVersion: String,
     summary: Apps.AppUpgradeSummaryResult,
     manager: TrueNASApiManager,
-    onConfirmUpgrade: () -> Unit,
+    onConfirmUpgrade: (String, Boolean) -> Unit,
     onNavigateBack: () -> Unit
 ) {
 
@@ -62,7 +110,7 @@ fun UpgradeSummaryScreen(
 
     LaunchedEffect(isDone) {
         if (isDone) {
-            kotlinx.coroutines.delay(1800)
+            kotlinx.coroutines.delay(1800.milliseconds)
             onNavigateBack()
         }
     }
@@ -97,6 +145,8 @@ fun UpgradeSummaryScreen(
                     description = liveJob?.description,
                     isDone = isDone,
                     isFailed = isFailed,
+                    jobId = liveJob?.jobId,
+                    manager = manager,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
@@ -104,7 +154,9 @@ fun UpgradeSummaryScreen(
             } else {
                 ReviewView(
                     summary = summary,
-                    onConfirmUpgrade = onConfirmUpgrade,
+                    currentVersion = currentVersion,
+                    currentHumanVersion = currentHumanVersion,
+                    onConfirmUpgrade = {selectedVersion, backup -> onConfirmUpgrade(selectedVersion, backup)},
                     onNavigateBack = onNavigateBack,
                     modifier = Modifier
                         .fillMaxSize()
@@ -123,8 +175,12 @@ private fun UpgradingView(
     description: String?,
     isDone: Boolean,
     isFailed: Boolean,
+    jobId: Int?,
+    manager: TrueNASApiManager,
     modifier: Modifier = Modifier
 ) {
+    val scope = rememberCoroutineScope()
+    var isCancelling by remember { mutableStateOf(false) }
     val animatedProgress by animateFloatAsState(
         targetValue = progress.toFloat() / 100f,
         animationSpec = spring(
@@ -259,26 +315,61 @@ private fun UpgradingView(
             }
         }
 
-        AnimatedVisibility(visible = isFailed) {
+        AnimatedVisibility(
+            visible = !isDone && !isFailed,
+            enter = fadeIn(tween(400)),
+            exit = fadeOut(tween(300))
+        ) {
             Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = { /* onNavigateBack passed via outer scope */ },
-                shape = RoundedCornerShape(16.dp)
+            OutlinedButton(
+                onClick = {
+                    val id = jobId ?: return@OutlinedButton
+                    isCancelling = true
+                    scope.launch {
+                        manager.system.cancelJob(id)
+                    }
+                },
+                enabled = !isCancelling,
+                modifier = Modifier.height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
             ) {
-                Text("Go Back")
+                Icon(Icons.Default.Cancel, null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (isCancelling) "Cancelling..." else "Cancel Upgrade")
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun ReviewView(
     summary: Apps.AppUpgradeSummaryResult,
-    onConfirmUpgrade: () -> Unit,
+    onConfirmUpgrade: (String, Boolean) -> Unit,
+    currentVersion: String,
+    currentHumanVersion: String? = null,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val availableVersions = summary.available_versions_for_upgrade
+    val showVersionPicker = availableVersions.size > 1
+
+    val defaultVersion = summary.upgrade_version
+    var selectedVersion by remember { mutableStateOf(defaultVersion) }
+    val displayCurrentVersion = currentHumanVersion ?: currentVersion
+
+    var takeBackup by remember { mutableStateOf(true) }
+
+
+    val selectedHumanVersion = remember(selectedVersion) {
+        availableVersions.find { it.version == selectedVersion }?.version
+            ?: summary.latest_version
+    }
+
     Column(
         modifier = modifier.padding(16.dp)
     ) {
@@ -288,7 +379,6 @@ private fun ReviewView(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -296,42 +386,119 @@ private fun ReviewView(
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                ) {
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(horizontalAlignment = Alignment.Start) {
+                            Text(
+                                text = "Current",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = displayCurrentVersion,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
+                        )
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "New",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = selectedHumanVersion,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    if (showVersionPicker) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        var expanded by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { expanded = !expanded }
+                        ) {
+                            TextField(
+                                value = selectedHumanVersion,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                modifier = Modifier.menuAnchor(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ExposedDropdownMenuDefaults.textFieldColors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent
+                                ),
+                                textStyle = MaterialTheme.typography.bodyMedium
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                availableVersions.forEach { versionItem ->
+                                    DropdownMenuItem(
+                                        text = { Text(versionItem.human_version) },
+                                        onClick = {
+                                            selectedVersion = versionItem.version
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Backup checkbox
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(24.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(horizontalAlignment = Alignment.Start) {
-                        Text(
-                            text = "Current",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        )
-                        Text(
-                            text = summary.latest_human_version,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
+                    Checkbox(
+                        checked = takeBackup,
+                        onCheckedChange = { takeBackup = it }
                     )
-                    Column(horizontalAlignment = Alignment.End) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
                         Text(
-                            text = "New",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            text = "Take snapshot before upgrade",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = summary.upgrade_human_version,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            text = "Creates a ZFS snapshot that can be used for rollback",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -339,6 +506,7 @@ private fun ReviewView(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
+            // Changelog section (unchanged)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Default.Description,
@@ -396,7 +564,7 @@ private fun ReviewView(
                 Text("Cancel")
             }
             Button(
-                onClick = onConfirmUpgrade,
+                onClick = { onConfirmUpgrade(selectedVersion, takeBackup) },
                 modifier = Modifier.weight(1f).height(50.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
